@@ -1,0 +1,19 @@
+{
+  "name": "moneymate-monorepo",
+  "version": "1.0.0",
+  "description": "MoneyMate - Mobile & Web Personal Financial Management System",
+  "private": true,
+  "scripts": {
+    "start:be": "cd BE && npm run dev",
+    "start:fe": "cd FE && npm run dev",
+    "install:all": "cd BE && npm install && cd ../FE && npm install"
+  },
+  "keywords": [
+    "financial-management",
+    "express-api",
+    "react-admin",
+    "flutter-mobile"
+  ],
+  "author": "MoneyMate Team",
+  "license": "MIT"
+}
