@@ -1,40 +1,31 @@
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart';
-import '../screens/transaction_screen.dart';
-import '../screens/budget_screen.dart';
+import '../screens/splash_screen.dart';
+import '../screens/login_screen.dart';
+import '../screens/register_screen.dart';
+import 'main_navigation.dart'; // Karena se-folder di dalam 'navigation'
 
-class MainNavigationWrapper extends StatefulWidget {
-  const MainNavigationWrapper({super.key});
+class AppRouter {
+  static const String splash = '/';
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String mainNav = '/main';
 
-  @override
-  State<MainNavigationWrapper> createState() => _MainNavigationWrapperState();
-}
-
-class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    TransactionScreen(),
-    BudgetScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        backgroundColor: const Color(0xFF1E293B),
-        selectedItemColor: const Color(0xFF6366F1),
-        unselectedItemColor: Colors.white38,
-        onTap: (idx) => setState(() => _currentIndex = idx),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Beranda'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Transaksi'),
-          BottomNavigationBarItem(icon: Icon(Icons.pie_chart), label: 'Anggaran'),
-        ],
-      ),
-    );
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case splash:
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
+      case login:
+        return MaterialPageRoute(builder: (_) => const LoginScreen());
+      case register:
+        return MaterialPageRoute(builder: (_) => const RegisterScreen());
+      case mainNav:
+        return MaterialPageRoute(builder: (_) => const MainNavigationWrapper());
+      default:
+        return MaterialPageRoute(
+          builder: (_) => const Scaffold(
+            body: Center(child: Text('Halaman tidak ditemukan')),
+          ),
+        );
+    }
   }
 }
