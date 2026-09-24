@@ -6,7 +6,9 @@
   "scripts": {
     "start:be": "cd BE && npm run dev",
     "start:fe": "cd FE && npm run dev",
-    "install:all": "cd BE && npm install && cd ../FE && npm install"
+    "install:all": "cd BE && npm install && cd ../FE && npm install",
+    "dev": "cd FE && npm run dev",
+    "start": "cd FE && npm run dev"
   },
   "keywords": [
     "financial-management",
