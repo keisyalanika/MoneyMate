@@ -91,7 +91,7 @@ class DashboardScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12)),
                           child: const Text('Utama',
                               style:
@@ -126,7 +126,7 @@ class DashboardScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(20)),
                           child: const Text('lihat rincian >',
                               style:
@@ -181,7 +181,7 @@ class DashboardScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                              color: AppColors.accentOrange.withOpacity(0.15),
+                              color: AppColors.accentOrange.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6)),
                           child: const Text('BARU',
                               style: TextStyle(

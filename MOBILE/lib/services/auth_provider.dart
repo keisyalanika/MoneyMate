@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
-  String _userName = 'Keisya Exa Haniyah';
-  double _saldo = 2450000.0;
-  double _sisaBudget = 850000.0;
+  final String _userName = 'Keisya Exa Haniyah';
+  final double _saldo = 2450000.0;
+  final double _sisaBudget = 850000.0;
 
   bool get isLoggedIn => _isLoggedIn;
   String get userName => _userName;
