@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/dashboard_screen.dart';
-// Import screen tab lainnya di sini nanti jika sudah dibuat
-// import 'transaction_screen.dart';
-// import 'report_screen.dart';
-// import 'profile_screen.dart';
+import '../screens/transaction_kosong_screen.dart';
+import '../screens/laporan_screen.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
   const MainNavigationWrapper({super.key});
@@ -15,12 +13,12 @@ class MainNavigationWrapper extends StatefulWidget {
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    DashboardScreen(),
-    Center(child: Text('Halaman Transaksi')),
-    SizedBox(), // Placeholder untuk tombol tengah (+)
-    Center(child: Text('Halaman Laporan')),
-    Center(child: Text('Halaman Profil')),
+  final List<Widget> _pages = [
+    const DashboardScreen(),
+    const TransactionKosongScreen(),
+    const SizedBox(), // Placeholder untuk tombol tengah (+)
+    const LaporanScreen(),
+    const Center(child: Text('Halaman Profil')),
   ];
 
   void _showAddTransactionModal(BuildContext context) {
@@ -113,7 +111,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),

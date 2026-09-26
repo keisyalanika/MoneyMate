@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/splash_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
-import 'main_navigation.dart'; // Karena se-folder di dalam 'navigation'
+import 'main_navigation.dart';
 
 class AppRouter {
   static const String splash = '/';
