@@ -19,7 +19,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     const TransactionKosongScreen(),
     const SizedBox(), // Placeholder untuk tombol tengah (+)
     const LaporanScreen(),
-    const Center(child: Text('Halaman Profil')),
+    const ProfileScreen(),
   ];
 
   void _showAddTransactionModal(BuildContext context) {

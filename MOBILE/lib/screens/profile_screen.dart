@@ -1,8 +1,58 @@
 import 'package:flutter/material.dart';
+import '../navigation/app_router.dart';
 import '../utils/theme.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  // State profil pengguna (mudah dihubungkan ke backend / Provider nantinya)
+  String _userName = 'Keisya Exa Haniyah';
+  String _userEmail = 'keisya.haniyah@gmail.com';
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Keluar dari Akun?',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryBrown,
+            fontSize: 18,
+          ),
+        ),
+        content: const Text(
+          'Kamu harus masuk kembali untuk mengakses data keuangan MoneyMate.',
+          style: TextStyle(fontSize: 13, color: AppColors.textDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE53935),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamedAndRemoveUntil(context, AppRouter.login, (route) => false);
+            },
+            child: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,13 +94,13 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'M',
-                    style: TextStyle(
+                    _userName.isNotEmpty ? _userName[0].toUpperCase() : 'M',
+                    style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
-                      fontFamily: 'serif', // Memberikan kesan font klasik seperti di gambar
+                      fontFamily: 'serif',
                     ),
                   ),
                 ),
@@ -58,37 +108,74 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // 3. User Info
-              const Text(
-                '[Nama User]',
-                style: TextStyle(
+              Text(
+                _userName,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primaryBrown,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                '[Email User]',
-                style: TextStyle(
+              Text(
+                _userEmail,
+                style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryBrown,
                 ),
               ),
               const SizedBox(height: 32),
 
-              // 4. Grid Menu Options
+              // 4. Grid Menu Options (Navigasi ke 5 Halaman Fitur)
               Wrap(
                 spacing: 16,
                 runSpacing: 16,
                 alignment: WrapAlignment.center,
                 children: [
-                  _buildMenuCard(cardWidth, Icons.edit, 'Edit Profil'),
-                  _buildMenuCard(cardWidth, Icons.notifications, 'Notifikasi'),
-                  _buildMenuCard(cardWidth, Icons.account_balance, 'Hubungkan\nBank'),
-                  _buildMenuCard(cardWidth, Icons.security, 'Keamanan'),
-                  _buildMenuCard(cardWidth, Icons.help, 'Bantuan'),
+                  _buildMenuCard(
+                    width: cardWidth,
+                    icon: Icons.edit_rounded,
+                    title: 'Edit Profil',
+                    onTap: () async {
+                      final updated = await Navigator.pushNamed(context, AppRouter.editProfile);
+                      if (updated != null && updated is Map<String, dynamic>) {
+                        setState(() {
+                          if (updated['name'] != null && updated['name'].toString().isNotEmpty) {
+                            _userName = updated['name'];
+                          }
+                          if (updated['email'] != null && updated['email'].toString().isNotEmpty) {
+                            _userEmail = updated['email'];
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  _buildMenuCard(
+                    width: cardWidth,
+                    icon: Icons.notifications_rounded,
+                    title: 'Notifikasi',
+                    onTap: () => Navigator.pushNamed(context, AppRouter.profileNotification),
+                  ),
+                  _buildMenuCard(
+                    width: cardWidth,
+                    icon: Icons.account_balance_rounded,
+                    title: 'Hubungkan\nBank',
+                    onTap: () => Navigator.pushNamed(context, AppRouter.connectBank),
+                  ),
+                  _buildMenuCard(
+                    width: cardWidth,
+                    icon: Icons.security_rounded,
+                    title: 'Keamanan',
+                    onTap: () => Navigator.pushNamed(context, AppRouter.security),
+                  ),
+                  _buildMenuCard(
+                    width: cardWidth,
+                    icon: Icons.help_outline_rounded,
+                    title: 'Bantuan',
+                    onTap: () => Navigator.pushNamed(context, AppRouter.helpCenter),
+                  ),
                   // Kotak kosong (invisible) agar alignment Wrap tetap rapi di sebelah kiri untuk baris kedua
-                  SizedBox(width: cardWidth), 
+                  SizedBox(width: cardWidth),
                 ],
               ),
               const SizedBox(height: 32),
@@ -122,7 +209,32 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
+              const SizedBox(height: 24),
+
+              // 6. Tombol Logout Sederhana
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFEF9A9A)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.logout_rounded, color: Color(0xFFE53935), size: 18),
+                  label: const Text(
+                    'Keluar dari Akun',
+                    style: TextStyle(
+                      color: Color(0xFFE53935),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  onPressed: () => _showLogoutDialog(context),
+                ),
+              ),
+
               const SizedBox(height: 40), // Spacing tambahan untuk bottom navigation
             ],
           ),
@@ -131,40 +243,61 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Widget Builder untuk Card Menu
-  Widget _buildMenuCard(double width, IconData icon, String title) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
+  // Widget Builder untuk Card Menu dengan Ripple Effect & Navigasi
+  Widget _buildMenuCard({
+    required double width,
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: AppColors.background, // Warna background icon
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: AppColors.primaryBrown,
-              size: 20,
-            ),
+        splashColor: AppColors.primaryBrown.withValues(alpha: 0.1),
+        highlightColor: AppColors.primaryBrown.withValues(alpha: 0.05),
+        child: Container(
+          width: width,
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryBrown,
-            ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: AppColors.background,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.primaryBrown,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryBrown,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

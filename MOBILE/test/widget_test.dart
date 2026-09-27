@@ -5,5 +5,6 @@ void main() {
   testWidgets('MoneyMate smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const MoneyMateApp());
     expect(find.text('MoneyMate'), findsOneWidget);
+    await tester.pumpAndSettle(const Duration(seconds: 3));
   });
 }
