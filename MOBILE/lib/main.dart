@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'navigation/app_router.dart';
+import 'utils/theme.dart';
 
 void main() {
   runApp(const MoneyMateApp());
@@ -12,15 +12,11 @@ class MoneyMateApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MoneyMate Mobile',
+      title: 'MoneyMate',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
-        useMaterial3: true,
-      ),
-      home: const MainNavigationWrapper(),
+      theme: AppTheme.lightTheme,
+      initialRoute: AppRouter.splash,
+      onGenerateRoute: AppRouter.generateRoute,
     );
   }
 }
