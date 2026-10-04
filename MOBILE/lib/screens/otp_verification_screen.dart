@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
-import 'reset_password_screen.dart';
+import '../navigation/app_router.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   const OtpVerificationScreen({super.key});
@@ -242,12 +242,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ResetPasswordScreen(),
-                    ),
-                  );
+                  Navigator.pushNamed(context, AppRouter.resetPassword);
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

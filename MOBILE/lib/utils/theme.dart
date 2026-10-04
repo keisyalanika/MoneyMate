@@ -7,6 +7,9 @@ class AppColors {
   static const Color accentOrange = Color(0xFFD95B27);
   static const Color background = Color(0xFFFAF6F0);
 
+  static const Color primary = primaryBrown;
+  static const Color secondary = accentOrange;
+
   // Card & Input (Dari kodemu)
   static const Color cardWhite = Color(0xFFFFFFFF);
   static const Color inputBg = Color(0xFFFAF8F5);
