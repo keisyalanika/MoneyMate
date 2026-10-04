@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'navigation/app_router.dart';
 import 'utils/theme.dart';
 
-void main() {
+import 'package:intl/date_symbol_data_local.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   runApp(const MoneyMateApp());
 }
 
