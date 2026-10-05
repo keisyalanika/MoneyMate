@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../utils/theme.dart';
+import '../utils/notification_helper.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -319,6 +320,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   // Mengirimkan notifikasi data transaksi baru ke _TransactionScreen
                   // dan menutup modal, mengembalikan 'true' agar main_navigation
                   // bisa memindahkan tab ke Transaksi.
+                  NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat!');
                   Navigator.pop(context, {
                     'amount': nominal,
                     'category': _selectedCategory,

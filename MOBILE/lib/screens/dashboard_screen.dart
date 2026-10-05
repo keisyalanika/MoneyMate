@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 import 'adjust_balance_bottom_sheet.dart'; // Import bottom sheet penyesuaian saldo
 import 'goals_screen.dart';
+import 'transaction_screen.dart';
+import 'laporan_screen.dart';
+import 'ai_insight_screen.dart';
+import 'notification_screen.dart';
+
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -18,7 +23,7 @@ class DashboardScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header (Profil & Tagline MoneyMate)
-              _buildHeader(),
+              _buildHeader(context),
               const SizedBox(height: 18),
 
               // 2. Card Total Saldo Aktif
@@ -30,7 +35,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 20),
 
               // 4. Insight Keuanganmu (Banner AI)
-              _buildInsightCard(),
+              _buildInsightCard(context),
               const SizedBox(height: 16),
 
               // 5. Pencapaian Goals
@@ -38,7 +43,7 @@ class DashboardScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // 6. Transaksi Terakhir
-              _buildRecentTransactionsCard(),
+              _buildRecentTransactionsCard(context),
               const SizedBox(height: 20),
             ],
           ),
@@ -50,7 +55,7 @@ class DashboardScreen extends StatelessWidget {
 
   // --- WIDGET HELPER ---
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
         CircleAvatar(
@@ -108,6 +113,21 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey.shade300),
+              color: Colors.white,
+            ),
+            child: const Icon(Icons.notifications_none, size: 20, color: Colors.black87),
+          ),
+        ),
       ],
     );
   }
@@ -155,16 +175,28 @@ class DashboardScreen extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Utama',
-                        style: TextStyle(color: Colors.white, fontSize: 11),
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LaporanScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: const [
+                            Text(
+                              'Lihat Rincian',
+                              style: TextStyle(color: Colors.white, fontSize: 11),
+                            ),
+                            Icon(Icons.chevron_right, color: Colors.white, size: 14),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -232,28 +264,6 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    InkWell(
-                      onTap: () {},
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: const [
-                            Text(
-                              'lihat rincian',
-                              style: TextStyle(
-                                  color: Colors.white70, fontSize: 11),
-                            ),
-                            Icon(Icons.chevron_right,
-                                color: Colors.white70, size: 14),
-                          ],
-                        ),
-                      ),
-                    )
                   ],
                 ),
               ],
@@ -266,14 +276,12 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildQuickActions(BuildContext context) {
     final actions = [
-      {'icon': Icons.add, 'label': 'Catat'},
-      {'icon': Icons.camera_alt_outlined, 'label': 'Struk'},
       {'icon': Icons.track_changes, 'label': 'Budget'},
       {'icon': Icons.emoji_events_outlined, 'label': 'Goals'},
     ];
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+    return Wrap(
+      spacing: 20,
       children: actions.map((item) {
         return GestureDetector(
           onTap: () {
@@ -322,7 +330,7 @@ class DashboardScreen extends StatelessWidget {
       );
   }
 
-  Widget _buildInsightCard() {
+  Widget _buildInsightCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -393,19 +401,24 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                'Lihat Solusi AI',
-                style: TextStyle(
-                  color: AppColors.secondary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AiInsightScreen()));
+            },
+            child: Row(
+              children: [
+                Text(
+                  'Lihat Solusi AI',
+                  style: TextStyle(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 16, color: AppColors.secondary),
-            ],
+                const SizedBox(width: 4),
+                Icon(Icons.chevron_right, size: 16, color: AppColors.secondary),
+              ],
+            ),
           ),
         ],
       ),
@@ -530,7 +543,7 @@ class DashboardScreen extends StatelessWidget {
   );
 }
 
-  Widget _buildRecentTransactionsCard() {
+  Widget _buildRecentTransactionsCard(BuildContext context) {
     final transactions = [
       {
         'icon': Icons.restaurant_outlined,
@@ -576,8 +589,8 @@ class DashboardScreen extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'Transaksi Terakhir',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
@@ -585,14 +598,22 @@ class DashboardScreen extends StatelessWidget {
                   color: Colors.black87,
                 ),
               ),
-              Row(
-                children: [
-                  Text(
-                    'Lihat Semua',
-                    style: TextStyle(color: Colors.grey, fontSize: 11),
-                  ),
-                  Icon(Icons.chevron_right, size: 14, color: Colors.grey),
-                ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const TransactionScreen(showBackButton: true)),
+                  );
+                },
+                child: Row(
+                  children: const [
+                    Text(
+                      'Lihat Semua',
+                      style: TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                    Icon(Icons.chevron_right, size: 14, color: Colors.grey),
+                  ],
+                ),
               ),
             ],
           ),

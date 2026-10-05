@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../utils/theme.dart';
+import 'add_transaction_screen.dart';
 
 // Global state sementara untuk mensimulasikan penambahan transaksi
 final ValueNotifier<Map<String, dynamic>?> newTransactionNotifier = ValueNotifier(null);
 
 class TransactionScreen extends StatefulWidget {
-  const TransactionScreen({super.key});
+  final bool showBackButton;
+  const TransactionScreen({super.key, this.showBackButton = false});
 
   @override
   State<TransactionScreen> createState() => _TransactionScreenState();
@@ -41,10 +43,16 @@ class _TransactionScreenState extends State<TransactionScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () {},
-        ),
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                onPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+              )
+            : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
@@ -104,13 +112,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     ],
                   ),
                 ),
-                Row(
-                  children: const [
-                    Icon(Icons.download_outlined, size: 16, color: AppColors.textMuted),
-                    SizedBox(width: 4),
-                    Text('Ekspor Data', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                  ],
-                ),
+
               ],
             ),
             const SizedBox(height: 24),
@@ -266,7 +268,10 @@ class _TransactionScreenState extends State<TransactionScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  // Tambah Transaksi
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AddTransactionScreen()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBrown,
@@ -279,69 +284,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 32),
-            const Text(
-              'ATAU CARA LEBIH CEPAT',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.textMuted, letterSpacing: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.inputBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF0E6),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.document_scanner_outlined, color: AppColors.primaryBrown, size: 20),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text('Scan Struk', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                        const SizedBox(height: 4),
-                        const Text('Deteksi Otomatis', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.inputBorder),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF0E6),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.account_balance_outlined, color: AppColors.primaryBrown, size: 20),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text('Import Bank', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                        const SizedBox(height: 4),
-                        const Text('BCA, Mandiri, GoPay', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+
             const SizedBox(height: 100),
           ],
         ),
@@ -360,12 +303,16 @@ class _TransactionScreenState extends State<TransactionScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () {
-            // Jika dipanggil dari MainNav, mungkin back tidak diperlukan
-          },
-        ),
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                onPressed: () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                },
+              )
+            : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
