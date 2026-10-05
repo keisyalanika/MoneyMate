@@ -15,7 +15,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _weeklyReport = false;
   bool _financialTips = true;
 
-  // Daftar notifikasi riwayat sederhana
+  // Daftar riwayat notifikasi lengkap gabungan
   final List<Map<String, dynamic>> _notifications = [
     {
       'id': 'notif-1',
@@ -44,239 +44,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
       'color': AppColors.greenAccent,
       'isRead': true,
     },
+    {
+      'id': 'notif-4',
+      'title': 'Goal Hampir Tercapai! 🎯',
+      'body': 'Goal "Laptop Baru" sudah mencapai 90%. Terus semangat!',
+      'time': '5 hari yang lalu',
+      'icon': Icons.flag_outlined,
+      'color': Colors.teal,
+      'isRead': true,
+    },
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Notifikasi',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: AppColors.primaryBrown,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.primaryBrown, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bagian 1: Preferensi Notifikasi
-              const Text(
-                'Preferensi Notifikasi',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    _buildSwitchTile(
-                      title: 'Pengingat Anggaran',
-                      subtitle: 'Peringatan saat pengeluaran mendekati limit',
-                      value: _budgetReminder,
-                      onChanged: (val) {
-                        setState(() => _budgetReminder = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchTile(
-                      title: 'Notifikasi Transaksi',
-                      subtitle: 'Notifikasi instan saat transaksi baru dicatat',
-                      value: _transactionAlert,
-                      onChanged: (val) {
-                        setState(() => _transactionAlert = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchTile(
-                      title: 'Laporan Berkala',
-                      subtitle: 'Rangkuman keuangan mingguan & bulanan',
-                      value: _weeklyReport,
-                      onChanged: (val) {
-                        setState(() => _weeklyReport = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchTile(
-                      title: 'Tips & Edukasi Finansial',
-                      subtitle: 'Informasi dan saran untuk kesehatan keuangan',
-                      value: _financialTips,
-                      onChanged: (val) {
-                        setState(() => _financialTips = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              // Bagian 2: Riwayat Notifikasi
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Riwayat Notifikasi',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBrown,
-                    ),
-                  ),
-                  if (_notifications.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          for (var item in _notifications) {
-                            item['isRead'] = true;
-                          }
-                        });
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(50, 30),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        'Tandai terbaca',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.accentOrange,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              if (_notifications.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.notifications_off_outlined,
-                          size: 40, color: AppColors.textMuted),
-                      SizedBox(height: 8),
-                      Text(
-                        'Belum ada notifikasi baru',
-                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _notifications.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final item = _notifications[index];
-                    final bool isRead = item['isRead'] as bool;
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: isRead ? Colors.white : const Color(0xFFFFF9F5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isRead
-                              ? AppColors.inputBorder
-                              : AppColors.accentOrange.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: (item['color'] as Color).withValues(alpha: 0.12),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              item['icon'] as IconData,
-                              color: item['color'] as Color,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      item['title'] as String,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight:
-                                            isRead ? FontWeight.w600 : FontWeight.bold,
-                                        color: AppColors.textDark,
-                                      ),
-                                    ),
-                                    Text(
-                                      item['time'] as String,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item['body'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textDark,
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+  void _markAllAsRead() {
+    setState(() {
+      for (var item in _notifications) {
+        item['isRead'] = true;
+      }
+    });
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Semua notifikasi telah ditandai terbaca'),
+        duration: Duration(milliseconds: 1200),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -334,6 +124,256 @@ class _NotificationScreenState extends State<NotificationScreen> {
             inactiveTrackColor: Colors.grey.shade300,
           ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Notifikasi',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: AppColors.primaryBrown,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppColors.primaryBrown, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          if (_notifications.isNotEmpty)
+            TextButton(
+              onPressed: _markAllAsRead,
+              child: const Text(
+                'Tandai terbaca',
+                style: TextStyle(fontSize: 12, color: AppColors.accentOrange, fontWeight: FontWeight.bold),
+              ),
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Bagian 1: Preferensi Notifikasi
+              const Text(
+                'Preferensi Notifikasi',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBrown,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    _buildSwitchTile(
+                      title: 'Pengingat Anggaran',
+                      subtitle: 'Peringatan saat pengeluaran mendekati limit',
+                      value: _budgetReminder,
+                      onChanged: (val) {
+                        setState(() => _budgetReminder = val);
+                        _showPreferenceSaved();
+                      },
+                    ),
+                    const Divider(height: 1, color: AppColors.inputBorder),
+                    _buildSwitchTile(
+                      title: 'Notifikasi Transaksi',
+                      subtitle: 'Notifikasi instan saat transaksi baru dicatat',
+                      value: _transactionAlert,
+                      onChanged: (val) {
+                        setState(() => _transactionAlert = val);
+                        _showPreferenceSaved();
+                      },
+                    ),
+                    const Divider(height: 1, color: AppColors.inputBorder),
+                    _buildSwitchTile(
+                      title: 'Laporan Berkala',
+                      subtitle: 'Rangkuman keuangan mingguan & bulanan',
+                      value: _weeklyReport,
+                      onChanged: (val) {
+                        setState(() => _weeklyReport = val);
+                        _showPreferenceSaved();
+                      },
+                    ),
+                    const Divider(height: 1, color: AppColors.inputBorder),
+                    _buildSwitchTile(
+                      title: 'Tips & Edukasi Finansial',
+                      subtitle: 'Informasi dan saran untuk kesehatan keuangan',
+                      value: _financialTips,
+                      onChanged: (val) {
+                        setState(() => _financialTips = val);
+                        _showPreferenceSaved();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // Bagian 2: Riwayat Notifikasi
+              const Text(
+                'Riwayat Notifikasi',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBrown,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              if (_notifications.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.notifications_off_outlined,
+                          size: 40, color: AppColors.textMuted),
+                      SizedBox(height: 8),
+                      Text(
+                        'Belum ada notifikasi baru',
+                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _notifications.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final item = _notifications[index];
+                    final bool isRead = item['isRead'] as bool;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        setState(() => item['isRead'] = true);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isRead ? Colors.white : const Color(0xFFFFF9F5),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isRead
+                                ? AppColors.inputBorder
+                                : AppColors.accentOrange.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: (item['color'] as Color).withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                item['icon'] as IconData,
+                                color: item['color'] as Color,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item['title'] as String,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight:
+                                                isRead ? FontWeight.w600 : FontWeight.bold,
+                                            color: AppColors.textDark,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        item['time'] as String,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item['body'] as String,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isRead ? AppColors.textMuted : AppColors.textDark,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                  if (!isRead) ...[
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: const [
+                                        Icon(Icons.circle, size: 8, color: AppColors.accentOrange),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Belum dibaca',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: AppColors.accentOrange,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
       ),
     );
   }

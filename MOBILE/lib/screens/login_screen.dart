@@ -49,13 +49,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.primaryBrown),
             ),
             const SizedBox(height: 4),
-            Text.rich(
+            const Text.rich(
               TextSpan(
-                style:
-                    const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                 children: [
-                  const TextSpan(text: 'Kelola keuanganmu, '),
-                  const TextSpan(
+                  TextSpan(text: 'Kelola keuanganmu, '),
+                  TextSpan(
                     text: 'raih masa depanmu.',
                     style: TextStyle(
                         color: AppColors.accentOrange,
@@ -79,8 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Text(
                             'Selamat datang kembali ',
                             style: TextStyle(
@@ -112,7 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () => Navigator.pushNamed(
+                              context, AppRouter.forgotPassword),
                           style: TextButton.styleFrom(padding: EdgeInsets.zero),
                           child: const Text(
                             'Lupa kata sandi?',
@@ -144,8 +144,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Expanded(
                               child: Divider(color: AppColors.inputBorder)),
                           Padding(

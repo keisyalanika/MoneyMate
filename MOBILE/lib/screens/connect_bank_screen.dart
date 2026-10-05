@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 
 class ConnectBankScreen extends StatefulWidget {
-  const ConnectBankScreen({super.key});
+  final bool isNewUser;
+  const ConnectBankScreen({super.key, this.isNewUser = false});
 
   @override
   State<ConnectBankScreen> createState() => _ConnectBankScreenState();

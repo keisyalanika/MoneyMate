@@ -110,7 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     elevation: 0,
                   ),
                   onPressed: () => Navigator.pushReplacementNamed(
-                      context, AppRouter.mainNav),
+                      context, AppRouter.login),
                   child: const Text('Daftar',
                       style: TextStyle(
                           color: Colors.white,

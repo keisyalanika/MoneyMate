@@ -9,7 +9,7 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  // State pengaturan keamanan (siap dihubungkan ke backend / local storage)
+  // State pengaturan keamanan
   bool _twoFactorAuth = false;
   bool _hideBalanceByDefault = false;
 
@@ -158,7 +158,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Kata sandi berhasil diubah! (Siap disambungkan ke API backend)'),
+                        content: Text('Kata sandi berhasil diubah!'),
                         backgroundColor: AppColors.primaryBrown,
                       ),
                     );
