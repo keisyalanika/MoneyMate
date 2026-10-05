@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../navigation/app_router.dart';
+import 'notification_screen.dart';
 import '../utils/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -154,7 +155,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: cardWidth,
                     icon: Icons.notifications_rounded,
                     title: 'Notifikasi',
-                    onTap: () => Navigator.pushNamed(context, AppRouter.profileNotification),
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+                    },
                   ),
                   _buildMenuCard(
                     width: cardWidth,

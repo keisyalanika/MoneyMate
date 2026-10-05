@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 import 'add_goal_screen.dart';
+import 'goal_detail_screen.dart';
+import 'notification_screen.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -62,7 +64,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.notifications_none, color: AppColors.textDark, size: 20),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+                  },
                 ),
                 Positioned(
                   top: 10,
@@ -202,6 +206,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: _buildGoalItem(
+                  context: context,
                   category: 'IMPIAN BARU',
                   statusText: 'Baru',
                   statusColor: AppColors.secondary,
@@ -219,6 +224,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             }).toList(),
 
             _buildGoalItem(
+              context: context,
               category: 'ELEKTRONIK & KERJA',
               statusText: 'On Track',
               statusColor: const Color(0xFF10B981), // green
@@ -234,6 +240,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
             const SizedBox(height: 16),
             _buildGoalItem(
+              context: context,
               category: 'FINANSIAL PRIBADI',
               statusText: 'Prioritas Utama',
               statusColor: const Color(0xFFF59E0B), // amber/orange
@@ -290,6 +297,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Widget _buildGoalItem({
+    required BuildContext context,
     required String category,
     required String statusText,
     required Color statusColor,
@@ -304,21 +312,28 @@ class _GoalsScreenState extends State<GoalsScreen> {
     required Color progressColor,
     bool isHeaderOrange = false,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF0E5D8)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const GoalDetailScreen()),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFF0E5D8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
           // Header (Brown)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -465,7 +480,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
           ),
         ],
-      ),
-    );
+      ), // Column
+      ), // Container
+    ); // GestureDetector
   }
 }

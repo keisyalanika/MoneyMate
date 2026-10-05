@@ -56,14 +56,23 @@ class _LaporanScreenState extends State<LaporanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Judul
-              const Text(
-                'Laporan Keuangan',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
-                ),
+              // Header Judul & Tombol Kembali
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Laporan Keuangan',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 
