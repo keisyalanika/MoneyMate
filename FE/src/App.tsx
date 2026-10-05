@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LoginPage } from './pages/LoginPage';
-import { Dashboard } from './pages/Dashboard';
+import { Dashboard } from './pages/Dashboard Web';
 
 export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<'login' | 'dashboard'>('login');
