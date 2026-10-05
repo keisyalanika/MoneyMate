@@ -1,21 +1,25 @@
-import React from 'react';
-import { Sidebar } from '../components/Sidebar';
-import { Navbar } from '../components/Navbar';
+import React, { ReactNode } from "react";
+import { Sidebar } from "../components/Sidebar";
+import { Navbar } from "../components/Navbar";
 
-interface Props {
-  children: React.ReactNode;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  onAddClick: () => void;
+interface AdminLayoutProps {
+  children: ReactNode;
+  activeMenu?: string;
 }
 
-export const AdminLayout: React.FC<Props> = ({ children, activeTab, setActiveTab, onAddClick }) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({
+  children,
+  activeMenu,
+}) => {
   return (
-    <div className="app-container">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <div className="main-content">
-        <Navbar onAddClick={onAddClick} />
-        <main>{children}</main>
+    <div className="flex min-h-screen bg-[#FDFBF7]">
+      {/* Sidebar Kiri */}
+      <Sidebar activeMenu={activeMenu} />
+
+      {/* Konten Utama Kanan */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <Navbar />
+        <main className="flex-1 p-8 overflow-y-auto">{children}</main>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 
+<<<<<<< HEAD
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
 
@@ -174,10 +175,17 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   @override
+=======
+class SecurityScreen extends StatelessWidget {
+  const SecurityScreen({super.key});
+
+  @override
+>>>>>>> dev/lanika
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+<<<<<<< HEAD
         title: const Text(
           'Keamanan Akun',
           style: TextStyle(
@@ -374,6 +382,15 @@ class _SecurityScreenState extends State<SecurityScreen> {
             inactiveTrackColor: Colors.grey.shade300,
           ),
         ],
+=======
+        title: const Text('Keamanan', style: TextStyle(color: AppColors.primaryBrown)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.primaryBrown),
+      ),
+      body: const Center(
+        child: Text('Halaman Keamanan', style: TextStyle(color: AppColors.textDark)),
+>>>>>>> dev/lanika
       ),
     );
   }

@@ -1,10 +1,61 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import '../utils/theme.dart';
 
 class LaporanScreen extends StatelessWidget {
   const LaporanScreen({super.key});
 
   @override
+=======
+import 'package:intl/intl.dart';
+import '../utils/theme.dart';
+
+class LaporanScreen extends StatefulWidget {
+  const LaporanScreen({super.key});
+
+  @override
+  State<LaporanScreen> createState() => _LaporanScreenState();
+}
+
+class _LaporanScreenState extends State<LaporanScreen> {
+  DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
+  DateTime _endDate = DateTime.now();
+
+  Future<void> _selectDateRange(BuildContext context) async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBrown, 
+              onPrimary: Colors.white, 
+              onSurface: AppColors.textDark, 
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryBrown, 
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
+      });
+    }
+  }
+
+  @override
+>>>>>>> dev/lanika
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -14,6 +65,7 @@ class LaporanScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+<<<<<<< HEAD
               // Header Judul
               const Text(
                 'Laporan Keuangan',
@@ -64,6 +116,69 @@ class LaporanScreen extends StatelessWidget {
                       ],
                     ),
                   ],
+=======
+              // Header Judul & Tombol Kembali
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Laporan Keuangan',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              GestureDetector(
+                onTap: () => _selectDateRange(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.inputBorder),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 18, color: AppColors.textDark),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('DARI', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                              Text(DateFormat('d MMM yyyy', 'id_ID').format(_startDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const Icon(Icons.arrow_forward, size: 18, color: AppColors.textMuted),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 18, color: AppColors.textDark),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('SAMPAI', style: TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                              Text(DateFormat('d MMM yyyy', 'id_ID').format(_endDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+>>>>>>> dev/lanika
                 ),
               ),
               const SizedBox(height: 24),
