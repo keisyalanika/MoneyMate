@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
+import '../services/auth_provider.dart';
 import 'notification_screen.dart';
 import '../utils/theme.dart';
 
@@ -11,9 +13,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // State profil pengguna (mudah dihubungkan ke backend / Provider nantinya)
-  String _userName = 'Keisya Exa Haniyah';
-  String _userEmail = 'keisya.haniyah@gmail.com';
+  String? _localUserName;
+  String? _localUserEmail;
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -46,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: () {
               Navigator.pop(ctx);
+              Provider.of<AuthProvider>(context, listen: false).logout();
               Navigator.pushNamedAndRemoveUntil(context, AppRouter.login, (route) => false);
             },
             child: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -60,6 +62,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Menghitung lebar layar untuk membagi card menu menjadi 3 kolom yang proporsional
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = (screenWidth - 40 - 32) / 3; // 40 = padding horizontal (20 kiri, 20 kanan), 32 = jarak antar card (16 * 2)
+
+    final auth = Provider.of<AuthProvider>(context);
+    final userName = _localUserName ?? (auth.userName.isNotEmpty ? auth.userName : 'Pengguna MoneyMate');
+    final userEmail = _localUserEmail ?? (auth.token != null ? '${userName.toLowerCase().replaceAll(' ', '.')}@email.com' : 'Belum masuk');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -97,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _userName.isNotEmpty ? _userName[0].toUpperCase() : 'M',
+                    userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
                     style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
@@ -110,7 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // 3. User Info
               Text(
-                _userName,
+                userName,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -119,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                _userEmail,
+                userEmail,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryBrown,
@@ -142,10 +148,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (updated != null && updated is Map<String, dynamic>) {
                         setState(() {
                           if (updated['name'] != null && updated['name'].toString().isNotEmpty) {
-                            _userName = updated['name'];
+                            _localUserName = updated['name'];
                           }
                           if (updated['email'] != null && updated['email'].toString().isNotEmpty) {
-                            _userEmail = updated['email'];
+                            _localUserEmail = updated['email'];
                           }
                         });
                       }

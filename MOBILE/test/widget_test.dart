@@ -3,6 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moneymate_mobile/main.dart';
 
+import 'package:provider/provider.dart';
+import 'package:moneymate_mobile/services/auth_provider.dart';
+
 Future<void> tapText(WidgetTester tester, String label) async {
   final finder = find.text(label);
   expect(finder, findsWidgets, reason: 'tidak menemukan "$label"');
@@ -20,7 +23,14 @@ void main() {
 
   testWidgets('flow: splash -> login -> lupa sandi -> OTP -> reset -> sukses -> login',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MoneyMateApp());
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ],
+        child: const MoneyMateApp(),
+      ),
+    );
 
     // Splash -> Login (setelah timer 2 detik)
     expect(find.text('MoneyMate'), findsOneWidget);
