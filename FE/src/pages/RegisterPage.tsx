@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff, RotateCcw, ArrowRight } from 'lucide-react';
+import { registerUser } from '../services/api';
 
 interface Props {
   onRegisterSuccess: (email: string) => void;
@@ -14,6 +15,8 @@ export const RegisterPage: React.FC<Props> = ({ onRegisterSuccess, onNavigateLog
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Password strength calculation
   const getPasswordStrength = () => {
@@ -25,17 +28,33 @@ export const RegisterPage: React.FC<Props> = ({ onRegisterSuccess, onNavigateLog
 
   const strength = getPasswordStrength();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg('');
     if (!agreeTerms) {
-      alert('Anda harus menyetujui Syarat & Ketentuan.');
+      setErrorMsg('Anda harus menyetujui Syarat & Ketentuan.');
       return;
     }
     if (password !== confirmPassword) {
-      alert('Konfirmasi kata sandi tidak cocok.');
+      setErrorMsg('Konfirmasi kata sandi tidak cocok.');
       return;
     }
-    onRegisterSuccess(email || 'KeisyaExaHaniyah@gmail.com');
+
+    setIsLoading(true);
+    try {
+      const data = await registerUser({
+        name: fullName,
+        email: email,
+        password: password
+      });
+      onRegisterSuccess(data.email || email);
+    } catch (err: any) {
+      console.error('Register error:', err);
+      const msg = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi.';
+      setErrorMsg(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -194,8 +213,21 @@ export const RegisterPage: React.FC<Props> = ({ onRegisterSuccess, onNavigateLog
               </label>
             </div>
 
-            <button type="submit" className="btn-primary-brown">
-              <span>Daftar Akun Baru</span>
+            {errorMsg && (
+              <div style={{
+                backgroundColor: '#FEE2E2',
+                color: '#DC2626',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                fontSize: '0.875rem'
+              }}>
+                {errorMsg}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary-brown" disabled={isLoading}>
+              <span>{isLoading ? 'Mendaftarkan...' : 'Daftar Akun Baru'}</span>
               <ArrowRight size={18} />
             </button>
           </form>

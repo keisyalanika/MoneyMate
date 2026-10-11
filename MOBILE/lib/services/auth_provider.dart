@@ -33,6 +33,7 @@ class AuthProvider with ChangeNotifier {
         _userName = data['name'];
         _role = data['role'];
         _token = data['token'];
+        ApiService.token = _token;
         notifyListeners();
         return true;
       } else {
@@ -50,6 +51,7 @@ class AuthProvider with ChangeNotifier {
     _userName = 'Guest';
     _role = 'user';
     _token = null;
+    ApiService.token = null;
     notifyListeners();
   }
 }
