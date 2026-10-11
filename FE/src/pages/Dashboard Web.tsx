@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Sidebar } from '../components/Sidebar';
 import { OverviewPage } from './OverviewPage';
 import { UserManagementPage } from './UserManagementPage';
 import { TransactionsPage } from './TransactionsPage';
@@ -8,6 +9,7 @@ import { AnalyticsPage } from './AnalyticsPage';
 import { ReportsPage } from './ReportsPage';
 import { SettingsPage } from './SettingsPage';
 import { ProfilePage } from './ProfilePage';
+import { Search, Bell } from 'lucide-react';
 
 interface DashboardProps {
   userEmail?: string;
@@ -15,7 +17,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHaniyah@gmail.com', onLogout }) => {
-  const [activeTab, setActiveTab] = useState<string>('settings');
+  const [activeTab, setActiveTab] = useState<string>('overview');
   const [currency, setCurrency] = useState<'IDR' | 'USD'>('IDR');
   
   // Notification and Toast States
@@ -42,132 +44,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
 
   return (
     <div className="flex h-screen bg-[#F7F5F0] text-[#2D2825] font-sans overflow-hidden">
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs">
-        <div className="space-y-5">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-9 h-9 rounded-xl bg-[#5C2D16] text-[#F7F5F0] font-black text-xl flex items-center justify-center shadow-md">
-              M
-            </div>
-            <div>
-              <div className="font-extrabold text-base tracking-tight text-[#5C2D16]">MoneyMate</div>
-              <div className="text-[10px] text-[#8C7A70] font-medium uppercase tracking-wider">Keuangan Kampus</div>
-            </div>
-            <span className="px-2 py-0.5 text-[9px] font-bold bg-[#E6D0C7] text-[#5C2D16] rounded ml-auto uppercase">ADMIN</span>
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="space-y-1">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'overview'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">📊</span> Dashboard Overview
-            </button>
-
-            <button
-              onClick={() => setActiveTab('users')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'users'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">👥</span> User Management
-            </button>
-
-            <button
-              onClick={() => setActiveTab('transactions')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'transactions'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">💳</span> Transactions
-            </button>
-
-            <button
-              onClick={() => setActiveTab('budgets')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'budgets'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">🎯</span> Budget Monitoring
-            </button>
-
-            <div className="pt-2 pb-1">
-              <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">FITUR PINTAR</div>
-            </div>
-
-            <button
-              onClick={() => setActiveTab('ai')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'ai'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">✨</span> AI Financial Insight
-            </button>
-
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'analytics'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">📈</span> Analytics & Statistik
-            </button>
-
-            <div className="pt-2 pb-1">
-              <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MANAJEMEN</div>
-            </div>
-
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'reports'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">📄</span> Reports
-            </button>
-
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-xs transition-all ' + (
-                activeTab === 'settings'
-                  ? 'bg-[#5C2D16] text-white shadow-md font-bold'
-                  : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
-              )}
-            >
-              <span className="text-base">⚙️</span> Settings
-            </button>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer Info */}
-        <div className="pt-4 border-t border-[#E5DDD8] space-y-2">
-          <div className="p-2.5 bg-white border border-[#E5DDD8] rounded-xl text-[10px] flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <div>
-              <div className="font-bold text-[#2D2825]">Sistem Kampus v2.4</div>
-              <div className="text-emerald-700 font-semibold">Sync aktif</div>
-            </div>
-          </div>
-        </div>
-      </aside>
+      {/* UNIFIED SIDEBAR NAVIGATION (Matching Figma Specs 100%) */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -177,10 +55,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
             <div className="relative w-full">
               <input
                 type="text"
-                placeholder="Cari data, mahasiswa, kategori..."
-                className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-1.5 pl-8 text-xs text-[#2D2825] focus:outline-none"
+                placeholder="Cari user, transaksi, atau laporan..."
+                className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-1.5 pl-9 pr-12 text-xs text-[#2D2825] focus:outline-none"
               />
-              <span className="absolute left-2.5 top-2 text-[#8C7A70] text-xs">🔍</span>
+              <Search className="w-4 h-4 text-[#8C7A70] absolute left-3 top-2.5" />
+              <span className="absolute right-2.5 top-2 bg-white border border-[#E5DDD8] rounded px-1.5 py-0.5 text-[9px] font-mono text-[#8C7A70]">
+                ⌘K
+              </span>
             </div>
           </div>
 
@@ -211,7 +92,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
                 onClick={() => setShowNotifDropdown(!showNotifDropdown)}
                 className="relative p-2 text-[#6E5D53] hover:text-[#5C2D16] hover:bg-[#FAF4F0] rounded-xl transition-all border border-transparent hover:border-[#E8DCD8]"
               >
-                <span className="text-lg">🔔</span>
+                <Bell className="w-5 h-5" />
                 {unreadNotifCount > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 bg-[#C25E38] text-white text-[9px] font-extrabold rounded-full flex items-center justify-center border-2 border-white">
                     {unreadNotifCount}
@@ -219,10 +100,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
                 )}
               </button>
 
-              {/* 3-TOAST STACK FLOATING NOTIFICATION PANEL (Exact Gambar 3 Specs) */}
+              {/* 3-TOAST STACK FLOATING NOTIFICATION PANEL */}
               {showNotifDropdown && (
                 <div className="absolute right-0 mt-2 w-96 z-50 space-y-3 p-1 animate-fadeIn">
-                  {/* Toast 1: Perubahan Berhasil Disimpan (Success) */}
+                  {/* Toast 1: Perubahan Berhasil Disimpan */}
                   <div className="bg-white border border-emerald-400 rounded-2xl p-4 shadow-2xl space-y-2 border-t-4 border-t-emerald-500">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
@@ -248,7 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
                     </div>
                   </div>
 
-                  {/* Toast 2: Laporan Berhasil Diunduh (Download PDF) */}
+                  {/* Toast 2: Laporan Berhasil Diunduh */}
                   <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-2xl space-y-2 border-t-4 border-t-amber-700">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
@@ -272,7 +153,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
                     </div>
                   </div>
 
-                  {/* Toast 3: Semua Rekomendasi AI Berhasil Diterapkan (AI Agent) */}
+                  {/* Toast 3: Semua Rekomendasi AI Berhasil Diterapkan */}
                   <div className="bg-white border border-emerald-300 rounded-2xl p-4 shadow-2xl space-y-2 border-t-4 border-t-emerald-600">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
@@ -302,16 +183,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
             {/* Admin Profile Button */}
             <button
               onClick={() => setActiveTab('profile')}
-              className={'flex items-center gap-2 p-1 pr-2.5 rounded-xl transition-all border ' + (
+              className={'flex items-center gap-2.5 p-1 pr-2.5 rounded-xl transition-all border ' + (
                 activeTab === 'profile' ? 'bg-[#FAF4F0] border-[#5C2D16]/40 shadow-xs' : 'border-transparent hover:bg-[#FAF4F0]'
               )}
             >
-              <div className="w-7 h-7 rounded-full bg-[#5C2D16] text-white font-bold flex items-center justify-center text-xs">
-                AD
+              <div className="w-8 h-8 rounded-full bg-[#5C2D16] text-white font-bold flex items-center justify-center text-xs border border-[#E8DCD8]">
+                AM
               </div>
               <div className="text-left">
                 <div className="text-xs font-bold text-[#2D2825] leading-tight">Admin Master</div>
-                <div className="text-[9px] text-[#8C7A70]">Super Admin</div>
+                <div className="text-[9px] text-[#8C7A70]">Super Administrator</div>
               </div>
             </button>
           </div>

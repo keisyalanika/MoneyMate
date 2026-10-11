@@ -1,0 +1,40 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  --primary-brown: #5C2D16;
+  --primary-brown-hover: #462211;
+  --secondary-amber: #C25E38;
+  --surface-cream: #FAF4F0;
+  --card-surface: #FAF7F4;
+  --bg-main: #F7F5F0;
+  --border-color: #E5DDD8;
+  --text-heading: #2D2825;
+  --text-muted: #8C7A70;
+  --badge-rose-bg: #FFEBEB;
+  --badge-rose-text: #991B1B;
+  --badge-emerald-bg: #D1FAE5;
+  --badge-emerald-text: #065F46;
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(92, 45, 22, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(92, 45, 22, 0.12);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-heading);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
