@@ -17,12 +17,12 @@ class BudgetModel {
 
   factory BudgetModel.fromJson(Map<String, dynamic> json) {
     return BudgetModel(
-      id: json['id'] ?? '',
-      categoryId: json['categoryId'] ?? '',
-      categoryName: json['categoryName'] ?? '',
-      limitAmount: (json['limitAmount'] as num).toDouble(),
-      spentAmount: (json['spentAmount'] as num).toDouble(),
-      percentage: (json['percentage'] as num).toDouble(),
+      id: json['id']?.toString() ?? '',
+      categoryId: (json['category_id'] ?? json['categoryId'])?.toString() ?? '',
+      categoryName: json['category_name'] ?? json['categoryName'] ?? 'Kategori',
+      limitAmount: ((json['amount'] ?? json['limitAmount'] ?? 0) as num).toDouble(),
+      spentAmount: ((json['spent_amount'] ?? json['spentAmount'] ?? 0) as num).toDouble(),
+      percentage: ((json['percentage'] ?? 0) as num).toDouble(),
     );
   }
 }
