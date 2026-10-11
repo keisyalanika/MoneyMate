@@ -27,21 +27,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           </div>
           <div>
             <div className="font-extrabold text-base tracking-tight text-[#5C2D16]">MoneyMate</div>
-            <div className="text-[10px] text-[#8C7A70] font-medium uppercase tracking-wider">Keuangan Kampus</div>
+            <div className="text-[10px] text-[#8C7A70] font-medium uppercase tracking-wider">Campus Finance</div>
           </div>
           <span className="px-2 py-0.5 text-[9px] font-bold bg-[#E6D0C7] text-[#5C2D16] rounded ml-auto uppercase">ADMIN</span>
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items (Consistent English) */}
         <nav className="space-y-1 text-xs font-semibold">
-          {/* Section 1: MENU UTAMA */}
+          {/* Section 1: MAIN MENU */}
           <div className="pt-1 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MENU UTAMA</div>
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MAIN MENU</div>
           </div>
 
           <button
             onClick={() => setActiveTab('overview')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'overview'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
           <button
             onClick={() => setActiveTab('users')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'users'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
           <button
             onClick={() => setActiveTab('transactions')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'transactions'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
           <button
             onClick={() => setActiveTab('budgets')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'budgets'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
@@ -87,14 +87,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <span>Budget Monitoring</span>
           </button>
 
-          {/* Section 2: FITUR PINTAR */}
+          {/* Section 2: SMART FEATURES */}
           <div className="pt-3 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">FITUR PINTAR</div>
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">SMART FEATURES</div>
           </div>
 
           <button
             onClick={() => setActiveTab('ai')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'ai'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
@@ -106,24 +106,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
           <button
             onClick={() => setActiveTab('analytics')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'analytics'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
             <TrendingUp className={'w-4 h-4 ' + (activeTab === 'analytics' ? 'text-white' : 'text-[#6E5D53]')} />
-            <span>Analytics & Statistik</span>
+            <span>Analytics & Statistics</span>
           </button>
 
-          {/* Section 3: MANAJEMEN */}
+          {/* Section 3: MANAGEMENT */}
           <div className="pt-3 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MANAJEMEN</div>
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MANAGEMENT</div>
           </div>
 
           <button
             onClick={() => setActiveTab('reports')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'reports'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
@@ -135,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ' + (
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
               activeTab === 'settings'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
