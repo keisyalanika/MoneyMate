@@ -10,21 +10,22 @@ class TransactionKosongScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 1. Header Navigation & Title
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.arrow_back, color: AppColors.textDark),
-                      const SizedBox(width: 12),
+                      Icon(Icons.arrow_back, color: AppColors.textDark),
+                      SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'Semua Transaksi',
                             style: TextStyle(
@@ -45,7 +46,7 @@ class TransactionKosongScreen extends StatelessWidget {
                     ],
                   ),
                   Row(
-                    children: const [
+                    children: [
                       Icon(Icons.search, color: AppColors.textDark),
                       SizedBox(width: 16),
                       Icon(Icons.tune, color: AppColors.textDark),
@@ -115,8 +116,8 @@ class TransactionKosongScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                       color: Colors.white,
                     ),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(Icons.calendar_today, size: 14, color: AppColors.textDark),
                         SizedBox(width: 6),
                         Text(
@@ -127,8 +128,8 @@ class TransactionKosongScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Row(
-                    children: const [
+                  const Row(
+                    children: [
                       Icon(Icons.download, size: 14, color: AppColors.textMuted),
                       SizedBox(width: 4),
                       Text(
@@ -155,8 +156,8 @@ class TransactionKosongScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             Icon(Icons.circle, size: 10, color: AppColors.textMuted),
                             SizedBox(width: 8),
                             Text(
@@ -181,10 +182,10 @@ class TransactionKosongScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Expanded(
+                        const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text('↓ Total Keluar', style: TextStyle(color: Colors.red, fontSize: 12)),
                               SizedBox(height: 4),
                               Text(
@@ -199,12 +200,12 @@ class TransactionKosongScreen extends StatelessWidget {
                           ),
                         ),
                         Container(width: 1, height: 30, color: AppColors.inputBorder),
-                        Expanded(
+                        const Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.only(left: 16),
+                            padding: EdgeInsets.only(left: 16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text('↑ Total Masuk', style: TextStyle(color: AppColors.greenAccent, fontSize: 12)),
                                 SizedBox(height: 4),
                                 Text(

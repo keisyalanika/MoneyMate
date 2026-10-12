@@ -47,6 +47,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
@@ -133,7 +134,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -247,8 +248,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   const SizedBox(height: 20),
 
                   // 4. Catatan
-                  Row(
-                    children: const [
+                  const Row(
+                    children: [
                       Icon(Icons.description_outlined, size: 16, color: AppColors.textDark),
                       SizedBox(width: 8),
                       Text(
@@ -281,7 +282,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         TextField(
                           controller: _noteController,
                           maxLines: 3,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                             border: InputBorder.none,
@@ -297,7 +298,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           '0/100',
                           style: TextStyle(
                             fontSize: 10,
-                            color: AppColors.textMuted.withOpacity(0.7),
+                            color: AppColors.textMuted.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -450,8 +451,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         color: const Color(0xFFEBE6DF),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(
-                        children: const [
+                      child: const Row(
+                        children: [
                           Icon(Icons.search, color: AppColors.textMuted, size: 20),
                           SizedBox(width: 8),
                           Expanded(
@@ -531,7 +532,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               color: AppColors.background,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.background.withOpacity(0.9),
+                                  color: AppColors.background.withValues(alpha: 0.9),
                                   blurRadius: 10,
                                   offset: const Offset(0, -10),
                                 ),

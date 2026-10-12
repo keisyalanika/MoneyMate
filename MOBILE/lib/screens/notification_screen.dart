@@ -346,8 +346,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   ),
                                   if (!isRead) ...[
                                     const SizedBox(height: 8),
-                                    Row(
-                                      children: const [
+                                    const Row(
+                                      children: [
                                         Icon(Icons.circle, size: 8, color: AppColors.accentOrange),
                                         SizedBox(width: 6),
                                         Text(

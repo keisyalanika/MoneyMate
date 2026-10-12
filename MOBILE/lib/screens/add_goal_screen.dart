@@ -46,8 +46,8 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        title: Column(
-          children: const [
+        title: const Column(
+          children: [
             Text(
               'Buat Goal Baru',
               style: TextStyle(
@@ -188,9 +188,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   color: const Color(0xFFF5F0EB),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Row(
                       children: [
                         Icon(Icons.calendar_today_outlined, color: AppColors.textMuted, size: 18),
@@ -212,9 +212,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   color: const Color(0xFFF5F0EB),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Expanded(child: Text('Elektronik & Kerja', style: TextStyle(color: AppColors.textDark, fontSize: 14))),
                     Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted),
                   ],
@@ -241,9 +241,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   color: const Color(0xFFF5F0EB),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Expanded(child: Text('BCA Prioritas (Saldo Rp 42.800.000)', style: TextStyle(color: AppColors.textDark, fontSize: 14))),
                     Icon(Icons.account_balance, color: AppColors.textMuted, size: 18),
                   ],
@@ -264,8 +264,8 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Icon(Icons.auto_awesome, color: AppColors.primaryBrown, size: 18),
                           SizedBox(width: 8),
                           Text('AI Financial Copilot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryBrown)),
@@ -297,11 +297,11 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
+                  const Row(
                     children: [
                       Expanded(
                         child: Row(
-                          children: const [
+                          children: [
                             Icon(Icons.trending_up, color: AppColors.textMuted, size: 16),
                             SizedBox(width: 6),
                             Expanded(
@@ -350,10 +350,10 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                     child: const Icon(Icons.notifications_active_outlined, color: AppColors.secondary, size: 20),
                   ),
                   const SizedBox(width: 16),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text('Pengingat Nabung Otomatis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark)),
                         SizedBox(height: 4),
                         Text('Notifikasi setiap tanggal 25 (Hari Gajian)', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
@@ -365,7 +365,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                     onChanged: (val) {
                       setState(() => _autoReminder = val);
                     },
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: AppColors.primaryBrown,
                   ),
                 ],

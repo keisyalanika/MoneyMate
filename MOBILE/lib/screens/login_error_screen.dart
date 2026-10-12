@@ -31,6 +31,7 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               const SizedBox(height: 32),
@@ -91,8 +92,8 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Text(
                           'Selamat datang kembali ',
                           style: TextStyle(
@@ -351,8 +352,8 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                     const SizedBox(height: 20),
 
                     // Divider Atau
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Expanded(
                           child: Divider(color: AppColors.inputBorder),
                         ),

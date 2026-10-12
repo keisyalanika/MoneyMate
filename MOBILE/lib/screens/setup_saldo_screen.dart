@@ -29,7 +29,7 @@ class AppColors {
 }
 
 class SetupSaldoScreen extends StatefulWidget {
-  const SetupSaldoScreen({Key? key}) : super(key: key);
+  const SetupSaldoScreen({super.key});
 
   @override
   State<SetupSaldoScreen> createState() => _SetupSaldoScreenState();
@@ -73,6 +73,7 @@ class _SetupSaldoScreenState extends State<SetupSaldoScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
             children: [
@@ -160,7 +161,7 @@ class _SetupSaldoScreenState extends State<SetupSaldoScreen> {
                     border: Border.all(color: AppColors.cardWhite, width: 4),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.accentOrange.withOpacity(0.12),
+                        color: AppColors.accentOrange.withValues(alpha: 0.12),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -207,7 +208,7 @@ class _SetupSaldoScreenState extends State<SetupSaldoScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: Colors.black.withValues(alpha: 0.02),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/theme.dart';
 import 'notification_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -60,6 +59,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
           ),
           Expanded(
             child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
                 _buildBotMessage(
@@ -154,10 +154,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   children: [
                     Text(
                       time,
-                      style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.7)),
+                      style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.7)),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.done_all, size: 14, color: Colors.white.withOpacity(0.7)),
+                    Icon(Icons.done_all, size: 14, color: Colors.white.withValues(alpha: 0.7)),
                   ],
                 ),
               ],
@@ -193,8 +193,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.show_chart, size: 16, color: Color(0xFF8C381E)),
                     SizedBox(width: 8),
                     Text(
@@ -288,11 +288,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      children: const [
+                      children: [
                         Icon(Icons.thumb_up_alt_outlined, size: 14, color: Color(0xFF8C827A)),
                         SizedBox(width: 4),
                         Text('Bermanfaat', style: TextStyle(color: Color(0xFF8C827A), fontSize: 11)),
@@ -300,7 +300,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         Icon(Icons.copy_outlined, size: 14, color: Color(0xFF8C827A)),
                       ],
                     ),
-                    const Text('09:41', style: TextStyle(color: Color(0xFF8C827A), fontSize: 10)),
+                    Text('09:41', style: TextStyle(color: Color(0xFF8C827A), fontSize: 10)),
                   ],
                 ),
               ],
@@ -341,13 +341,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
       child: Column(
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.lightbulb_outline, size: 16, color: Color(0xFF8C381E)),
-              const SizedBox(width: 8),
-              const Text('Saran Pertanyaan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-              const Spacer(),
-              const Text('Geser ke kanan →', style: TextStyle(fontSize: 10, color: Color(0xFF8C827A))),
+              Icon(Icons.lightbulb_outline, size: 16, color: Color(0xFF8C381E)),
+              SizedBox(width: 8),
+              Text('Saran Pertanyaan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
+              Spacer(),
+              Text('Geser ke kanan →', style: TextStyle(fontSize: 10, color: Color(0xFF8C827A))),
             ],
           ),
           const SizedBox(height: 12),

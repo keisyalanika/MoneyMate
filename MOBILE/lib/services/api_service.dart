@@ -8,6 +8,15 @@ import '../models/budget_model.dart';
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS / Desktop / Web
   static const String baseUrl = 'http://10.0.2.2:5000/api';
+  static String? token;
+
+  static Map<String, String> get headers {
+    final map = {'Content-Type': 'application/json'};
+    if (token != null && token!.isNotEmpty) {
+      map['Authorization'] = 'Bearer $token';
+    }
+    return map;
+  }
 
   static Future<Map<String, dynamic>> fetchSummary() async {
     try {

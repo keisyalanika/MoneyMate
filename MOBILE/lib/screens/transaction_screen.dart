@@ -53,9 +53,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 },
               )
             : null,
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Semua Transaksi',
               style: TextStyle(
@@ -86,6 +86,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -102,8 +103,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     border: Border.all(color: AppColors.inputBorder),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primaryBrown),
                       SizedBox(width: 6),
                       Text('Bulan Ini', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark)),
@@ -129,8 +130,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Icon(Icons.circle, size: 8, color: Colors.grey),
                           SizedBox(width: 8),
                           Text('Ringkasan Arus Kas', style: TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.bold)),
@@ -152,37 +153,37 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   ),
                   Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.arrow_downward, size: 12, color: Color(0xFFDC2626)),
                                 SizedBox(width: 4),
                                 Text('Total Keluar', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            const Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                            SizedBox(height: 4),
+                            Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                           ],
                         ),
                       ),
                       Container(width: 1, height: 30, color: AppColors.inputBorder),
                       const SizedBox(width: 16),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.arrow_upward, size: 12, color: AppColors.primaryBrown),
                                 SizedBox(width: 4),
                                 Text('Total Masuk', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            const Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                            SizedBox(height: 4),
+                            Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                           ],
                         ),
                       ),
@@ -211,7 +212,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
                     ],
                   ),
                   padding: const EdgeInsets.all(12),
@@ -222,7 +223,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Icon(Icons.circle, size: 10, color: AppColors.primaryBrown),
-                          Icon(Icons.receipt_long, size: 16, color: AppColors.accentOrange.withOpacity(0.8)),
+                          Icon(Icons.receipt_long, size: 16, color: AppColors.accentOrange.withValues(alpha: 0.8)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -313,9 +314,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 },
               )
             : null,
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Semua Transaksi',
               style: TextStyle(
@@ -343,8 +344,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
               borderRadius: BorderRadius.circular(16),
               color: Colors.white,
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.download_outlined, size: 16, color: AppColors.textDark),
                 SizedBox(width: 4),
                 Text(
@@ -373,6 +374,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,17 +390,17 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 border: Border.all(color: AppColors.inputBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.textMuted, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  Icon(Icons.search, color: AppColors.textMuted, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: 'Cari transaksi, toko, atau kategori...',
@@ -407,7 +409,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       ),
                     ),
                   ),
-                  const Icon(Icons.mic_none, color: AppColors.textMuted, size: 20),
+                  Icon(Icons.mic_none, color: AppColors.textMuted, size: 20),
                 ],
               ),
             ),
@@ -425,8 +427,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primaryBrown),
                           SizedBox(width: 6),
                           Text(
@@ -568,7 +570,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       subtitle2: 'Tunai',
                       amount: '${newTx['isExpense'] ? '-' : '+'}Rp ${newTx['amount']}',
                       isExpense: newTx['isExpense'],
-                      time: DateFormat('HH:mm').format(DateTime.now()) + ' WIB',
+                      time: '${DateFormat('HH:mm').format(DateTime.now())} WIB',
                     ),
                     const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
                   ],

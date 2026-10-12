@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ai_chat_screen.dart';
+import 'budget_screen.dart';
 
 class AiInsightScreen extends StatefulWidget {
   const AiInsightScreen({super.key});
@@ -99,6 +100,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
   // ==================== TAB 1: RINGKASAN ====================
   Widget _buildRingkasanTab() {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,10 +115,10 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             ),
             child: Row(
               children: [
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text('Halo, Keisya!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
                       SizedBox(height: 4),
                       Text('Berikut adalah analisis keuangan kamu berdasarkan pola pengeluaran bulan ini.', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
@@ -163,12 +165,12 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
+                const Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text('Total Pemasukan', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                           SizedBox(height: 4),
                           Text('Rp 4.500.000', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
@@ -178,7 +180,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text('Total Pengeluaran', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                           SizedBox(height: 4),
                           Text('Rp 3.200.000', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
@@ -190,18 +192,18 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                 const SizedBox(height: 16),
                 const Divider(color: Color(0xFFF0EAE1)),
                 const SizedBox(height: 16),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text('Sisa Saldo', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                         SizedBox(height: 4),
                         Text('Rp 1.300.000', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
                       ],
                     ),
-                    const Icon(Icons.bar_chart, color: Color(0xFF8C381E), size: 32),
+                    Icon(Icons.bar_chart, color: Color(0xFF8C381E), size: 32),
                   ],
                 ),
               ],
@@ -219,20 +221,20 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFF0EAE1)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   backgroundColor: Color(0xFFFDF3F0),
                   child: Icon(Icons.lightbulb_outline, color: Color(0xFF8C381E)),
                 ),
-                const SizedBox(width: 16),
-                const Expanded(
+                SizedBox(width: 16),
+                Expanded(
                   child: Text(
                     'Pengeluaran kamu masih sesuai dengan budget bulan ini. Tetap jaga konsistensi ya!',
                     style: TextStyle(fontSize: 12, color: Color(0xFF8C827A), height: 1.4),
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Color(0xFF8C827A)),
+                Icon(Icons.chevron_right, color: Color(0xFF8C827A)),
               ],
             ),
           ),
@@ -244,12 +246,13 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
   // ==================== TAB 2: PREDIKSI BUDGET ====================
   Widget _buildPrediksiTab() {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.auto_awesome, color: Color(0xFF8C381E), size: 16),
               SizedBox(width: 8),
               Text('Prediksi Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2C1A14))),
@@ -272,7 +275,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             decoration: BoxDecoration(
               color: const Color(0xFFFDF3F0),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF8C381E).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFF8C381E).withValues(alpha: 0.3)),
             ),
             child: Row(
               children: [
@@ -366,6 +369,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
   // ==================== TAB 3: REKOMENDASI ====================
   Widget _buildRekomendasiTab() {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +380,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             decoration: BoxDecoration(
               color: const Color(0xFFFDF3F0),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF8C381E).withOpacity(0.3)),
+              border: Border.all(color: const Color(0xFF8C381E).withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +433,12 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             title: 'Alokasi Budget Hiburan',
             description: 'Pindahkan sisa budget Hiburan sebesar Rp 150.000 ke kategori Makanan.',
             buttonText: 'Pindahkan Budget',
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BudgetScreen()),
+              );
+            },
           ),
         ],
       ),
