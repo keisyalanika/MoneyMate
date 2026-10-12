@@ -20,7 +20,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> fetchSummary() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/summary'));
+      final response = await http.get(Uri.parse('$baseUrl/summary'), headers: headers);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return data['data'];
@@ -39,7 +39,7 @@ class ApiService {
 
   static Future<List<TransactionModel>> fetchTransactions() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/transactions'));
+      final response = await http.get(Uri.parse('$baseUrl/transactions'), headers: headers);
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
         final List<dynamic> list = body['data'];
@@ -80,7 +80,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/transactions'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode(payload),
       );
       return response.statusCode == 201;
@@ -94,7 +94,7 @@ class ApiService {
 
   static Future<List<CategoryModel>> fetchCategories() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/categories'));
+      final response = await http.get(Uri.parse('$baseUrl/categories'), headers: headers);
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
         final List<dynamic> list = body['data'];
@@ -113,7 +113,7 @@ class ApiService {
 
   static Future<List<BudgetModel>> fetchBudgets() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/budgets'));
+      final response = await http.get(Uri.parse('$baseUrl/budgets'), headers: headers);
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
         final List<dynamic> list = body['data'];

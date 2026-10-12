@@ -2,10 +2,23 @@ import React, { useState } from 'react';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { Dashboard } from './pages/Dashboard';
+import { logoutUser } from './services/api';
 
 export const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'login' | 'register' | 'dashboard'>('login');
-  const [userEmail, setUserEmail] = useState<string>('KeisyaExaHaniyah@gmail.com');
+  const [currentPage, setCurrentPage] = useState<'login' | 'register' | 'dashboard'>(() => {
+    return localStorage.getItem('token') ? 'dashboard' : 'login';
+  });
+  const [userEmail, setUserEmail] = useState<string>(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser).email || 'KeisyaExaHaniyah@gmail.com';
+      } catch {
+        return 'KeisyaExaHaniyah@gmail.com';
+      }
+    }
+    return 'KeisyaExaHaniyah@gmail.com';
+  });
 
   const handleLoginSuccess = (email: string) => {
     setUserEmail(email);
@@ -18,6 +31,7 @@ export const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    logoutUser();
     setCurrentPage('login');
   };
 

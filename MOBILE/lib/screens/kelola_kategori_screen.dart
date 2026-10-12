@@ -929,3 +929,7 @@ class _KelolaKategoriScreenState extends State<KelolaKategoriScreen> {
     );
   }
 }
+
+// Compatibility typedefs
+typedef KelolaCategoryScreen = KelolaKategoriScreen;
+typedef KelolaCategoryItem = _CategoryItem;
