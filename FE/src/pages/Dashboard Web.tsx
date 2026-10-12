@@ -70,11 +70,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
     setUnreadNotifCount(prev => prev + 1);
   };
 
-  const handleDownloadPdf = () => {
-    setPdfToastMessage('Memproses Unduh PDF Laporan...');
+  const handleDownloadPdf = (customTitle?: string) => {
+    setPdfToastMessage(customTitle ? `Memproses Unduh: ${customTitle}...` : 'Memproses Unduh PDF Laporan...');
     setPdfToast(true);
     setTimeout(() => {
-      setPdfToastMessage('✅ Laporan PDF Berhasil Diunduh!');
+      setPdfToastMessage(customTitle ? `✅ ${customTitle} Berhasil Diunduh!` : '✅ Laporan PDF Berhasil Diunduh!');
       setUnreadNotifCount(prev => prev + 1);
     }, 1500);
     setTimeout(() => {
@@ -276,7 +276,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
             />
           )}
           {activeTab === 'reports' && <ReportsPage onTriggerPdfToast={handleDownloadPdf} fmtMoney={fmtMoney} />}
-          {activeTab === 'settings' && <SettingsPage onTriggerSaveToast={handleDownloadPdf} fmtMoney={fmtMoney} />}
+          {activeTab === 'settings' && <SettingsPage fmtMoney={fmtMoney} />}
           {activeTab === 'profile' && <ProfilePage userEmail={userEmail} onLogout={onLogout || (() => {})} />}
         </main>
       </div>

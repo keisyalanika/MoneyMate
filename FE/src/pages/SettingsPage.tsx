@@ -15,7 +15,92 @@ export interface CategoryItem {
   badgeText: string;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, fmtMoney }) => {
+// Comprehensive iOS Emoji Categories
+const IOS_EMOJI_CATEGORIES = [
+  {
+    id: 'smileys',
+    name: 'Smileys & Orang',
+    icon: '😊',
+    emojis: [
+      '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥹', '☺️',
+      '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😋',
+      '😛', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳',
+      '😏', '😒', '😞', '😔', '😟', '😕', '🥺', '😢', '😭', '😤',
+      '😠', '😡', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥',
+      '😓', '🤗', '🤔', '🫣', '🤭', '🫡', '🤫', '🫠', '🤥', '😶'
+    ]
+  },
+  {
+    id: 'food',
+    name: 'Makanan & Minuman',
+    icon: '🍔',
+    emojis: [
+      '🍴', '🍽️', '🥢', '🥄', '☕', '🧋', '🍵', '🥤', '🧃', '🥛',
+      '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥗',
+      '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🍤', '🍙', '🍚',
+      '🥑', '🍎', '🍌', '🍉', '🍇', '🍓', '🫐', '🍑', '🥐', '🥯',
+      '🍞', '🥖', '🥨', '🧀', '🍳', '🥞', '🧇', '🍗', '🥩', '🍢',
+      '🍡', '🍧', '🍨', '🍦', '🍰', '🎂', '🧁', '🍮', '🍩', '🍫'
+    ]
+  },
+  {
+    id: 'campus',
+    name: 'Kampus & Finansial',
+    icon: '🎓',
+    emojis: [
+      '🎓', '📚', '📖', '💵', '💰', '💳', '🪙', '💎', '🏛️', '🏫',
+      '🎒', '📝', '✏️', '✒️', '🖋️', '🖊️', '🗒️', '🗓️', '📅', '📆',
+      '📈', '📉', '📊', '📋', '📌', '📍', '📎', '🖇️', '📏', '📐',
+      '✂️', '🗃️', '🗄️', '🔒', '🔑', '🏷️', '💻', '🖥️', '🖨️', '⌨️',
+      '📱', '📲', '☎️', '📞', '💾', '💿', '📀', '📠', '💼', '📁'
+    ]
+  },
+  {
+    id: 'living',
+    name: 'Rumah & Kos',
+    icon: '🏠',
+    emojis: [
+      '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏬',
+      '🛏️', '🛋️', '🚪', '🪑', '🚽', '🚿', '🛁', '🧴', '🧹', '🧺',
+      '🧻', '🪣', '🧼', '🧽', '🛒', '🛍️', '👕', '👖', '👗', '👟',
+      '👓', '🕶️', '🧢', '👒', '🧳', '📦', '💡', '🔌', '📶', '🔋'
+    ]
+  },
+  {
+    id: 'travel',
+    name: 'Transportasi',
+    icon: '🚗',
+    emojis: [
+      '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐',
+      '🚚', '🚛', '🛵', '🏍️', '🚲', '🛴', '🛺', '🚆', '🚇', '🚈',
+      '🚉', '✈️', '🛫', '🛬', '🚀', '🚁', '⛴️', '🚢', '⚓', '⛽'
+    ]
+  },
+  {
+    id: 'activities',
+    name: 'Aktivitas & UKM',
+    icon: '🎮',
+    emojis: [
+      '🎮', '🕹️', '🎲', '♟️', '🎯', '🎳', '⚽', '🏀', '🏈', '⚾',
+      '🎾', '🏐', '🏸', '🏓', '🥊', '🥋', '🛹', '🛼', '🏋️', '🧘',
+      '🎨', '🎭', '🎪', '🎤', '🎧', '🎼', '🎹', '🎸', '🥁', '🎬',
+      '🎟️', '🎫', '🏆', '🥇', '🥈', '🥉', '🏅', '📸', '🍿', '🏕️'
+    ]
+  },
+  {
+    id: 'symbols',
+    name: 'Simbol & Penanda',
+    icon: '💖',
+    emojis: [
+      '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💖',
+      '✨', '⭐', '🌟', '🔥', '💥', '⚡', '☀️', '🌈', '☀️', '🌙',
+      '✅', '❌', '⚠️', '🚨', '💯', '🔔', '📣', '📢', '💬', '💭',
+      '✔️', '➕', '➖', '➗', '💲', '💱', '🆗', '🆒', '🆕', '🆓'
+    ]
+  }
+];
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({ fmtMoney }) => {
   // Category Filter state
   const [filterType, setFilterType] = useState<'Semua' | 'Pengeluaran' | 'Pemasukan'>('Semua');
 
@@ -41,13 +126,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
   const [newCatType, setNewCatType] = useState<'Pengeluaran' | 'Pemasukan'>('Pengeluaran');
   const [newCatIcon, setNewCatIcon] = useState('🏷️');
 
-  // Toast Notification State
+  // iOS Emoji Keyboard States
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('food');
+  const [emojiSearch, setEmojiSearch] = useState('');
+
+  // Toast Notification State for Settings Saved ONLY
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState({ title: '', desc: '' });
 
   const handleSaveSettings = () => {
+    // Only show saved toast, NO PDF download
+    setToastMessage({
+      title: 'Perubahan Berhasil Disimpan!',
+      desc: `Standar pagu default berhasil diperbarui menjadi Rp ${paguNominal} / bulan.`
+    });
     setShowSavedToast(true);
-    if (onTriggerSaveToast) onTriggerSaveToast();
-    setTimeout(() => setShowSavedToast(false), 5000);
+    setTimeout(() => setShowSavedToast(false), 4500);
   };
 
   const handleAddCategorySubmit = (e: React.FormEvent) => {
@@ -66,11 +161,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
 
     setCategories([newItem, ...categories]);
     setShowAddModal(false);
+    setShowEmojiPicker(false);
     setNewCatName('');
     setNewCatSubtext('');
 
+    setToastMessage({
+      title: 'Kategori Berhasil Ditambahkan!',
+      desc: `Kategori "${newCatName}" (${newCatType}) dengan ikon ${newCatIcon} telah tersimpan.`
+    });
     setShowSavedToast(true);
-    setTimeout(() => setShowSavedToast(false), 5000);
+    setTimeout(() => setShowSavedToast(false), 4500);
   };
 
   const filteredCategories = categories.filter(c => {
@@ -81,8 +181,42 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
   const countPengeluaran = categories.filter(c => c.type === 'Pengeluaran').length;
   const countPemasukan = categories.filter(c => c.type === 'Pemasukan').length;
 
+  // Active emojis list based on category & search
+  const currentCategoryData = IOS_EMOJI_CATEGORIES.find(cat => cat.id === selectedEmojiCategory) || IOS_EMOJI_CATEGORIES[0];
+  const displayedEmojis = emojiSearch.trim()
+    ? IOS_EMOJI_CATEGORIES.flatMap(c => c.emojis).filter((_e, idx, arr) => arr.indexOf(_e) === idx)
+    : currentCategoryData.emojis;
+
   return (
     <div className="p-4 space-y-4 max-w-7xl mx-auto w-full animate-fadeIn text-xs relative">
+      {/* Toast Notification: Perubahan Disimpan (TIDAK ADA UNDUH PDF) */}
+      {showSavedToast && (
+        <div className="fixed top-14 right-5 z-50 w-full max-w-sm pointer-events-auto transition-all animate-fadeIn">
+          <div className="bg-white/95 backdrop-blur-md border border-[#E5DDD8] rounded-2xl p-4 shadow-2xl text-xs space-y-2 border-l-4 border-emerald-500">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                  ✓
+                </div>
+                <div>
+                  <div className="font-bold text-[#2D2825] text-xs">{toastMessage.title}</div>
+                  <div className="text-[10px] text-[#8C7A70]">Baru saja • Database Kampus Terupdate</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSavedToast(false)}
+                className="text-[#8C7A70] hover:text-[#2D2825] p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[#554A43] text-[11px] leading-relaxed bg-[#FAF7F4] p-2.5 rounded-xl border border-[#E5DDD8]">
+              {toastMessage.desc}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Top Header & Action Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -107,13 +241,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 border border-[#E5DDD8] bg-white text-[#5C2D16] font-bold text-xs rounded-xl hover:bg-[#FAF7F4] shadow-xs flex items-center gap-1.5 transition-all"
+            className="px-4 py-2 border border-[#E5DDD8] bg-white text-[#6E5D53] hover:text-[#2D2825] font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            <span>✕</span> Batal
+            <span>↻</span> Batalkan
           </button>
           <button
             onClick={handleSaveSettings}
-            className="px-4 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-all"
+            className="px-4 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <span>✓</span> Simpan Perubahan
           </button>
@@ -124,74 +258,84 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* LEFT COLUMN: Daftar Kategori Utama (2/3 width) */}
         <div className="lg:col-span-2 bg-white border border-[#E5DDD8] rounded-2xl p-5 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F0E8E4] pb-4">
             <div>
-              <h2 className="text-base font-bold text-[#2D2825]">Daftar Kategori Utama</h2>
-              <p className="text-[11px] text-[#8C7A70] mt-0.5">Taksonomi pengeluaran dan pemasukan resmi dompet mahasiswa.</p>
+              <h2 className="text-base font-bold text-[#2D2825] flex items-center gap-2">
+                <span>🏷️</span> Taksonomi Kategori Finansial
+              </h2>
+              <p className="text-xs text-[#8C7A70] mt-0.5">
+                Kategori aktif yang digunakan mahasiswa saat mencatat transaksi pengeluaran dan pemasukan.
+              </p>
             </div>
 
             <button
-              onClick={() => setShowAddModal(true)}
-              className="px-3.5 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white text-xs font-bold rounded-xl shadow flex items-center gap-1.5 shrink-0 transition-all"
+              onClick={() => {
+                setShowAddModal(true);
+                setShowEmojiPicker(false);
+              }}
+              className="px-3.5 py-2 bg-[#FAF4F0] border border-[#E6D4CB] text-[#5C2D16] hover:bg-[#5C2D16] hover:text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
             >
               <span>+</span> Tambah Kategori
             </button>
           </div>
 
-          {/* Filter Pill Tabs */}
-          <div className="flex items-center gap-2 pt-1 border-b border-[#F0E8E4] pb-3">
+          {/* Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setFilterType('Semua')}
-              className={'px-3 py-1.5 rounded-xl font-bold text-xs transition-all ' + (
-                filterType === 'Semua'
-                  ? 'bg-[#5C2D16] text-white shadow-xs'
-                  : 'bg-[#F5F2ED] text-[#6E5D53] hover:text-[#5C2D16]'
-              )}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filterType === 'Semua' ? 'bg-[#5C2D16] text-white' : 'bg-[#FAF7F4] text-[#8C7A70] hover:text-[#2D2825]'
+              }`}
             >
               Semua ({categories.length})
             </button>
             <button
               onClick={() => setFilterType('Pengeluaran')}
-              className={'px-3 py-1.5 rounded-xl font-bold text-xs transition-all ' + (
-                filterType === 'Pengeluaran'
-                  ? 'bg-[#5C2D16] text-white shadow-xs'
-                  : 'bg-[#F5F2ED] text-[#6E5D53] hover:text-[#5C2D16]'
-              )}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filterType === 'Pengeluaran' ? 'bg-rose-700 text-white' : 'bg-[#FAF7F4] text-[#8C7A70] hover:text-[#2D2825]'
+              }`}
             >
               Pengeluaran ({countPengeluaran})
             </button>
             <button
               onClick={() => setFilterType('Pemasukan')}
-              className={'px-3 py-1.5 rounded-xl font-bold text-xs transition-all ' + (
-                filterType === 'Pemasukan'
-                  ? 'bg-[#5C2D16] text-white shadow-xs'
-                  : 'bg-[#F5F2ED] text-[#6E5D53] hover:text-[#5C2D16]'
-              )}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                filterType === 'Pemasukan' ? 'bg-emerald-700 text-white' : 'bg-[#FAF7F4] text-[#8C7A70] hover:text-[#2D2825]'
+              }`}
             >
               Pemasukan ({countPemasukan})
             </button>
           </div>
 
-          {/* Categories List */}
-          <div className="divide-y divide-[#F0E8E4]">
-            {filteredCategories.map((item) => (
-              <div key={item.id} className="py-3.5 flex items-center justify-between hover:bg-[#FAF7F4] px-2 rounded-xl transition-colors">
+          {/* Category List */}
+          <div className="space-y-2.5">
+            {filteredCategories.map(cat => (
+              <div
+                key={cat.id}
+                className="p-3 bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl flex items-center justify-between gap-3 hover:border-[#5C2D16]/30 transition-all"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-2xl bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-base shrink-0">
-                    {item.icon}
+                  <div className="w-9 h-9 rounded-xl bg-white border border-[#E5DDD8] flex items-center justify-center text-lg shadow-2xs shrink-0">
+                    {cat.icon}
                   </div>
                   <div>
-                    <h3 className="font-bold text-xs text-[#2D2825]">{item.name}</h3>
-                    <p className="text-[11px] text-[#8C7A70]">{item.subtext}</p>
+                    <h3 className="font-bold text-xs text-[#2D2825]">{cat.name}</h3>
+                    <p className="text-[10px] text-[#8C7A70]">{cat.subtext}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className={'px-2.5 py-1 text-[10px] font-bold rounded-lg border border-transparent ' + item.badgeBg + ' ' + item.badgeText}>
-                    {item.type}
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${cat.badgeBg} ${cat.badgeText}`}>
+                    {cat.type}
                   </span>
-                  <button className="p-1.5 text-[#8C7A70] hover:text-[#5C2D16] rounded-lg transition-colors">
-                    ✏️
+                  <button
+                    onClick={() => {
+                      setCategories(categories.filter(c => c.id !== cat.id));
+                    }}
+                    className="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                    title="Hapus Kategori"
+                  >
+                    🗑️
                   </button>
                 </div>
               </div>
@@ -199,76 +343,95 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Settings Cards (1/3 width) */}
-        <div className="space-y-4">
-          {/* Card 1: Batas Pagu Default */}
+        {/* RIGHT COLUMN: Konfigurasi Ambang Batas Pagu & EWS */}
+        <div className="space-y-5">
+          {/* Card 1: Standar Pagu Default Mahasiswa */}
           <div className="bg-white border border-[#E5DDD8] rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#FAF4F0] text-[#5C2D16] flex items-center justify-center font-bold text-base shrink-0 mt-0.5 border border-[#E8DCD8]">
-                👛
-              </div>
-              <div>
-                <h2 className="font-bold text-xs text-[#2D2825]">Batas Pagu Default</h2>
-                <p className="text-[10px] text-[#8C7A70] leading-tight">Nominal batas pagu bulanan acuan mahasiswa</p>
-              </div>
+            <div className="border-b border-[#F0E8E4] pb-3">
+              <span className="text-[10px] font-bold text-[#8C7A70] uppercase tracking-wider">AMBANG BATAS UMUM</span>
+              <h2 className="text-sm font-bold text-[#2D2825] mt-0.5">Standar Pagu Default Mahasiswa</h2>
+              <p className="text-[11px] text-[#8C7A70]">Batas aman pengeluaran bulanan default saat mahasiswa baru mendaftar.</p>
             </div>
 
-            <div className="space-y-1.5 pt-1">
-              <label className="block text-[11px] font-semibold text-[#6E5D53]">Standar Pagu Bulanan</label>
-              <div className="flex items-center bg-[#F5F2ED] border border-[#E5DDD8] rounded-xl overflow-hidden focus-within:ring-1 focus-within:ring-[#5C2D16]">
-                <span className="px-3 text-xs font-bold text-[#8C7A70] border-r border-[#E5DDD8]">Rp</span>
+            <div className="space-y-2">
+              <label className="block text-[11px] font-semibold text-[#6E5D53]">Nominal Pagu Bulanan (IDR)</label>
+              <div className="flex items-center bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl overflow-hidden focus-within:border-[#5C2D16]">
+                <span className="px-3 text-xs font-bold text-[#5C2D16] bg-[#FAF4F0] py-2 border-r border-[#E5DDD8]">Rp</span>
                 <input
                   type="text"
                   value={paguNominal}
                   onChange={e => setPaguNominal(e.target.value)}
                   className="w-full bg-transparent px-3 py-2 text-xs font-extrabold text-[#2D2825] focus:outline-none"
+                  placeholder="2.500.000"
                 />
                 <span className="px-3 text-[10px] font-semibold text-[#8C7A70] whitespace-nowrap">/ bulan</span>
               </div>
-              <p className="text-[10px] text-[#8C7A70] pt-0.5">Standar pagu pengeluaran mahasiswa per semester ({fmtMoney ? fmtMoney('Rp 2.500.000', '$ 161.29') : 'Rp 2.500.000'}).</p>
+              <p className="text-[10px] text-[#8C7A70] pt-0.5">
+                Standar pagu pengeluaran mahasiswa ({fmtMoney ? fmtMoney(`Rp ${paguNominal}`, '$ 161.29') : `Rp ${paguNominal}`}).
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                className="w-full py-2 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>✓</span> Simpan Perubahan Pagu
+              </button>
             </div>
           </div>
 
-          {/* Card 2: Toleransi Defisit (Early Warning System) */}
+          {/* Card 2: Toleransi Defisit & EWS */}
           <div className="bg-white border border-[#E5DDD8] rounded-2xl p-5 shadow-xs space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 border border-amber-200">
-                ⚠️
-              </div>
-              <div>
-                <h2 className="font-bold text-xs text-[#2D2825]">Toleransi Defisit (Early Warning System)</h2>
-                <p className="text-[10px] text-[#8C7A70] leading-tight">Peringatan dini serapan kas</p>
-              </div>
+            <div className="border-b border-[#F0E8E4] pb-3">
+              <span className="text-[10px] font-bold text-[#8C7A70] uppercase tracking-wider">EARLY WARNING SYSTEM</span>
+              <h2 className="text-sm font-bold text-[#2D2825] mt-0.5">Deteksi & Peringatan Otomatis</h2>
+              <p className="text-[11px] text-[#8C7A70]">Sistem notifikasi cerdas ketika mahasiswa melampaui 80% pagu.</p>
             </div>
 
-            <div className="pt-1 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-[#2D2825]">Peringatan Saldo Kritis (EWS)</span>
-                <button
-                  onClick={() => setEwsEnabled(!ewsEnabled)}
-                  className={'w-11 h-6 rounded-full transition-colors relative p-0.5 ' + (ewsEnabled ? 'bg-[#5C2D16]' : 'bg-[#E5DDD8]')}
-                >
-                  <div className={'w-5 h-5 rounded-full bg-white shadow-xs transition-transform ' + (ewsEnabled ? 'translate-x-5' : 'translate-x-0')}></div>
-                </button>
+            <div className="flex items-center justify-between p-3 bg-[#FAF7F4] rounded-xl border border-[#E5DDD8]">
+              <div>
+                <div className="font-bold text-xs text-[#2D2825]">Aktifkan EWS Kampus</div>
+                <div className="text-[10px] text-[#8C7A70]">Kirim push notif otomatis jika defisit</div>
               </div>
-              <p className="text-[10px] text-[#6E5D53] leading-relaxed">
-                Kirim sinyal peringatan otomatis jika serapan anggaran kas tersisa di bawah 20% sebelum akhir bulan.
-              </p>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ewsEnabled}
+                  onChange={e => setEwsEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5C2D16]"></div>
+              </label>
             </div>
           </div>
         </div>
       </div>
 
-      {/* MODAL: Tambah Kategori Baru */}
+      {/* MODAL: Tambah Kategori Baru dengan Keyboard Emoji iOS */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white border border-[#E5DDD8] rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white border border-[#E5DDD8] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[#F0E8E4] pb-3">
-              <h3 className="font-bold text-sm text-[#2D2825]">Tambah Kategori Utama Baru</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-[#8C7A70] hover:text-[#2D2825] font-bold">✕</button>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FAF4F0] text-[#5C2D16] flex items-center justify-center font-bold text-base">
+                  🏷️
+                </div>
+                <h3 className="font-bold text-sm text-[#2D2825]">Tambah Kategori Utama Baru</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setShowEmojiPicker(false);
+                }}
+                className="text-[#8C7A70] hover:text-[#2D2825] font-bold text-base cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleAddCategorySubmit} className="space-y-3">
+            <form onSubmit={handleAddCategorySubmit} className="space-y-3.5">
               <div>
                 <label className="block text-[11px] font-semibold text-[#6E5D53] mb-1">Nama Kategori</label>
                 <input
@@ -276,7 +439,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
                   placeholder="Contoh: Tagihan Listrik & WiFi Kos"
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
-                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none"
+                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
                   required
                 />
               </div>
@@ -288,7 +451,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
                   placeholder="Contoh: Pembayaran utilitas bulanan"
                   value={newCatSubtext}
                   onChange={e => setNewCatSubtext(e.target.value)}
-                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none"
+                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
                 />
               </div>
 
@@ -298,7 +461,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
                   <select
                     value={newCatType}
                     onChange={e => setNewCatType(e.target.value as 'Pengeluaran' | 'Pemasukan')}
-                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none"
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none focus:border-[#5C2D16] cursor-pointer"
                   >
                     <option value="Pengeluaran">Pengeluaran</option>
                     <option value="Pemasukan">Pemasukan</option>
@@ -307,63 +470,120 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onTriggerSaveToast, 
 
                 <div>
                   <label className="block text-[11px] font-semibold text-[#6E5D53] mb-1">Ikon Emoji</label>
-                  <input
-                    type="text"
-                    value={newCatIcon}
-                    onChange={e => setNewCatIcon(e.target.value)}
-                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] hover:border-[#5C2D16] rounded-xl px-3 py-1.5 flex items-center justify-between transition-all cursor-pointer"
+                  >
+                    <span className="text-xl">{newCatIcon}</span>
+                    <span className="text-[10px] text-[#5C2D16] font-bold bg-[#FAF4F0] px-2 py-0.5 rounded border border-[#E6D4CB]">
+                      Pilih ⌨️
+                    </span>
+                  </button>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[#F0E8E4]">
+              {/* iOS EMOJI KEYBOARD POPUP / PICKER */}
+              {showEmojiPicker && (
+                <div className="bg-[#E5E5EA] border border-[#C7C7CC] rounded-2xl p-3 shadow-xl space-y-2.5 animate-fadeIn">
+                  <div className="flex items-center justify-between text-[11px] text-[#3A3A3C] font-semibold pb-1 border-b border-[#D1D1D6]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm"></span>
+                      <span>Papan Tombol Emoji iOS</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(false)}
+                      className="px-2 py-0.5 bg-white text-[#007AFF] hover:bg-stone-100 rounded-lg font-bold text-[10px] shadow-2xs cursor-pointer"
+                    >
+                      Selesai
+                    </button>
+                  </div>
+
+                  {/* Search Bar iOS Style */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Cari emoji..."
+                      value={emojiSearch}
+                      onChange={e => setEmojiSearch(e.target.value)}
+                      className="w-full bg-white/90 text-[#1C1C1E] placeholder-stone-400 px-7 py-1.5 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#007AFF] border border-[#D1D1D6]"
+                    />
+                    <span className="absolute left-2.5 top-1.5 text-xs text-stone-400">🔍</span>
+                    {emojiSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setEmojiSearch('')}
+                        className="absolute right-2.5 top-1.5 text-xs text-stone-400 hover:text-stone-700 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category Pills iOS Style */}
+                  {!emojiSearch && (
+                    <div className="flex items-center justify-between gap-1 overflow-x-auto pb-1 px-1">
+                      {IOS_EMOJI_CATEGORIES.map(cat => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSelectedEmojiCategory(cat.id)}
+                          title={cat.name}
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all cursor-pointer ${
+                            selectedEmojiCategory === cat.id
+                              ? 'bg-white shadow-xs scale-110'
+                              : 'hover:bg-white/50 text-stone-600'
+                          }`}
+                        >
+                          {cat.icon}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Emoji Grid iOS Matrix */}
+                  <div className="bg-[#F2F2F7] p-2 rounded-xl border border-[#D1D1D6] max-h-36 overflow-y-auto">
+                    <div className="grid grid-cols-8 gap-1.5 text-center">
+                      {displayedEmojis.map((emoji, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setNewCatIcon(emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-xl hover:scale-125 transition-transform hover:bg-white shadow-2xs cursor-pointer ${
+                            newCatIcon === emoji ? 'bg-white ring-2 ring-[#007AFF]' : ''
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-[#F0E8E4] flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-1.5 border border-[#E5DDD8] text-[#6E5D53] font-bold text-xs rounded-xl hover:bg-[#FAF7F4]"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setShowEmojiPicker(false);
+                  }}
+                  className="px-4 py-2 border border-[#E5DDD8] bg-white text-[#6E5D53] hover:text-[#2D2825] font-bold text-xs rounded-xl cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow"
+                  className="px-4 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow cursor-pointer"
                 >
                   Simpan Kategori
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* SINGLE TOAST: Perubahan Berhasil Disimpan (Matching Gambar 2 Specs) */}
-      {showSavedToast && (
-        <div className="fixed top-20 right-6 z-50 bg-white border border-emerald-300 rounded-2xl p-4 shadow-2xl max-w-sm w-full space-y-2 animate-fadeIn">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
-                ✓
-              </div>
-              <div>
-                <h4 className="font-bold text-xs text-[#2D2825]">Perubahan Berhasil Disimpan</h4>
-                <span className="text-[10px] text-[#8C7A70]">Baru saja</span>
-              </div>
-            </div>
-            <button onClick={() => setShowSavedToast(false)} className="text-[#8C7A70] hover:text-[#2D2825] text-xs font-bold">✕</button>
-          </div>
-
-          <p className="text-[11px] text-[#554A43] leading-relaxed">
-            Kategori anggaran baru dan ambang batas peringatan 80% telah diperbarui ke sistem SIAKAD kampus.
-          </p>
-
-          <div className="flex items-center gap-3 pt-1 text-[11px] border-t border-[#F0E8E4]">
-            <button onClick={() => setShowSavedToast(false)} className="font-bold text-[#5C2D16] hover:underline">
-              ↩ Batalkan (Undo)
-            </button>
-            <span className="text-[#8C7A70]">•</span>
-            <span className="font-bold text-emerald-700 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tersinkronisasi
-            </span>
           </div>
         </div>
       )}
