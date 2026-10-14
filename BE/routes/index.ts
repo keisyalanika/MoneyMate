@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import userRoutes from './userRoutes';\nimport { Router } from 'express';
 import summaryRoutes from './summaryRoutes';
 import transactionRoutes from './transactionRoutes';
 import categoryRoutes from './categoryRoutes';
@@ -11,4 +11,4 @@ apiRouter.use('/transactions', transactionRoutes);
 apiRouter.use('/categories', categoryRoutes);
 apiRouter.use('/budgets', budgetRoutes);
 
-export default apiRouter;
+apiRouter.use('/users', userRoutes);\n\nexport default apiRouter;
