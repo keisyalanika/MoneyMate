@@ -15,7 +15,13 @@ export const LoginPage: React.FC<Props> = ({ onLoginSuccess, onNavigateRegister 
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFillDemo = () => {
+  const handleFillAdmin = () => {
+    setEmail('admin@moneymate.com');
+    setPassword('admin123');
+    setErrorMsg('');
+  };
+
+  const handleFillUser = () => {
     setEmail('KeisyaExaHaniyah@gmail.com');
     setPassword('Admin123');
     setErrorMsg('');
@@ -36,7 +42,7 @@ export const LoginPage: React.FC<Props> = ({ onLoginSuccess, onNavigateRegister 
       onLoginSuccess(data.email || email);
     } catch (err: any) {
       console.error('Login error:', err);
-      const msg = err.response?.data?.message || 'Login gagal. Periksa kembali email dan password.';
+      const msg = err.response?.data?.message || err.message || 'Login gagal. Periksa kembali email dan password.';
       setErrorMsg(msg);
     } finally {
       setIsLoading(false);
@@ -85,13 +91,23 @@ export const LoginPage: React.FC<Props> = ({ onLoginSuccess, onNavigateRegister 
           </p>
 
           {/* Quick Demo Helper Banner */}
-          <div className="demo-quick-banner">
-            <div className="demo-quick-text">
-              🔑 Default Login: <strong>KeisyaExaHaniyah@gmail.com</strong>
+          <div className="demo-quick-banner" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div className="demo-quick-text">
+                🛡️ Admin: <strong>admin@moneymate.com</strong>
+              </div>
+              <button type="button" className="demo-quick-btn" onClick={handleFillAdmin}>
+                Isi Admin
+              </button>
             </div>
-            <button type="button" className="demo-quick-btn" onClick={handleFillDemo}>
-              Isi Otomatis
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', borderTop: '1px dashed #E2D1C3', paddingTop: '6px' }}>
+              <div className="demo-quick-text">
+                👤 User: <strong>KeisyaExaHaniyah@gmail.com</strong>
+              </div>
+              <button type="button" className="demo-quick-btn" onClick={handleFillUser} style={{ backgroundColor: '#8C5E3C' }}>
+                Isi User
+              </button>
+            </div>
           </div>
 
           {errorMsg && (

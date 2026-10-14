@@ -209,7 +209,11 @@ INSERT INTO categories (name, type, icon) VALUES
   ('Lainnya (Pengeluaran)', 'expense', 'minus-circle');
 
 -- ============================================
--- SEED DATA: Default Admin User (password: admin123)
+-- SEED DATA: Default Users
+-- admin@moneymate.com (password: admin123)
+-- keisyaexahaniyah@gmail.com (password: Admin123)
 -- ============================================
 INSERT INTO users (name, email, password, role) VALUES
-  ('Admin MoneyMate', 'admin@moneymate.com', '$2a$10$XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 'admin');
+  ('Admin MoneyMate', 'admin@moneymate.com', '$2b$10$YvwgKwpIEQ8PYLJYyvqViu4ESQMumlBDDXBzVxuVsuYeh4SA6I2Mm', 'admin'),
+  ('Keisya Exa Haniyah', 'keisyaexahaniyah@gmail.com', '$2b$10$ywFIMhPR.GYD.G2gGybpjOoKfDnqiSYH0GKMk.imNGZJtGnbwfIiu', 'student');
+

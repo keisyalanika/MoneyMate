@@ -50,7 +50,7 @@ export const RegisterPage: React.FC<Props> = ({ onRegisterSuccess, onNavigateLog
       onRegisterSuccess(data.email || email);
     } catch (err: any) {
       console.error('Register error:', err);
-      const msg = err.response?.data?.message || 'Pendaftaran gagal. Silakan coba lagi.';
+      const msg = err.response?.data?.message || err.message || 'Pendaftaran gagal. Silakan coba lagi.';
       setErrorMsg(msg);
     } finally {
       setIsLoading(false);

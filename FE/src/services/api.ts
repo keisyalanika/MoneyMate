@@ -26,22 +26,122 @@ export interface LoginResponse {
   token: string;
 }
 
+// Local fallback accounts matching Mobile AuthProvider
+const getLocalUsers = (): Record<string, { id: number; name: string; password: string; role: string }> => {
+  const defaults: Record<string, { id: number; name: string; password: string; role: string }> = {
+    'admin@moneymate.com': {
+      id: 1,
+      name: 'Admin MoneyMate',
+      password: 'admin123',
+      role: 'admin',
+    },
+    'keisyaexahaniyah@gmail.com': {
+      id: 2,
+      name: 'Keisya Exa Haniyah',
+      password: 'Admin123',
+      role: 'student',
+    },
+  };
+  try {
+    const saved = localStorage.getItem('moneymate_registered_users');
+    if (saved) {
+      return { ...defaults, ...JSON.parse(saved) };
+    }
+  } catch (_) {}
+  return defaults;
+};
+
+const saveLocalUser = (email: string, user: { id: number; name: string; password: string; role: string }) => {
+  try {
+    const current = getLocalUsers();
+    current[email.toLowerCase()] = user;
+    localStorage.setItem('moneymate_registered_users', JSON.stringify(current));
+  } catch (_) {}
+};
+
 export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
-  const res = await client.post('/auth/login', { email, password });
-  if (res.data.token) {
-    localStorage.setItem('token', res.data.token);
-    localStorage.setItem('user', JSON.stringify(res.data));
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 1. Coba login ke Backend API
+  try {
+    const res = await client.post('/auth/login', { email: normalizedEmail, password });
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data));
+    }
+    return res.data;
+  } catch (err: any) {
+    console.warn('Backend login unavailable or failed, checking offline fallback:', err.message);
+
+    // 2. Fallback offline jika backend mati atau error koneksi (sinkron dengan Mobile App)
+    const localUsers = getLocalUsers();
+    const user = localUsers[normalizedEmail];
+    if (user) {
+      if (user.password === password) {
+        const fallbackData: LoginResponse = {
+          id: user.id,
+          name: user.name,
+          email: normalizedEmail,
+          role: user.role,
+          token: `token_fallback_${Date.now()}`,
+        };
+        localStorage.setItem('token', fallbackData.token);
+        localStorage.setItem('user', JSON.stringify(fallbackData));
+        return fallbackData;
+      } else {
+        throw new Error('Kata sandi yang Anda masukkan salah.');
+      }
+    }
+
+    // Jika akun tidak terdaftar di backend maupun fallback
+    const serverMsg = err.response?.data?.message;
+    throw new Error(serverMsg || 'Akun belum terdaftar atau backend tidak aktif. Silakan gunakan kredensial demo atau daftar terlebih dahulu.');
   }
-  return res.data;
 };
 
 export const registerUser = async (data: { name: string; email: string; password: string; phone?: string }): Promise<any> => {
-  const res = await client.post('/auth/register', data);
-  if (res.data.token) {
-    localStorage.setItem('token', res.data.token);
-    localStorage.setItem('user', JSON.stringify(res.data));
+  const normalizedEmail = data.email.trim().toLowerCase();
+
+  // 1. Coba daftar ke Backend API
+  try {
+    const res = await client.post('/auth/register', { ...data, email: normalizedEmail });
+    if (res.data.token) {
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data));
+    }
+    saveLocalUser(normalizedEmail, {
+      id: res.data.id || Date.now(),
+      name: data.name,
+      password: data.password,
+      role: 'student',
+    });
+    return res.data;
+  } catch (err: any) {
+    console.warn('Backend register unavailable, saving locally as fallback:', err.message);
+
+    // 2. Fallback offline register
+    const localUsers = getLocalUsers();
+    if (localUsers[normalizedEmail]) {
+      throw new Error('Email sudah terdaftar. Silakan langsung masuk.');
+    }
+
+    const newUser = {
+      id: Date.now(),
+      name: data.name,
+      password: data.password,
+      role: 'student',
+    };
+    saveLocalUser(normalizedEmail, newUser);
+
+    const fallbackRes = {
+      ...newUser,
+      email: normalizedEmail,
+      token: `token_fallback_${Date.now()}`,
+    };
+    localStorage.setItem('token', fallbackRes.token);
+    localStorage.setItem('user', JSON.stringify(fallbackRes));
+    return fallbackRes;
   }
-  return res.data;
 };
 
 export const logoutUser = () => {
