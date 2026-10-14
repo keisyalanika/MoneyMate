@@ -128,4 +128,165 @@ class ApiService {
       BudgetModel(id: 'bg-001', categoryId: 'cat-exp-1', categoryName: 'Makanan & Minuman', limitAmount: 3000000, spentAmount: 125000, percentage: 4.17),
     ];
   }
+
+  // ================= GOALS =================
+  static Future<List<Map<String, dynamic>>> fetchGoals() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/goals'), headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchGoals: $e');
+    }
+    return [];
+  }
+
+  static Future<bool> addGoal(Map<String, dynamic> payload) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/goals'),
+        headers: headers,
+        body: json.encode(payload),
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error addGoal: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> addGoalFund(dynamic goalId, double amount, [String? note]) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/goals/$goalId/funds'),
+        headers: headers,
+        body: json.encode({'amount': amount, 'note': note ?? 'Setoran tabungan'}),
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error addGoalFund: $e');
+      return false;
+    }
+  }
+
+  // ================= INCOME SOURCES =================
+  static Future<List<Map<String, dynamic>>> fetchIncomeSources() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/income-sources'), headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchIncomeSources: $e');
+    }
+    return [
+      {'id': 1, 'source_name': 'Transfer Orang Tua'},
+      {'id': 2, 'source_name': 'Beasiswa KIP-K'},
+      {'id': 3, 'source_name': 'Gaji Magang / Freelance'},
+    ];
+  }
+
+  static Future<bool> addIncomeSource(String sourceName) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/income-sources'),
+        headers: headers,
+        body: json.encode({'source_name': sourceName}),
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error addIncomeSource: $e');
+      return false;
+    }
+  }
+
+  // ================= AI INSIGHTS =================
+  static Future<List<Map<String, dynamic>>> fetchAiInsights() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/insights'), headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchAiInsights: $e');
+    }
+    return [
+      {
+        'id': 1,
+        'insight_type': 'spending_habit',
+        'content': 'Pengeluaran nongkrong/kopi minggu ini mencapai Rp 185.000. Coba kurangi 1 gelas seminggu untuk hemat Rp 80.000.',
+        'created_at': DateTime.now().toIso8601String()
+      },
+      {
+        'id': 2,
+        'insight_type': 'saving_streak',
+        'content': 'Hebat! Anda konsisten menabung selama 3 minggu berturut-turut untuk target Dana Darurat.',
+        'created_at': DateTime.now().toIso8601String()
+      }
+    ];
+  }
+
+  // ================= REPORTS =================
+  static Future<List<Map<String, dynamic>>> fetchReports() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/reports'), headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchReports: $e');
+    }
+    return [
+      {
+        'id': 1,
+        'title': 'Laporan Arus Kas Oktober 2026',
+        'report_type': 'monthly',
+        'period_start': '2026-10-01',
+        'period_end': '2026-10-31'
+      }
+    ];
+  }
+
+  // ================= SETTINGS =================
+  static Future<Map<String, dynamic>> fetchUserSettings() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/settings'), headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        return body['data'] ?? {};
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchUserSettings: $e');
+    }
+    return {
+      'currency': 'IDR',
+      'language': 'id',
+      'theme': 'light',
+      'notification_enabled': 1,
+    };
+  }
+
+  static Future<bool> updateUserSettings(Map<String, dynamic> payload) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/settings'),
+        headers: headers,
+        body: json.encode(payload),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error updateUserSettings: $e');
+      return false;
+    }
+  }
 }
+

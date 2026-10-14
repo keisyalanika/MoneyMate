@@ -6,6 +6,7 @@ import 'transaction_screen.dart';
 import 'laporan_screen.dart';
 import 'ai_insight_screen.dart';
 import 'notification_screen.dart';
+import '../services/api_service.dart';
 
 
 class DashboardScreen extends StatelessWidget {
@@ -473,69 +474,134 @@ class DashboardScreen extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: ApiService.fetchGoals(),
+            builder: (context, snapshot) {
+              final goals = snapshot.data ?? [];
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    ),
+                  ),
+                );
+              }
+
+              if (goals.isEmpty) {
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.flag_outlined, color: AppColors.primary, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'Belum Ada Goals Aktif',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Ketuk untuk membuat target tabungan impianmu!',
+                              style: TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 20),
+                    ],
+                  ),
+                );
+              }
+
+              final firstGoal = goals.first;
+              final double collected = double.tryParse('${firstGoal['current_amount'] ?? 0}') ?? 0.0;
+              final double target = double.tryParse('${firstGoal['target_amount'] ?? 1}') ?? 1.0;
+              final double pct = target > 0 ? (collected / target).clamp(0.0, 1.0) : 0.0;
+              final String title = firstGoal['title'] ?? 'Target Tabungan';
+
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
                   children: [
                     Row(
-                      children: const [
-                        Text('🏖️ ', style: TextStyle(fontSize: 14)),
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Text('🎯 ', style: TextStyle(fontSize: 14)),
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
                         Text(
-                          'Dana Liburan',
-                          style: TextStyle(
+                          '${(pct * 100).round()}%',
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
                         ),
                       ],
                     ),
-                    const Text(
-                      '55%',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        minHeight: 8,
+                        backgroundColor: const Color(0xFFEFE8DF),
+                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Rp ${collected.round()} / Rp ${target.round()}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          firstGoal['deadline'] != null ? 'Batas: ${firstGoal['deadline']}' : 'Aktif',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: 0.55,
-                    minHeight: 8,
-                    backgroundColor: const Color(0xFFEFE8DF),
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
-                      'Rp 2.750.000 / Rp 5.000.000',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      'Target Des 2026',
-                      style: TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ],
       ),

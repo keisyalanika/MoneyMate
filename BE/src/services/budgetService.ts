@@ -36,13 +36,25 @@ export const getBudgets = async (user_id: number, month?: number, year?: number)
 // ---- GET all budgets (admin overview) ----
 export const getAllBudgets = async () => {
   const [rows] = await pool.query<RowDataPacket[]>(`
-    SELECT b.*, c.name AS category_name, u.name AS user_name
+    SELECT b.*, c.name AS category_name, c.icon AS category_icon, u.name AS user_name,
+      COALESCE((
+        SELECT SUM(t.amount) FROM transactions t
+        WHERE t.user_id = b.user_id
+          AND t.category_id = b.category_id
+          AND t.type = 'expense'
+          AND MONTH(t.date) = b.month
+          AND YEAR(t.date) = b.year
+      ), 0) AS spent_amount
     FROM budgets b
     LEFT JOIN categories c ON b.category_id = c.id
     LEFT JOIN users u ON b.user_id = u.id
     ORDER BY b.created_at DESC
   `);
-  return rows;
+  return (rows as any[]).map(b => ({
+    ...b,
+    spent_amount: Number(b.spent_amount),
+    percentage: b.amount > 0 ? Math.round((Number(b.spent_amount) / Number(b.amount)) * 100) : 0,
+  }));
 };
 
 // ---- CREATE budget ----

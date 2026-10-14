@@ -7,7 +7,7 @@ interface ProfilePageProps {
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout }) => {
   const [profileName, setProfileName] = useState('Admin');
-  const [profileEmail, setProfileEmail] = useState(userEmail || 'KeisyaExaHaniyah@gmail.com');
+  const [profileEmail, setProfileEmail] = useState(userEmail || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [profileSavedMsg, setProfileSavedMsg] = useState(false);

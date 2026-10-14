@@ -14,7 +14,7 @@ interface DashboardProps {
   onLogout?: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHaniyah@gmail.com', onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ userEmail = '', onLogout }) => {
   const [activeTab, setActiveTab] = useState<string>('settings');
   const [currency, setCurrency] = useState<'IDR' | 'USD'>('IDR');
   
@@ -320,9 +320,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
         {/* DYNAMIC SCROLLABLE PAGE BODY */}
         <main className="flex-1 overflow-y-auto bg-[#F7F5F0]">
           {activeTab === 'overview' && <OverviewPage onTriggerPdfToast={handleDownloadPdf} fmtMoney={fmtMoney} />}
-          {activeTab === 'users' && <UserManagementPage />}
-          {activeTab === 'transactions' && <TransactionsPage transactions={[]} onDelete={() => {}} />}
-          {activeTab === 'budgets' && <BudgetsPage budgets={[]} />}
+          {activeTab === 'users' && <UserManagementPage fmtMoney={fmtMoney} />}
+          {activeTab === 'transactions' && <TransactionsPage onTriggerPdfToast={handleDownloadPdf} />}
+          {activeTab === 'budgets' && <BudgetsPage onTriggerPdfToast={handleDownloadPdf} fmtMoney={fmtMoney} />}
           {activeTab === 'ai' && <AiInsightPage onTriggerPdfToast={handleDownloadPdf} />}
           {activeTab === 'analytics' && <AnalyticsPage fmtMoney={fmtMoney} />}
           {activeTab === 'reports' && <ReportsPage onTriggerPdfToast={handleDownloadPdf} fmtMoney={fmtMoney} />}

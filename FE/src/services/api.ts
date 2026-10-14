@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FinancialSummary, Transaction, Category, Budget } from '../models/types';
+import { FinancialSummary, Transaction, Category, Goal, IncomeSource, AiInsightItem, ReportItem, UserSettings } from '../models/types';
 
 const API_BASE = 'http://localhost:5000/api';
 
@@ -26,43 +26,9 @@ export interface LoginResponse {
   token: string;
 }
 
-// Local fallback accounts matching Mobile AuthProvider
-const getLocalUsers = (): Record<string, { id: number; name: string; password: string; role: string }> => {
-  const defaults: Record<string, { id: number; name: string; password: string; role: string }> = {
-    'admin@moneymate.com': {
-      id: 1,
-      name: 'Admin MoneyMate',
-      password: 'admin123',
-      role: 'admin',
-    },
-    'keisyaexahaniyah@gmail.com': {
-      id: 2,
-      name: 'Keisya Exa Haniyah',
-      password: 'Admin123',
-      role: 'student',
-    },
-  };
-  try {
-    const saved = localStorage.getItem('moneymate_registered_users');
-    if (saved) {
-      return { ...defaults, ...JSON.parse(saved) };
-    }
-  } catch (_) {}
-  return defaults;
-};
-
-const saveLocalUser = (email: string, user: { id: number; name: string; password: string; role: string }) => {
-  try {
-    const current = getLocalUsers();
-    current[email.toLowerCase()] = user;
-    localStorage.setItem('moneymate_registered_users', JSON.stringify(current));
-  } catch (_) {}
-};
-
 export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
   const normalizedEmail = email.trim().toLowerCase();
 
-  // 1. Coba login ke Backend API
   try {
     const res = await client.post('/auth/login', { email: normalizedEmail, password });
     if (res.data.token) {
@@ -71,76 +37,24 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
     }
     return res.data;
   } catch (err: any) {
-    console.warn('Backend login unavailable or failed, checking offline fallback:', err.message);
-
-    // 2. Fallback offline jika backend mati atau error koneksi (sinkron dengan Mobile App)
-    const localUsers = getLocalUsers();
-    const user = localUsers[normalizedEmail];
-    if (user) {
-      if (user.password === password) {
-        const fallbackData: LoginResponse = {
-          id: user.id,
-          name: user.name,
-          email: normalizedEmail,
-          role: user.role,
-          token: `token_fallback_${Date.now()}`,
-        };
-        localStorage.setItem('token', fallbackData.token);
-        localStorage.setItem('user', JSON.stringify(fallbackData));
-        return fallbackData;
-      } else {
-        throw new Error('Kata sandi yang Anda masukkan salah.');
-      }
-    }
-
-    // Jika akun tidak terdaftar di backend maupun fallback
     const serverMsg = err.response?.data?.message;
-    throw new Error(serverMsg || 'Akun belum terdaftar atau backend tidak aktif. Silakan gunakan kredensial demo atau daftar terlebih dahulu.');
+    throw new Error(serverMsg || 'Login gagal. Periksa kembali email dan kata sandi Anda atau pastikan server backend aktif.');
   }
 };
 
 export const registerUser = async (data: { name: string; email: string; password: string; phone?: string }): Promise<any> => {
   const normalizedEmail = data.email.trim().toLowerCase();
 
-  // 1. Coba daftar ke Backend API
   try {
     const res = await client.post('/auth/register', { ...data, email: normalizedEmail });
     if (res.data.token) {
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data));
     }
-    saveLocalUser(normalizedEmail, {
-      id: res.data.id || Date.now(),
-      name: data.name,
-      password: data.password,
-      role: 'student',
-    });
     return res.data;
   } catch (err: any) {
-    console.warn('Backend register unavailable, saving locally as fallback:', err.message);
-
-    // 2. Fallback offline register
-    const localUsers = getLocalUsers();
-    if (localUsers[normalizedEmail]) {
-      throw new Error('Email sudah terdaftar. Silakan langsung masuk.');
-    }
-
-    const newUser = {
-      id: Date.now(),
-      name: data.name,
-      password: data.password,
-      role: 'student',
-    };
-    saveLocalUser(normalizedEmail, newUser);
-
-    const fallbackRes = {
-      ...newUser,
-      email: normalizedEmail,
-      token: `token_fallback_${Date.now()}`,
-    };
-    localStorage.setItem('token', fallbackRes.token);
-    localStorage.setItem('user', JSON.stringify(fallbackRes));
-    return fallbackRes;
+    const serverMsg = err.response?.data?.message;
+    throw new Error(serverMsg || 'Pendaftaran gagal. Periksa kembali data Anda.');
   }
 };
 
@@ -183,30 +97,7 @@ export const fetchTransactions = async (type?: string, search?: string): Promise
       notes: tx.note || tx.notes,
     }));
   } catch {
-    return [
-      {
-        id: 'tx-001',
-        title: 'Gaji Bulanan Software Engineer',
-        amount: 15000000,
-        type: 'INCOME',
-        categoryId: 'cat-inc-1',
-        categoryName: 'Gaji Bulanan',
-        categoryIcon: 'wallet',
-        date: new Date().toISOString(),
-        notes: 'Transfer Gaji Pokok'
-      },
-      {
-        id: 'tx-002',
-        title: 'Makan Siang Resto SE',
-        amount: 125000,
-        type: 'EXPENSE',
-        categoryId: 'cat-exp-1',
-        categoryName: 'Makanan & Minuman',
-        categoryIcon: 'utensils',
-        date: new Date().toISOString(),
-        notes: 'Makan siang bersama tim'
-      }
-    ];
+    return [];
   }
 };
 
@@ -248,22 +139,162 @@ export const fetchCategories = async (): Promise<Category[]> => {
 };
 
 // ================= BUDGETS =================
-export const fetchBudgets = async (): Promise<Budget[]> => {
+export const fetchBudgets = async (): Promise<any[]> => {
   try {
     const res = await client.get('/budgets');
     const rawData = res.data.data || [];
     return rawData.map((b: any) => ({
       id: String(b.id),
+      userId: b.user_id,
+      userName: b.user_name || 'Pengguna',
       categoryId: String(b.category_id),
       categoryName: b.category_name || 'Kategori',
       limitAmount: Number(b.amount || b.limitAmount || 0),
       spentAmount: Number(b.spent_amount || b.spentAmount || 0),
       percentage: Number(b.percentage || 0)
     }));
-  } catch {
-    return [
-      { id: 'bg-001', categoryId: 'cat-exp-1', categoryName: 'Makanan & Minuman', limitAmount: 3000000, spentAmount: 125000, percentage: 4.17 },
-      { id: 'bg-002', categoryId: 'cat-exp-2', categoryName: 'Transportasi', limitAmount: 1500000, spentAmount: 350000, percentage: 23.33 }
-    ];
+  } catch (err: any) {
+    console.warn('Backend budgets unavailable, returning empty list:', err.message);
+    return [];
   }
 };
+
+// ================= GOALS =================
+export const fetchGoals = async (): Promise<Goal[]> => {
+  try {
+    const res = await client.get('/goals');
+    const rawData = res.data.data || [];
+    return rawData.map((g: any) => ({
+      id: String(g.id),
+      title: g.title,
+      targetAmount: Number(g.target_amount || 0),
+      currentAmount: Number(g.current_amount || 0),
+      deadline: g.deadline,
+      isCompleted: Boolean(g.is_completed),
+      icon: g.icon || 'target'
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const createGoal = async (data: { title: string; target_amount: number; icon?: string; deadline?: string }): Promise<Goal> => {
+  const res = await client.post('/goals', data);
+  return res.data.data;
+};
+
+export const addGoalFund = async (goalId: string | number, amount: number, note?: string): Promise<any> => {
+  const res = await client.post(`/goals/${goalId}/funds`, { amount, note });
+  return res.data.data;
+};
+
+// ================= INCOME SOURCES =================
+export const fetchIncomeSources = async (): Promise<IncomeSource[]> => {
+  try {
+    const res = await client.get('/income-sources');
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createIncomeSource = async (source_name: string): Promise<IncomeSource> => {
+  const res = await client.post('/income-sources', { source_name });
+  return res.data.data;
+};
+
+// ================= AI INSIGHTS =================
+export const fetchAiInsights = async (): Promise<AiInsightItem[]> => {
+  try {
+    const res = await client.get('/insights');
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createAiInsight = async (data: { insight_type: string; content: string; user_id?: number }): Promise<AiInsightItem> => {
+  const res = await client.post('/insights', data);
+  return res.data.data;
+};
+
+// ================= REPORTS =================
+export const fetchReports = async (reportType?: string): Promise<ReportItem[]> => {
+  try {
+    const res = await client.get('/reports', { params: { report_type: reportType } });
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createReport = async (data: Partial<ReportItem>): Promise<ReportItem> => {
+  const res = await client.post('/reports', data);
+  return res.data.data;
+};
+
+// ================= USER SETTINGS =================
+export const fetchUserSettings = async (): Promise<UserSettings> => {
+  try {
+    const res = await client.get('/settings');
+    return res.data.data;
+  } catch {
+    return {
+      currency: 'IDR',
+      language: 'id',
+      theme: 'light',
+      notification_enabled: true
+    };
+  }
+};
+
+export const updateUserSettings = async (data: Partial<UserSettings>): Promise<UserSettings> => {
+  const res = await client.put('/settings', data);
+  return res.data.data;
+};
+
+// ================= USERS MANAGEMENT (Admin) =================
+export const fetchUsersList = async (): Promise<any[]> => {
+  try {
+    const res = await client.get('/users');
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createNewUser = async (data: any): Promise<any> => {
+  const res = await client.post('/users', data);
+  return res.data.data;
+};
+
+// ================= TRANSACTIONS (Backend Integration) =================
+export interface BackendTransaction {
+  id: number;
+  user_id: number;
+  type: 'income' | 'expense';
+  amount: number;
+  category_id?: number;
+  income_source_id?: number;
+  date: string;
+  note?: string;
+  receipt_image_url?: string;
+  category_name?: string;
+  category_icon?: string;
+  user_name?: string;
+  user_email?: string;
+  user_avatar?: string;
+  income_source_name?: string;
+  created_at?: string;
+}
+
+export const fetchTransactionsList = async (limit = 20): Promise<BackendTransaction[]> => {
+  try {
+    const res = await client.get(`/transactions?limit=${limit}`);
+    return res.data.data || [];
+  } catch (err: any) {
+    console.warn('Backend transactions unavailable, fallback to mock feed:', err.message);
+    return [];
+  }
+};
+

@@ -1,358 +1,382 @@
-import React, { useState } from "react";
-import {
-  Filter,
-  MoreVertical,
-  X,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-} from "lucide-react";
-import { AdminLayout } from "../layouts/AdminLayout";
+import React, { useState, useEffect } from 'react';
+import { fetchUsersList, createNewUser } from '../services/api';
+import { RefreshCw } from 'lucide-react';
 
-interface User {
+export interface UserItem {
   id: number;
+  userId?: string;
   name: string;
   email: string;
-  financialType: string;
-  status: string;
-  statusType: "critical" | "good" | "warning";
-  joinedDate: string;
-  initials: string;
-  avatarBg: string;
-  aiMessage?: string;
+  nim: string;
+  prodi: string;
+  saldo: string;
+  status: 'Aktif' | 'Nonaktif';
 }
 
-export const UserManagementPage: React.FC = () => {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+export const DEFAULT_USERS: UserItem[] = [
+  { id: 1, userId: 'USR-001', name: 'Keisya Lanika', email: 'KeisyaExaHaniyah@gmail.com', nim: '230101001', prodi: 'Informatika', saldo: 'Rp 2.450.000', status: 'Aktif' },
+  { id: 2, userId: 'USR-002', name: 'Bima Santoso', email: 'bima.santoso@gmail.com', nim: '230101002', prodi: 'Sistem Informasi', saldo: 'Rp 1.150.000', status: 'Aktif' },
+  { id: 3, userId: 'USR-003', name: 'Aulia Rahma', email: 'aulia.rahma@gmail.com', nim: '230101003', prodi: 'Teknik Elektro', saldo: 'Rp 4.800.000', status: 'Aktif' },
+  { id: 4, userId: 'USR-004', name: 'Rizky Aditya', email: 'rizky.aditya@gmail.com', nim: '230101004', prodi: 'Informatika', saldo: 'Rp 850.000', status: 'Aktif' },
+  { id: 5, userId: 'USR-005', name: 'Nadia Putri', email: 'nadia.putri@gmail.com', nim: '230101005', prodi: 'Manajemen', saldo: 'Rp 3.200.000', status: 'Aktif' },
+  { id: 6, userId: 'USR-006', name: 'Ahmad Fauzi', email: 'ahmad.fauzi@gmail.com', nim: '230101006', prodi: 'Akuntansi', saldo: 'Rp 1.750.000', status: 'Aktif' },
+  { id: 7, userId: 'USR-007', name: 'Bambang Santoso', email: 'bambang.santoso@gmail.com', nim: '230101007', prodi: 'Teknik Sipil', saldo: 'Rp 2.100.000', status: 'Aktif' },
+  { id: 8, userId: 'USR-008', name: 'Dewi Lestari', email: 'dewi.lestari@gmail.com', nim: '230101008', prodi: 'Desain Komunikasi Visual', saldo: 'Rp 3.900.000', status: 'Aktif' },
+  { id: 9, userId: 'USR-009', name: 'Reza Hardiansyah', email: 'reza.hardiansyah@gmail.com', nim: '230101009', prodi: 'Ilmu Komunikasi', saldo: 'Rp 1.350.000', status: 'Aktif' }
+];
 
-  const users: User[] = [
-    {
-      id: 1,
-      name: "Aulia Rahma",
-      email: "aulia.r@student.univ.edu",
-      financialType: "Single Income",
-      status: "Critical • Sering Overbudget",
-      statusType: "critical",
-      joinedDate: "12 Sep 2026",
-      initials: "AR",
-      avatarBg: "bg-orange-100 text-orange-700",
-      aiMessage:
-        "Pengguna sering melakukan pengeluaran impulsif di kategori hiburan.",
-    },
-    {
-      id: 2,
-      name: "Rizky Aditya",
-      email: "rizky.adit@student.univ.edu",
-      financialType: "Multi Income",
-      status: "Good • Surplus Stabil",
-      statusType: "good",
-      joinedDate: "05 Okt 2026",
-      initials: "RA",
-      avatarBg: "bg-emerald-100 text-emerald-700",
-      aiMessage: "Kondisi keuangan sehat dengan rasio tabungan di atas 30%.",
-    },
-    {
-      id: 3,
-      name: "Keisya Lanika",
-      email: "keisya.l@student.univ.edu",
-      financialType: "Single Income",
-      status: "Warning • Mendekati Limit",
-      statusType: "warning",
-      joinedDate: "20 Okt 2026",
-      initials: "KL",
-      avatarBg: "bg-amber-100 text-amber-700",
-      aiMessage:
-        "Perlu membatasi anggaran bulanan agar tidak melewati batas aman.",
-    },
-    {
-      id: 4,
-      name: "Bima Santoso",
-      email: "bima.snt@student.univ.edu",
-      financialType: "Multi Income",
-      status: "Good • Tabungan Naik",
-      statusType: "good",
-      joinedDate: "22 Okt 2026",
-      initials: "BS",
-      avatarBg: "bg-emerald-100 text-emerald-700",
-      aiMessage: "Pemasokan dana tambahan berjalan konsisten setiap bulannya.",
-    },
-    {
-      id: 5,
-      name: "Nadia Putri",
-      email: "nadia.ptr@student.univ.edu",
-      financialType: "Single Income",
-      status: "Critical • Budget Habis",
-      statusType: "critical",
-      joinedDate: "24 Okt 2026",
-      initials: "NP",
-      avatarBg: "bg-orange-100 text-orange-700",
-      aiMessage:
-        "Sisa saldo kritis, memerlukan intervensi alokasi dana darurat.",
-    },
-  ];
+interface UserManagementPageProps {
+  fmtMoney?: (idr: string, usd: string) => string;
+  users?: UserItem[];
+  onAddUser?: (user: UserItem) => void;
+}
+
+export const UserManagementPage: React.FC<UserManagementPageProps> = ({
+  fmtMoney = (idr) => idr,
+  users: propUsers,
+  onAddUser
+}) => {
+  const [internalUsers, setInternalUsers] = useState<UserItem[]>([]);
+  const users = propUsers || internalUsers;
+  const [userSearch, setUserSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadUsers = async () => {
+    setIsRefreshing(true);
+    try {
+      const data = await fetchUsersList();
+      if (data && data.length > 0) {
+        const mapped: UserItem[] = data.map((u: any, idx: number) => ({
+          id: u.id || idx + 1,
+          userId: u.userId || u.user_id || `USR-${String(u.id || idx + 1).padStart(3, '0')}`,
+          name: u.name || 'Pengguna',
+          email: u.email || '',
+          nim: u.nim || '-',
+          prodi: u.prodi || 'Informatika',
+          saldo: typeof u.saldo === 'number' ? `Rp ${u.saldo.toLocaleString('id-ID')}` : (u.saldo || 'Rp 0'),
+          status: u.is_active === 0 || u.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif',
+        }));
+        setInternalUsers(mapped);
+      } else {
+        setInternalUsers([]);
+      }
+    } catch (err: any) {
+      console.warn('Backend users not available, setting empty list:', err.message);
+      setInternalUsers([]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+
+    const handleFocus = () => {
+      loadUsers();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Form State
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newNim, setNewNim] = useState('');
+  const [newProdi, setNewProdi] = useState('Informatika');
+  const [newSaldo, setNewSaldo] = useState('1500000');
+  const [newStatus, setNewStatus] = useState<'Aktif' | 'Nonaktif'>('Aktif');
+
+  const handleOpenModal = () => {
+    setNewName('');
+    setNewEmail('');
+    setNewNim('');
+    setNewProdi('Informatika');
+    setNewSaldo('1500000');
+    setNewStatus('Aktif');
+    setIsModalOpen(true);
+  };
+
+  const handleSubmitUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newEmail.trim()) return;
+
+    const formattedSaldo = 'Rp ' + Number(newSaldo.replace(/\D/g, '') || 0).toLocaleString('id-ID');
+    const trimmedInput = newNim.trim();
+    let computedUserId = `USR-${String(users.length + 1).padStart(3, '0')}`;
+    let computedNim = '-';
+
+    if (trimmedInput) {
+      if (trimmedInput.toUpperCase().startsWith('USR') || isNaN(Number(trimmedInput))) {
+        computedUserId = trimmedInput.toUpperCase();
+      } else {
+        computedNim = trimmedInput;
+      }
+    }
+
+    const newUser: UserItem = {
+      id: Date.now(),
+      userId: computedUserId,
+      name: newName.trim(),
+      email: newEmail.trim(),
+      nim: computedNim,
+      prodi: newProdi,
+      saldo: formattedSaldo,
+      status: newStatus
+    };
+
+    // Live send to backend API
+    try {
+      await createNewUser({
+        name: newUser.name,
+        email: newUser.email,
+        nim: newUser.nim,
+        userId: newUser.userId,
+        prodi: newUser.prodi,
+        saldo: newUser.saldo,
+        status: newUser.status,
+      });
+    } catch (err: any) {
+      console.warn('Backend create user failed or running offline, saved locally:', err.message);
+    }
+
+    if (onAddUser) {
+      onAddUser(newUser);
+    } else {
+      setInternalUsers(prev => [newUser, ...prev]);
+    }
+    setIsModalOpen(false);
+  };
+
+  const filteredUsers = users.filter(u => 
+    u.name.toLowerCase().includes(userSearch.toLowerCase()) || 
+    u.email.toLowerCase().includes(userSearch.toLowerCase()) || 
+    (u.userId && u.userId.toLowerCase().includes(userSearch.toLowerCase())) ||
+    u.nim.includes(userSearch) ||
+    u.prodi.toLowerCase().includes(userSearch.toLowerCase())
+  );
 
   return (
-    <AdminLayout activeMenu="User Management">
-      <div className="space-y-6 font-sans">
-        {/* Header Title */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[#3D2314]">
-                Manajemen Pengguna
-              </h1>
-              <span className="bg-[#EAF3DE] text-[#276749] text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                1.245 Total Mahasiswa
-              </span>
-            </div>
-            <p className="text-sm text-[#7C6A5B] mt-1">
-              Kelola data mahasiswa dan pantau skor kesehatan finansial mereka
-              secara real-time.
-            </p>
-          </div>
-          <button className="bg-white border border-[#EEDFD2] hover:bg-[#F9ECE3]/50 text-[#3D2314] px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 shadow-sm transition-all">
-            <Filter size={16} />
-            <span>Filter Status</span>
+    <div className="p-4 space-y-4 max-w-7xl mx-auto w-full animate-fadeIn text-xs">
+      {/* Header strictly matching Figma */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-[#2D2825]">User Management</h1>
+          <p className="text-[11px] text-[#8C7A70] mt-0.5">Kelola daftar akun pengguna dan hak akses sistem MoneyMate.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadUsers}
+            className="px-3.5 py-1.5 bg-white border border-[#E5DDD8] text-[#5C2D16] text-xs font-bold rounded-xl shadow-sm hover:bg-[#FAF7F4] flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <RefreshCw className={'w-3.5 h-3.5 ' + (isRefreshing ? 'animate-spin' : '')} /> Segarkan
           </button>
-        </div>
-
-        {/* Statistic Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-[#EEDFD2] shadow-sm">
-            <p className="text-[11px] font-bold text-[#8C7A6B] uppercase tracking-wider">
-              KONDISI PRIMA (GOOD)
-            </p>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-3xl font-extrabold text-[#3D2314]">
-                842
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
-                67.6%
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-[#EEDFD2] shadow-sm">
-            <p className="text-[11px] font-bold text-[#8C7A6B] uppercase tracking-wider">
-              PERLU PERHATIAN (WARNING)
-            </p>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-3xl font-extrabold text-[#3D2314]">
-                278
-              </span>
-              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
-                22.3%
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-[#EEDFD2] shadow-sm">
-            <p className="text-[11px] font-bold text-[#8C7A6B] uppercase tracking-wider">
-              KRITIS (CRITICAL)
-            </p>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-3xl font-extrabold text-[#3D2314]">
-                125
-              </span>
-              <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-lg">
-                10.1%
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-[#EEDFD2] shadow-sm">
-            <p className="text-[11px] font-bold text-[#8C7A6B] uppercase tracking-wider">
-              PENDAFTARAN BULAN INI
-            </p>
-            <div className="flex items-baseline justify-between mt-2">
-              <span className="text-3xl font-extrabold text-[#3D2314]">
-                +156
-              </span>
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg">
-                +12.5%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* User Table Card */}
-        <div className="bg-white rounded-2xl border border-[#EEDFD2] shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#EEDFD2] text-[11px] font-bold text-[#8C7A6B] uppercase tracking-wider bg-[#FDF8F2]/60">
-                  <th className="py-4 px-6">Informasi Pengguna</th>
-                  <th className="py-4 px-6">Tipe Finansial</th>
-                  <th className="py-4 px-6">Status AI Health</th>
-                  <th className="py-4 px-6">Tgl Bergabung</th>
-                  <th className="py-4 px-6 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EEDFD2]/60 text-sm">
-                {users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-[#F9ECE3]/20 transition-colors"
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl ${user.avatarBg} font-bold flex items-center justify-center text-sm shadow-sm`}
-                        >
-                          {user.initials}
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#3D2314]">
-                            {user.name}
-                          </p>
-                          <p className="text-xs text-[#7C6A5B]">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="bg-[#F9ECE3]/60 border border-[#EEDFD2] text-[#5C4A3D] text-xs font-medium px-3 py-1 rounded-full">
-                        {user.financialType}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                          user.statusType === "critical"
-                            ? "bg-red-50 text-red-700 border-red-200"
-                            : user.statusType === "warning"
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}
-                      >
-                        {user.statusType === "critical" && (
-                          <AlertTriangle size={12} />
-                        )}
-                        {user.statusType === "warning" && <Clock size={12} />}
-                        {user.statusType === "good" && (
-                          <CheckCircle2 size={12} />
-                        )}
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-[#7C6A5B] text-xs font-medium">
-                      {user.joinedDate}
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setSelectedUser(user)}
-                          className="bg-white hover:bg-[#F9ECE3] text-[#3D2314] border border-[#EEDFD2] px-3 py-1.5 rounded-lg text-xs font-medium transition-all shadow-sm"
-                        >
-                          Detail
-                        </button>
-                        <button className="text-[#7C6A5B] hover:text-[#3D2314] p-1.5 rounded-lg hover:bg-[#F9ECE3]/50">
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Footer */}
-          <div className="p-4 border-t border-[#EEDFD2] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#7C6A5B]">
-            <p>
-              Menampilkan 1 hingga 5 dari{" "}
-              <span className="font-bold text-[#3D2314]">1.245</span> pengguna
-            </p>
-            <div className="flex items-center gap-1">
-              <button className="px-3 py-1.5 border border-[#EEDFD2] rounded-lg hover:bg-white disabled:opacity-50">
-                Sebelumnya
-              </button>
-              <button className="px-3 py-1.5 bg-[#5C3317] text-white rounded-lg font-bold shadow-sm">
-                1
-              </button>
-              <button className="px-3 py-1.5 border border-[#EEDFD2] rounded-lg hover:bg-white">
-                2
-              </button>
-              <button className="px-3 py-1.5 border border-[#EEDFD2] rounded-lg hover:bg-white">
-                3
-              </button>
-              <span className="px-2">...</span>
-              <button className="px-3 py-1.5 border border-[#EEDFD2] rounded-lg hover:bg-white">
-                250
-              </button>
-              <button className="px-3 py-1.5 border border-[#EEDFD2] rounded-lg hover:bg-white">
-                Selanjutnya
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={handleOpenModal}
+            className="px-3.5 py-1.5 bg-[#5C2D16] text-white text-xs font-bold rounded-xl shadow hover:bg-[#462211] transition-all cursor-pointer"
+          >
+            + Tambah Pengguna Baru
+          </button>
         </div>
       </div>
 
-      {/* User Detail Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-[#EEDFD2] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="absolute top-4 right-4 text-[#7C6A5B] hover:text-[#3D2314] bg-[#FDF8F2] p-2 rounded-full border border-[#EEDFD2]"
-            >
-              <X size={16} />
-            </button>
+      <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="relative max-w-sm">
+          <input
+            type="text"
+            placeholder="Cari nama, email, atau ID Pengguna..."
+            value={userSearch}
+            onChange={e => setUserSearch(e.target.value)}
+            className="w-full bg-[#F5F2ED] border border-[#E5DDD8] rounded-xl px-3 py-1.5 text-xs text-[#2D2825] focus:outline-none"
+          />
+        </div>
 
-            <div className="flex items-center gap-4 mb-6">
-              <div
-                className={`w-14 h-14 rounded-2xl ${selectedUser.avatarBg} font-bold text-lg flex items-center justify-center shadow-sm`}
-              >
-                {selectedUser.initials}
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-[#3D2314]">
-                  {selectedUser.name}
-                </h3>
-                <p className="text-xs text-[#7C6A5B]">{selectedUser.email}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-sm bg-[#FDF8F2] p-4 rounded-xl border border-[#EEDFD2] mb-6">
-              <div className="flex justify-between">
-                <span className="text-[#7C6A5B]">Tipe Finansial:</span>
-                <span className="font-bold text-[#3D2314]">
-                  {selectedUser.financialType}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#7C6A5B]">Status AI Health:</span>
-                <span className="font-bold text-[#3D2314]">
-                  {selectedUser.status}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#7C6A5B]">Tanggal Bergabung:</span>
-                <span className="font-bold text-[#3D2314]">
-                  {selectedUser.joinedDate}
-                </span>
-              </div>
-              {selectedUser.aiMessage && (
-                <div className="pt-3 border-t border-[#EEDFD2]">
-                  <p className="text-[11px] font-bold text-[#8C7A6B] uppercase tracking-wider mb-1">
-                    Status Diagnosis AI
-                  </p>
-                  <p className="text-xs font-medium text-[#5C3317]">
-                    {selectedUser.aiMessage}
-                  </p>
-                </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-[#FAF7F4] text-[#8C7A70] uppercase text-[9px] font-bold border-b border-[#E5DDD8]">
+              <tr>
+                <th className="py-2.5 px-4">Nama & Email</th>
+                <th className="py-2.5 px-4">ID Pengguna</th>
+                <th className="py-2.5 px-4">Fakultas / Prodi</th>
+                <th className="py-2.5 px-4">Saldo Dompet</th>
+                <th className="py-2.5 px-4">Status Akun</th>
+                <th className="py-2.5 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0E8E4]">
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 px-4 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3 max-w-md mx-auto">
+                      <div className="w-14 h-14 rounded-2xl bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-2xl shadow-xs">
+                        👥
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-bold text-[#2D2825] text-sm">Belum Ada Pengguna</div>
+                        <p className="text-[11px] text-[#8C7A70] leading-relaxed">
+                          Database backend belum memiliki data pengguna. Pengguna yang terdaftar via aplikasi Mobile (Flutter) maupun Web akan otomatis muncul di sini.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleOpenModal}
+                        className="mt-2 px-3 py-1.5 bg-[#5C2D16] text-white font-bold rounded-xl text-xs hover:bg-[#43200F] transition-colors cursor-pointer"
+                      >
+                        + Tambah Pengguna Baru
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((u) => {
+                  const num = parseInt(u.saldo.replace(/\D/g, '') || '0', 10);
+                  const usdStr = '$ ' + (num / 15500).toFixed(2);
+                  return (
+                    <tr key={u.id} className="hover:bg-[#FAF7F2] transition-colors">
+                      <td className="py-3 px-4 font-bold text-[#2D2825]">
+                        <div>{u.name}</div>
+                        <div className="text-[10px] text-[#8C7A70] font-normal">{u.email}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-mono text-[11px] font-bold text-[#5C2D16] bg-[#FAF4F0] px-2.5 py-1 rounded-md border border-[#E8DCD8] inline-block shadow-xs">
+                          {u.userId || `USR-${String(u.id).padStart(3, '0')}`}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-[#8C7A70]">{u.prodi}</td>
+                      <td className="py-3 px-4 font-mono font-bold text-[#5C2D16]">{fmtMoney(u.saldo, usdStr)}</td>
+                      <td className="py-3 px-4">
+                        <span className={'px-2 py-0.5 rounded font-semibold text-[10px] ' + (
+                          u.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        )}>
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right text-[#5C2D16] font-bold cursor-pointer hover:underline">Edit</td>
+                    </tr>
+                  );
+                })
               )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal Tambah Pengguna Baru (Figma Spec) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full border border-[#E5DDD8] shadow-2xl space-y-4 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#F0E8E4] pb-3">
+              <h3 className="font-extrabold text-sm text-[#2D2825]">Tambah Pengguna Baru</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-[#8C7A70] hover:text-[#2D2825] font-bold text-sm cursor-pointer p-1"
+              >
+                ✕
+              </button>
             </div>
 
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="bg-[#5C3317] text-white px-4 py-2 rounded-xl text-sm font-medium shadow-sm hover:bg-[#5C3317]/90 w-full"
-            >
-              Tutup Detail
-            </button>
+            <form onSubmit={handleSubmitUser} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-[#2D2825] block mb-1">Nama Lengkap *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nama Lengkap"
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[#2D2825] block mb-1">Email *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="contoh@gmail.com"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#2D2825] block mb-1">ID Pengguna</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: USR-001"
+                    value={newNim}
+                    onChange={e => setNewNim(e.target.value)}
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[#2D2825] block mb-1">Fakultas / Prodi</label>
+                  <select
+                    value={newProdi}
+                    onChange={e => setNewProdi(e.target.value)}
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
+                  >
+                    <option value="Informatika">Informatika</option>
+                    <option value="Sistem Informasi">Sistem Informasi</option>
+                    <option value="Teknik Elektro">Teknik Elektro</option>
+                    <option value="Teknik Sipil">Teknik Sipil</option>
+                    <option value="Manajemen">Manajemen</option>
+                    <option value="Akuntansi">Akuntansi</option>
+                    <option value="Ilmu Komunikasi">Ilmu Komunikasi</option>
+                    <option value="Desain Komunikasi Visual">Desain Komunikasi Visual</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-[#2D2825] block mb-1">Status Akun</label>
+                  <select
+                    value={newStatus}
+                    onChange={e => setNewStatus(e.target.value as 'Aktif' | 'Nonaktif')}
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
+                  >
+                    <option value="Aktif">Aktif</option>
+                    <option value="Nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#2D2825] block mb-1">Saldo Awal Dompet</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-[#8C7A70] text-xs font-bold">Rp</span>
+                  <input
+                    type="number"
+                    value={newSaldo}
+                    onChange={e => setNewSaldo(e.target.value)}
+                    className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl pl-9 pr-3 py-2 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#F0E8E4]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-3.5 py-1.5 bg-[#F5F2ED] text-[#6E5D53] font-bold rounded-xl text-xs hover:bg-[#EAE4DC] cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-[#5C2D16] text-white font-bold rounded-xl text-xs hover:bg-[#462211] shadow-sm cursor-pointer"
+                >
+                  Simpan Pengguna
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </AdminLayout>
+    </div>
   );
 };

@@ -1,37 +1,33 @@
 import React, { useState } from 'react';
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { Dashboard } from './pages/Dashboard';
-import { logoutUser } from './services/api';
+import { Dashboard } from './pages/Dashboard Web';
 
 export const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'login' | 'register' | 'dashboard'>(() => {
-    return localStorage.getItem('token') ? 'dashboard' : 'login';
-  });
-  const [userEmail, setUserEmail] = useState<string>(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser).email || 'KeisyaExaHaniyah@gmail.com';
-      } catch {
-        return 'KeisyaExaHaniyah@gmail.com';
+  const getInitialState = () => {
+    try {
+      const savedUserStr = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      if (token && savedUserStr) {
+        const user = JSON.parse(savedUserStr);
+        return { page: 'dashboard' as const, email: user.email || '' };
       }
-    }
-    return 'KeisyaExaHaniyah@gmail.com';
-  });
+    } catch (_) {}
+    return { page: 'login' as const, email: '' };
+  };
+
+  const initial = getInitialState();
+  const [currentPage, setCurrentPage] = useState<'login' | 'dashboard'>(initial.page);
+  const [userEmail, setUserEmail] = useState<string>(initial.email);
 
   const handleLoginSuccess = (email: string) => {
     setUserEmail(email);
     setCurrentPage('dashboard');
   };
 
-  const handleRegisterSuccess = (email: string) => {
-    setUserEmail(email);
-    setCurrentPage('dashboard');
-  };
-
   const handleLogout = () => {
-    logoutUser();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUserEmail('');
     setCurrentPage('login');
   };
 
@@ -40,14 +36,6 @@ export const App: React.FC = () => {
       {currentPage === 'login' && (
         <LoginPage
           onLoginSuccess={handleLoginSuccess}
-          onNavigateRegister={() => setCurrentPage('register')}
-        />
-      )}
-
-      {currentPage === 'register' && (
-        <RegisterPage
-          onRegisterSuccess={handleRegisterSuccess}
-          onNavigateLogin={() => setCurrentPage('login')}
         />
       )}
 

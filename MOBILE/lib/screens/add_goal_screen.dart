@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
+import '../services/api_service.dart';
 
 class AddGoalScreen extends StatefulWidget {
   const AddGoalScreen({super.key});
@@ -378,17 +379,29 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
                   final String title = _nameController.text.trim();
-                  final String amount = _amountController.text.trim();
-                  final String initial = _initialDepositController.text.trim();
+                  final String amountStr = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                  final double targetAmount = double.tryParse(amountStr) ?? 0.0;
+                  final String initialStr = _initialDepositController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                  final double initialAmount = double.tryParse(initialStr) ?? 0.0;
 
-                  Navigator.pop(context, {
-                    'title': title.isEmpty ? 'MacBook Pro M3 Max' : title,
-                    'target': amount.isEmpty ? '15.000.000' : amount,
-                    'collected': initial.isEmpty ? '0' : initial,
-                    'icon': _selectedIcon,
+                  if (title.isEmpty || targetAmount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Harap masukkan nama impian dan target nominal valid')),
+                    );
+                    return;
+                  }
+
+                  await ApiService.addGoal({
+                    'title': title,
+                    'target_amount': targetAmount,
+                    'icon': 'flag',
                   });
+
+                  if (context.mounted) {
+                    Navigator.pop(context, true);
+                  }
                 },
                 icon: const Icon(Icons.check_circle_outline, color: Colors.white),
                 label: const Text(
