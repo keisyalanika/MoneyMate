@@ -4,8 +4,9 @@ import {
   addBudget,
   updateBudget,
   deleteBudget,
+  sendBudgetAlert,
 } from '../controllers/budgetController';
-import { protect } from '../middleware/authMiddleware';
+import { protect, admin } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.use(protect);
 
 router.get('/', getBudgets);
 router.post('/', addBudget);
+router.post('/:id/alert', admin, sendBudgetAlert);
 router.put('/:id', updateBudget);
 router.delete('/:id', deleteBudget);
 

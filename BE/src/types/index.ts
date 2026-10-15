@@ -17,18 +17,45 @@ export interface User {
   phone?: string;
   password?: string;        // excluded on responses
   avatar_url?: string;
+  birth_date?: string;
+  bio?: string;
   role: UserRole;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
 }
 
+// ---------- Wallets ----------
+export interface Wallet {
+  id: number;
+  user_id: number;
+  name: string;
+  balance: number;
+  currency: string;
+  is_default: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+// ---------- OTP Codes ----------
+export interface OtpCode {
+  id: number;
+  email: string;
+  otp_code: string;
+  expires_at: Date;
+  is_used: boolean;
+  created_at: Date;
+}
+
 // ---------- Categories ----------
 export interface Category {
   id: number;
+  user_id?: number;
   name: string;
   type: TransactionType;
   icon: string;
+  color?: string;
+  is_pinned?: boolean;
   created_at: Date;
 }
 
@@ -44,6 +71,7 @@ export interface IncomeSource {
 export interface Transaction {
   id: number;
   user_id: number;
+  wallet_id?: number;
   type: TransactionType;
   amount: number;
   category_id: number;
@@ -55,7 +83,9 @@ export interface Transaction {
   // joined fields
   category_name?: string;
   category_icon?: string;
+  category_color?: string;
   user_name?: string;
+  wallet_name?: string;
 }
 
 // ---------- Budgets ----------
@@ -107,6 +137,12 @@ export interface AiInsight {
   created_at: Date;
 }
 
+export interface AiChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
 // ---------- Notifications ----------
 export interface Notification {
   id: number;
@@ -138,6 +174,8 @@ export interface UserSettings {
   language: LangType;
   theme: ThemeType;
   notification_enabled: boolean;
+  default_budget_limit?: number;
+  ews_enabled?: boolean;
   updated_at: Date;
 }
 
@@ -161,3 +199,4 @@ export interface FinancialSummary {
   activeGoalsCount: number;
   totalUsers: number;
 }
+

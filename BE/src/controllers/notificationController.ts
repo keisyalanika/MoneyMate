@@ -13,6 +13,51 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// ---- CREATE notification (Admin or System) ----
+export const addNotification = async (req: AuthRequest, res: Response) => {
+  try {
+    const { user_id, title, message } = req.body;
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'title is required' });
+    }
+
+    const targetUserId = req.user?.role === 'admin' && user_id ? user_id : req.user!.id;
+    const created = await notifService.createNotification({
+      user_id: targetUserId,
+      title,
+      message,
+    });
+
+    res.status(201).json({ success: true, data: created, message: 'Notification created successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ---- BROADCAST notification (Admin) ----
+export const broadcastNotification = async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, message, role } = req.body;
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'title is required' });
+    }
+
+    const result = await notifService.broadcastNotification({
+      title,
+      message,
+      role,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      message: `Notification broadcasted to ${result.broadcastCount} users successfully`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ---- MARK as read ----
 export const markAsRead = async (req: AuthRequest, res: Response) => {
   try {

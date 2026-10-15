@@ -89,3 +89,67 @@ export const countActiveBudgets = async (user_id: number) => {
   );
   return rows[0].total;
 };
+
+// ---- SEND BUDGET ALERT / INTERVENTION (Admin Action) ----
+export const sendBudgetAlert = async (
+  budgetId: number,
+  adminId: number,
+  data: {
+    alert_type: 'warning' | 'appreciation';
+    custom_message?: string;
+    push_notif?: boolean;
+    counseling?: boolean;
+    voucher?: boolean;
+  }
+) => {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT b.*, c.name AS category_name, u.name AS user_name, u.email AS user_email
+     FROM budgets b
+     LEFT JOIN categories c ON b.category_id = c.id
+     LEFT JOIN users u ON b.user_id = u.id
+     WHERE b.id = ?`,
+    [budgetId]
+  );
+
+  const budget = rows[0];
+  if (!budget) {
+    throw new Error('Budget not found');
+  }
+
+  const isWarning = data.alert_type === 'warning';
+  const defaultTitle = isWarning ? '⚠️ Peringatan Defisit Anggaran' : '🌟 Apresiasi Kedisiplinan Finansial';
+  const defaultMsg = isWarning
+    ? `Halo ${budget.user_name}, sistem MoneyMate mendeteksi pengeluaran kamu di pos ${budget.category_name} telah mendekati/melebihi batas pagu bulanan. Harap evaluasi belanja harian Anda.`
+    : `Selamat ${budget.user_name}! Pengelolaan anggaran pos ${budget.category_name} kamu sangat tertib dan berada dalam batas aman. Terus pertahankan!`;
+
+  const finalMsg = data.custom_message || defaultMsg;
+
+  // Insert notification for the student
+  const [notifResult] = await pool.query<ResultSetHeader>(
+    'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+    [budget.user_id, defaultTitle, finalMsg]
+  );
+
+  // Log audit action
+  await pool.query(
+    'INSERT INTO audit_logs (admin_id, action, target_table, target_id, description) VALUES (?, ?, ?, ?, ?)',
+    [
+      adminId,
+      isWarning ? 'BUDGET_WARNING_SENT' : 'BUDGET_APPRECIATION_SENT',
+      'budgets',
+      budgetId,
+      `Sent ${data.alert_type} to student ${budget.user_name} (#${budget.user_id}) for budget #${budgetId}`
+    ]
+  );
+
+  return {
+    notification_id: notifResult.insertId,
+    student_id: budget.user_id,
+    student_name: budget.user_name,
+    category_name: budget.category_name,
+    alert_type: data.alert_type,
+    title: defaultTitle,
+    message: finalMsg,
+  };
+};
+

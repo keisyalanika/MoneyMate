@@ -36,6 +36,54 @@ export const createReport = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// ---- GET EXPORT SUMMARY (Cashflow, Breakdown, Overbudget) ----
+export const getExportSummary = async (req: AuthRequest, res: Response) => {
+  try {
+    const { start_date, end_date, report_type } = req.query;
+    const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+
+    const summary = await reportService.generateExportSummary({
+      user_id: userId,
+      period_start: start_date as string,
+      period_end: end_date as string,
+      report_type: report_type as string,
+    });
+
+    res.json({
+      success: true,
+      data: summary,
+      message: 'Financial report export summary generated successfully',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ---- SCHEDULE AUTOMATIC REPORT ----
+export const scheduleReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { frequency, time, recipients, subject } = req.body;
+    if (!frequency || !time) {
+      return res.status(400).json({ success: false, message: 'frequency and time are required' });
+    }
+
+    const schedule = await reportService.scheduleAutomaticReport(req.user!.id, {
+      frequency,
+      time,
+      recipients,
+      subject,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: schedule,
+      message: 'Jadwal laporan otomatis berhasil diaktifkan',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ---- DELETE report ----
 export const deleteReport = async (req: AuthRequest, res: Response) => {
   try {

@@ -121,3 +121,88 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// ---- FORGOT PASSWORD (Send OTP) ----
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ success: false, message: 'Email wajib diisi' });
+      return;
+    }
+
+    const normEmail = email.toLowerCase().trim();
+    const user = await userService.getUserByEmail(normEmail);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Akun dengan email ini tidak ditemukan' });
+      return;
+    }
+
+    const otpCode = await userService.createOtpCode(normEmail);
+
+    res.json({
+      success: true,
+      message: 'Kode pemulihan OTP 6-digit berhasil dikirimkan ke email Anda',
+      email: normEmail,
+      otp_preview: otpCode, // Provided for easy development & testing
+    });
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
+// ---- VERIFY OTP ----
+export const verifyOtp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp_code } = req.body;
+    if (!email || !otp_code) {
+      res.status(400).json({ success: false, message: 'Email dan kode OTP wajib diisi' });
+      return;
+    }
+
+    const isValid = await userService.verifyOtpCode(email, otp_code);
+    if (!isValid) {
+      res.status(400).json({ success: false, message: 'Kode OTP salah atau sudah kadaluarsa (berlaku 15 menit)' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Kode OTP berhasil diverifikasi',
+      reset_token: `reset_${Buffer.from(email + ':' + otp_code).toString('base64')}`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+
+// ---- RESET PASSWORD ----
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp_code, new_password } = req.body;
+    if (!email || !otp_code || !new_password) {
+      res.status(400).json({ success: false, message: 'Email, kode OTP, dan kata sandi baru wajib diisi' });
+      return;
+    }
+
+    if (new_password.length < 6) {
+      res.status(400).json({ success: false, message: 'Kata sandi baru minimal 6 karakter' });
+      return;
+    }
+
+    const success = await userService.resetPasswordWithOtp(email, otp_code, new_password);
+    if (!success) {
+      res.status(400).json({ success: false, message: 'Gagal mengatur ulang kata sandi. Pastikan kode OTP valid.' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Kata sandi baru berhasil disimpan! Silakan masuk dengan kata sandi baru Anda.',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Server error' });
+  }
+};
+

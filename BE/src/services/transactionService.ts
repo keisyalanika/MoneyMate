@@ -13,10 +13,22 @@ export const getAllTransactions = async (filters: {
   offset?: number;
 }) => {
   let query = `
+<<<<<<< Updated upstream
     SELECT t.*, c.name AS category_name, c.icon AS category_icon, u.name AS user_name
     FROM transactions t
     LEFT JOIN categories c ON t.category_id = c.id
     LEFT JOIN users u ON t.user_id = u.id
+=======
+    SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+           u.name AS user_name, u.email AS user_email, u.avatar_url AS user_avatar,
+           w.name AS wallet_name,
+           ins.source_name AS income_source_name
+    FROM transactions t
+    LEFT JOIN categories c ON t.category_id = c.id
+    LEFT JOIN users u ON t.user_id = u.id
+    LEFT JOIN wallets w ON t.wallet_id = w.id
+    LEFT JOIN income_sources ins ON t.income_source_id = ins.id
+>>>>>>> Stashed changes
     WHERE 1=1
   `;
   const params: any[] = [];
@@ -27,7 +39,7 @@ export const getAllTransactions = async (filters: {
   }
   if (filters.type) {
     query += ' AND t.type = ?';
-    params.push(filters.type);
+    params.push(filters.type.toLowerCase());
   }
   if (filters.category_id) {
     query += ' AND t.category_id = ?';
@@ -64,9 +76,11 @@ export const getAllTransactions = async (filters: {
 // ---- GET single transaction ----
 export const getTransactionById = async (id: number) => {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT t.*, c.name AS category_name, c.icon AS category_icon
+    `SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
+            w.name AS wallet_name
      FROM transactions t
      LEFT JOIN categories c ON t.category_id = c.id
+     LEFT JOIN wallets w ON t.wallet_id = w.id
      WHERE t.id = ?`,
     [id]
   );
@@ -76,6 +90,7 @@ export const getTransactionById = async (id: number) => {
 // ---- CREATE transaction ----
 export const createTransaction = async (data: {
   user_id: number;
+  wallet_id?: number;
   type: string;
   amount: number;
   category_id: number;
@@ -84,25 +99,66 @@ export const createTransaction = async (data: {
   note?: string;
   receipt_image_url?: string;
 }) => {
+  const normType = data.type.toLowerCase() === 'income' ? 'income' : 'expense';
+  const amount = Number(data.amount);
+
+  // If wallet_id is provided, or find default wallet for user
+  let targetWalletId = data.wallet_id;
+  if (!targetWalletId) {
+    const [wallets] = await pool.query<RowDataPacket[]>(
+      'SELECT id, balance FROM wallets WHERE user_id = ? ORDER BY is_default DESC LIMIT 1',
+      [data.user_id]
+    );
+    if (wallets && wallets.length > 0) {
+      targetWalletId = wallets[0].id;
+    }
+  }
+
   const [result] = await pool.query<ResultSetHeader>(
-    `INSERT INTO transactions (user_id, type, amount, category_id, income_source_id, date, note, receipt_image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [data.user_id, data.type, data.amount, data.category_id, data.income_source_id || null, data.date, data.note || null, data.receipt_image_url || null]
+    `INSERT INTO transactions (user_id, wallet_id, type, amount, category_id, income_source_id, date, note, receipt_image_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      data.user_id,
+      targetWalletId || null,
+      normType,
+      amount,
+      data.category_id,
+      data.income_source_id || null,
+      data.date,
+      data.note || null,
+      data.receipt_image_url || null,
+    ]
   );
+
+  // Automatically update the wallet balance if connected
+  if (targetWalletId) {
+    const [wRows] = await pool.query<RowDataPacket[]>('SELECT balance FROM wallets WHERE id = ?', [targetWalletId]);
+    if (wRows && wRows[0]) {
+      const curBal = Number(wRows[0].balance) || 0;
+      const newBal = normType === 'income' ? curBal + amount : Math.max(0, curBal - amount);
+      await pool.query('UPDATE wallets SET balance = ? WHERE id = ?', [newBal, targetWalletId]);
+    }
+  }
+
   return getTransactionById(result.insertId);
 };
 
 // ---- UPDATE transaction ----
-export const updateTransaction = async (id: number, data: {
-  type?: string;
-  amount?: number;
-  category_id?: number;
-  date?: string;
-  note?: string;
-}) => {
+export const updateTransaction = async (
+  id: number,
+  data: {
+    wallet_id?: number;
+    type?: string;
+    amount?: number;
+    category_id?: number;
+    date?: string;
+    note?: string;
+  }
+) => {
   const fields: string[] = [];
   const values: any[] = [];
-  if (data.type) { fields.push('type = ?'); values.push(data.type); }
+  if (data.wallet_id !== undefined) { fields.push('wallet_id = ?'); values.push(data.wallet_id); }
+  if (data.type) { fields.push('type = ?'); values.push(data.type.toLowerCase()); }
   if (data.amount !== undefined) { fields.push('amount = ?'); values.push(data.amount); }
   if (data.category_id) { fields.push('category_id = ?'); values.push(data.category_id); }
   if (data.date) { fields.push('date = ?'); values.push(data.date); }
@@ -133,24 +189,5 @@ export const getMonthlySummary = async (user_id: number, month: number, year: nu
     totalIncome: Number(income[0].total),
     totalExpense: Number(expense[0].total),
     totalBalance: Number(income[0].total) - Number(expense[0].total),
-  };
-};
-
-// ---- GET overall summary (admin) ----
-export const getOverallSummary = async () => {
-  const [income] = await pool.query<RowDataPacket[]>(
-    `SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = 'income'`
-  );
-  const [expense] = await pool.query<RowDataPacket[]>(
-    `SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = 'expense'`
-  );
-  const [txCount] = await pool.query<RowDataPacket[]>(
-    'SELECT COUNT(*) AS total FROM transactions'
-  );
-  return {
-    totalIncome: Number(income[0].total),
-    totalExpense: Number(expense[0].total),
-    totalBalance: Number(income[0].total) - Number(expense[0].total),
-    totalTransactions: Number(txCount[0].total),
   };
 };

@@ -28,6 +28,8 @@ export const updateSettings = async (user_id: number, data: {
   language?: string;
   theme?: string;
   notification_enabled?: boolean;
+  default_budget_limit?: number;
+  ews_enabled?: boolean;
 }) => {
   // Ensure settings row exists
   await getSettings(user_id);
@@ -40,6 +42,14 @@ export const updateSettings = async (user_id: number, data: {
   if (data.notification_enabled !== undefined) {
     fields.push('notification_enabled = ?');
     values.push(data.notification_enabled ? 1 : 0);
+  }
+  if (data.default_budget_limit !== undefined) {
+    fields.push('default_budget_limit = ?');
+    values.push(Number(data.default_budget_limit));
+  }
+  if (data.ews_enabled !== undefined) {
+    fields.push('ews_enabled = ?');
+    values.push(data.ews_enabled ? 1 : 0);
   }
   if (fields.length === 0) return getSettings(user_id);
   values.push(user_id);

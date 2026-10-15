@@ -66,3 +66,25 @@ export const deleteBudget = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// ---- SEND BUDGET ALERT / INTERVENTION (Admin Action) ----
+export const sendBudgetAlert = async (req: AuthRequest, res: Response) => {
+  try {
+    const { alert_type, custom_message, push_notif, counseling, voucher } = req.body;
+    const result = await budgetService.sendBudgetAlert(Number(req.params.id), req.user!.id, {
+      alert_type: alert_type === 'appreciation' ? 'appreciation' : 'warning',
+      custom_message,
+      push_notif,
+      counseling,
+      voucher,
+    });
+    res.json({
+      success: true,
+      data: result,
+      message: `Tindakan administratif berhasil diproses dan dikirimkan ke mahasiswa`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+

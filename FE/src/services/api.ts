@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { FinancialSummary, Transaction, Category, Budget } from '../models/types';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api';
 
 export const client = axios.create({
   baseURL: API_BASE,
@@ -167,3 +167,185 @@ export const fetchBudgets = async (): Promise<Budget[]> => {
     ];
   }
 };
+<<<<<<< Updated upstream
+=======
+
+export const createGoal = async (data: { title: string; target_amount: number; icon?: string; deadline?: string }): Promise<Goal> => {
+  const res = await client.post('/goals', data);
+  return res.data.data;
+};
+
+export const addGoalFund = async (goalId: string | number, amount: number, note?: string): Promise<any> => {
+  const res = await client.post(`/goals/${goalId}/funds`, { amount, note });
+  return res.data.data;
+};
+
+// ================= INCOME SOURCES =================
+export const fetchIncomeSources = async (): Promise<IncomeSource[]> => {
+  try {
+    const res = await client.get('/income-sources');
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createIncomeSource = async (source_name: string): Promise<IncomeSource> => {
+  const res = await client.post('/income-sources', { source_name });
+  return res.data.data;
+};
+
+// ================= AI INSIGHTS =================
+export const fetchAiInsights = async (): Promise<AiInsightItem[]> => {
+  try {
+    const res = await client.get('/insights');
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createAiInsight = async (data: { insight_type: string; content: string; user_id?: number }): Promise<AiInsightItem> => {
+  const res = await client.post('/insights', data);
+  return res.data.data;
+};
+
+// ================= REPORTS =================
+export const fetchReports = async (reportType?: string): Promise<ReportItem[]> => {
+  try {
+    const res = await client.get('/reports', { params: { report_type: reportType } });
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createReport = async (data: Partial<ReportItem>): Promise<ReportItem> => {
+  const res = await client.post('/reports', data);
+  return res.data.data;
+};
+
+// ================= USER SETTINGS =================
+export const fetchUserSettings = async (): Promise<UserSettings> => {
+  try {
+    const res = await client.get('/settings');
+    return res.data.data;
+  } catch {
+    return {
+      currency: 'IDR',
+      language: 'id',
+      theme: 'light',
+      notification_enabled: true
+    };
+  }
+};
+
+export const updateUserSettings = async (data: Partial<UserSettings>): Promise<UserSettings> => {
+  const res = await client.put('/settings', data);
+  return res.data.data;
+};
+
+// ================= USERS MANAGEMENT (Admin) =================
+export const fetchUsersList = async (): Promise<any[]> => {
+  try {
+    const res = await client.get('/users');
+    return res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createNewUser = async (data: any): Promise<any> => {
+  const res = await client.post('/users', data);
+  return res.data.data;
+};
+
+// ================= TRANSACTIONS (Backend Integration) =================
+export interface BackendTransaction {
+  id: number;
+  user_id: number;
+  type: 'income' | 'expense';
+  amount: number;
+  category_id?: number;
+  income_source_id?: number;
+  date: string;
+  note?: string;
+  receipt_image_url?: string;
+  category_name?: string;
+  category_icon?: string;
+  user_name?: string;
+  user_email?: string;
+  user_avatar?: string;
+  income_source_name?: string;
+  created_at?: string;
+}
+
+export const fetchTransactionsList = async (limit = 20): Promise<BackendTransaction[]> => {
+  try {
+    const res = await client.get(`/transactions?limit=${limit}`);
+    return res.data.data || [];
+  } catch (err: any) {
+    console.warn('Backend transactions unavailable, fallback to mock feed:', err.message);
+    return [];
+  }
+};
+
+// ================= WALLETS =================
+export const fetchWallets = async (): Promise<{ wallets: any[]; totalBalance: number }> => {
+  try {
+    const res = await client.get('/wallets');
+    return {
+      wallets: res.data.data || [],
+      totalBalance: res.data.totalBalance || 0,
+    };
+  } catch {
+    return { wallets: [], totalBalance: 0 };
+  }
+};
+
+export const adjustWalletBalance = async (walletId: number | string, data: { type: 'add' | 'subtract'; amount: number; note?: string }) => {
+  const res = await client.post(`/wallets/${walletId}/adjust`, data);
+  return res.data.data;
+};
+
+// ================= BUDGET ALERT INTERVENTION =================
+export const sendBudgetAlert = async (budgetId: number | string, data: { alert_type: 'warning' | 'appreciation'; custom_message?: string; push_notif?: boolean }) => {
+  const res = await client.post(`/budgets/${budgetId}/alert`, data);
+  return res.data.data;
+};
+
+// ================= AI CHAT =================
+export const chatWithAiAssistant = async (message: string) => {
+  const res = await client.post('/insights/chat', { message });
+  return res.data.data;
+};
+
+// ================= REPORT EXPORT & SCHEDULE =================
+export const fetchReportExportSummary = async (params?: { start_date?: string; end_date?: string; report_type?: string }) => {
+  const res = await client.get('/reports/export', { params });
+  return res.data.data;
+};
+
+export const scheduleReportJob = async (data: { frequency: string; time: string; subject?: string; recipients?: string[] }) => {
+  const res = await client.post('/reports/schedule', data);
+  return res.data.data;
+};
+
+// ================= AUTH PASSWORD RESET =================
+export const requestForgotPassword = async (email: string) => {
+  const res = await client.post('/auth/forgot-password', { email });
+  return res.data;
+};
+
+export const verifyResetOtp = async (email: string, otp_code: string) => {
+  const res = await client.post('/auth/verify-otp', { email, otp_code });
+  return res.data;
+};
+
+export const submitResetPassword = async (email: string, otp_code: string, new_password: string) => {
+  const res = await client.post('/auth/reset-password', { email, otp_code, new_password });
+  return res.data;
+};
+
+
+>>>>>>> Stashed changes

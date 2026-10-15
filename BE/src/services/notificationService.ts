@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import * as userService from './userService';
 
 // ---- GET notifications for user ----
 export const getNotifications = async (user_id: number) => {
@@ -17,6 +18,27 @@ export const createNotification = async (data: { user_id: number; title: string;
     [data.user_id, data.title, data.message || null]
   );
   return { id: result.insertId, ...data, is_read: false };
+};
+
+// ---- BROADCAST notification to all users ----
+export const broadcastNotification = async (data: { title: string; message?: string; role?: string }) => {
+  const users = await userService.getAllUsers();
+  const targetUsers = (users as any[]).filter(u => !data.role || u.role === data.role);
+
+  const createdNotifications = [];
+  for (const u of targetUsers) {
+    const notif = await createNotification({
+      user_id: u.id,
+      title: data.title,
+      message: data.message,
+    });
+    createdNotifications.push(notif);
+  }
+
+  return {
+    broadcastCount: createdNotifications.length,
+    notifications: createdNotifications,
+  };
 };
 
 // ---- MARK as read ----
