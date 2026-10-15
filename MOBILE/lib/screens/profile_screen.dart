@@ -189,6 +189,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   _buildMenuCard(
                     width: cardWidth,
+                    icon: Icons.account_balance_rounded,
+                    title: 'Hubungkan\nBank',
+                    onTap: () => Navigator.pushNamed(context, AppRouter.connectBank),
+                  ),
+                  _buildMenuCard(
+                    width: cardWidth,
                     icon: Icons.security_rounded,
                     title: 'Keamanan',
                     onTap: () => Navigator.pushNamed(context, AppRouter.security),

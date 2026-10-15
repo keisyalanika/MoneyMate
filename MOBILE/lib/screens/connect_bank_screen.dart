@@ -241,9 +241,9 @@ class _ConnectBankScreenState extends State<ConnectBankScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Hubungkan ke Bank',
-          style: TextStyle(
+        title: Text(
+          widget.isNewUser ? 'Atur Rekening & Saldo' : 'Hubungkan ke Bank',
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
             color: AppColors.primaryBrown,
@@ -252,11 +252,13 @@ class _ConnectBankScreenState extends State<ConnectBankScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.primaryBrown, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: widget.isNewUser
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    color: AppColors.primaryBrown, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -430,6 +432,33 @@ class _ConnectBankScreenState extends State<ConnectBankScreen> {
                   onPressed: _showAddAccountSheet,
                 ),
               ),
+
+              if (widget.isNewUser) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBrown,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/main-navigation');
+                    },
+                    child: const Text(
+                      'Lanjut ke Dashboard',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
