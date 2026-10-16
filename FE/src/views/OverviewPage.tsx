@@ -677,7 +677,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               />
               <span className="absolute left-2.5 top-2 text-[#8C7A70] text-xs">🔍</span>
             </div>
-            <button className="px-3 py-1.5 bg-white border border-[#E5DDD8] text-[#5C2D16] font-bold text-xs rounded-xl hover:bg-[#FAF7F4] flex items-center gap-1 cursor-pointer">
+            <button
+              onClick={() => onNavigateTab?.('transactions')}
+              className="px-3 py-1.5 bg-white border border-[#E5DDD8] text-[#5C2D16] font-bold text-xs rounded-xl hover:bg-[#FAF7F4] flex items-center gap-1 cursor-pointer"
+            >
               ≡ Lihat Semua
             </button>
           </div>

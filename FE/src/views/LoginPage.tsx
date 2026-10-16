@@ -161,6 +161,14 @@ export const LoginPage: React.FC<Props> = ({ onLoginSuccess }) => {
               <span>Masuk</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+
+            {/* Link to Register */}
+            <div className="pt-2 text-center text-xs text-[#8C7A70]">
+              Belum punya akun?{' '}
+              <a href="/register" className="font-bold text-[#5C2D16] hover:underline cursor-pointer">
+                Daftar Akun Baru
+              </a>
+            </div>
           </form>
         </div>
 

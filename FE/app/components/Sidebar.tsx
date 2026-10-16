@@ -11,6 +11,8 @@ import {
   TrendingUp,
   FileText,
   Settings,
+  User,
+  LogOut,
   Zap
 } from 'lucide-react';
 
@@ -34,7 +36,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
       'analytics & statistik': 'analytics',
       'analytics & statistics': 'analytics',
       'reports': 'reports',
-      'settings': 'settings'
+      'settings': 'settings',
+      'profil admin': 'profile',
+      'profile': 'profile'
     };
     currentTab = map[activeMenu.toLowerCase()] || currentTab;
   }
@@ -47,8 +51,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
     }
   };
 
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('moneymate_user_email');
+      localStorage.removeItem('moneymate_users_db');
+      sessionStorage.clear();
+    }
+    router.push('/login');
+  };
+
   return (
-    <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs">
+    <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs select-none">
       <div className="space-y-5">
         {/* Brand Logo Header */}
         <div className="flex items-center gap-3 px-2 py-1">
@@ -174,11 +189,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             <Settings className={'w-4 h-4 ' + (currentTab === 'settings' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Settings</span>
           </button>
+
+          <button
+            onClick={() => handleTabClick('profile')}
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
+              currentTab === 'profile'
+                ? 'bg-[#5C2D16] text-white shadow-md font-bold'
+                : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
+            )}
+          >
+            <User className={'w-4 h-4 ' + (currentTab === 'profile' ? 'text-white' : 'text-[#6E5D53]')} />
+            <span>Profil Admin</span>
+          </button>
         </nav>
       </div>
 
-      {/* Sidebar Bottom Server Status Card */}
-      <div className="pt-4 border-t border-[#E5DDD8]">
+      {/* Sidebar Bottom: Server Status & Quick Logout Button */}
+      <div className="pt-4 border-t border-[#E5DDD8] space-y-2.5">
         <div className="p-2.5 bg-white border border-[#E5DDD8] rounded-xl text-[10px] space-y-1 shadow-xs">
           <div className="flex items-center gap-1.5 font-bold text-[#2D2825]">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -191,6 +218,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             <span className="font-mono">34ms</span>
           </div>
         </div>
+
+        {/* Dedicated Sidebar Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full py-2 px-3 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98"
+        >
+          <LogOut className="w-3.5 h-3.5 text-rose-600" />
+          <span>Keluar (Logout)</span>
+        </button>
       </div>
     </aside>
   );

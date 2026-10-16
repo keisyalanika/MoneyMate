@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '../../app/components/Sidebar';
 import { OverviewPage } from './OverviewPage';
 import { UserManagementPage, UserItem } from './UserManagementPage';
@@ -11,7 +12,7 @@ import { AnalyticsPage } from './AnalyticsPage';
 import { ReportsPage } from './ReportsPage';
 import { SettingsPage } from './SettingsPage';
 import { ProfilePage } from './ProfilePage';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, LogOut } from 'lucide-react';
 
 const INITIAL_USERS: UserItem[] = [
   { id: 1, name: 'Keisya Lanika', email: 'KeisyaExaHaniyah@gmail.com', nim: '10293841', prodi: 'Informatika', saldo: 'Rp 2.450.000', status: 'Aktif' },
@@ -32,7 +33,10 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHaniyah@gmail.com', onLogout, initialTab = 'overview' }) => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [globalSearch, setGlobalSearch] = useState('');
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
@@ -40,6 +44,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
       if (window.location.pathname !== newPath) {
         window.history.pushState(null, '', newPath);
       }
+    }
+  };
+
+  const handleLogoutGlobal = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('moneymate_user_email');
+      localStorage.removeItem('moneymate_users_db');
+      sessionStorage.clear();
+    }
+    if (onLogout) {
+      onLogout();
+    }
+    router.push('/login');
+  };
+
+  const handleGlobalSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = globalSearch.toLowerCase().trim();
+    if (!q) return;
+    if (q.includes('user') || q.includes('mhs') || q.includes('mahasiswa') || q.includes('keisya') || q.includes('bima')) {
+      handleTabChange('users');
+    } else if (q.includes('trx') || q.includes('transaksi') || q.includes('bayar') || q.includes('uang')) {
+      handleTabChange('transactions');
+    } else if (q.includes('budget') || q.includes('anggaran') || q.includes('pagu') || q.includes('over')) {
+      handleTabChange('budgets');
+    } else if (q.includes('laporan') || q.includes('report') || q.includes('pdf') || q.includes('arus kas')) {
+      handleTabChange('reports');
+    } else if (q.includes('ai') || q.includes('insight') || q.includes('cerdas') || q.includes('anomali')) {
+      handleTabChange('ai');
+    } else if (q.includes('analitik') || q.includes('stat') || q.includes('grafik') || q.includes('trend')) {
+      handleTabChange('analytics');
+    } else if (q.includes('setting') || q.includes('atur') || q.includes('kategori')) {
+      handleTabChange('settings');
+    } else if (q.includes('profil') || q.includes('akun') || q.includes('admin') || q.includes('password')) {
+      handleTabChange('profile');
+    } else {
+      handleTabChange('users');
     }
   };
 
@@ -126,19 +169,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
         <header className="h-16 bg-white border-b border-[#E5DDD8] px-6 flex items-center justify-between shrink-0 shadow-xs z-20 relative">
           {/* SEARCH BAR (Hidden on AI page per user request) */}
           {activeTab !== 'ai' ? (
-            <div className="flex items-center gap-3 flex-1 max-w-md">
+            <form onSubmit={handleGlobalSearch} className="flex items-center gap-3 flex-1 max-w-md">
               <div className="relative w-full">
                 <input
                   type="text"
-                  placeholder="Cari user, transaksi, atau laporan..."
-                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-1.5 pl-9 pr-12 text-xs text-[#2D2825] focus:outline-none"
+                  placeholder="Cari user, transaksi, atau laporan (tekan Enter)..."
+                  value={globalSearch}
+                  onChange={e => setGlobalSearch(e.target.value)}
+                  className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-1.5 pl-9 pr-12 text-xs text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
                 />
                 <Search className="w-4 h-4 text-[#8C7A70] absolute left-3 top-2.5" />
                 <span className="absolute right-2.5 top-2 bg-white border border-[#E5DDD8] rounded px-1.5 py-0.5 text-[9px] font-mono text-[#8C7A70]">
-                  ⌘K
+                  ↵
                 </span>
               </div>
-            </div>
+            </form>
           ) : (
             <div className="flex-1" />
           )}
@@ -184,6 +229,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
             {/* Admin Profile Button */}
             <button
               onClick={() => setActiveTab('profile')}
+              title="Buka Profil Admin"
               className={'flex items-center gap-2.5 p-1 pr-2.5 rounded-xl transition-all border cursor-pointer ' + (
                 activeTab === 'profile' ? 'bg-[#FAF4F0] border-[#5C2D16]/40 shadow-xs' : 'border-transparent hover:bg-[#FAF4F0]'
               )}
@@ -195,6 +241,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
                 <div className="text-xs font-bold text-[#2D2825] leading-tight">Admin Master</div>
                 <div className="text-[9px] text-[#8C7A70]">Super Administrator</div>
               </div>
+            </button>
+
+            {/* Header Quick Logout Button */}
+            <button
+              onClick={handleLogoutGlobal}
+              title="Keluar (Logout)"
+              className="p-2 text-[#8C7A70] hover:text-[#DC2626] hover:bg-rose-50 rounded-xl transition-all border border-transparent hover:border-rose-200 cursor-pointer flex items-center gap-1.5"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-xs font-bold hidden lg:inline">Keluar</span>
             </button>
 
             {/* NOTIFICATION POPUP: ANCHORED FLUSH TO THE RIGHT EDGE */}
@@ -321,7 +377,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
             />
           )}
           {activeTab === 'settings' && <SettingsPage fmtMoney={fmtMoney} />}
-          {activeTab === 'profile' && <ProfilePage userEmail={userEmail} onLogout={onLogout || (() => {})} />}
+          {activeTab === 'profile' && <ProfilePage userEmail={userEmail} onLogout={handleLogoutGlobal} />}
         </main>
       </div>
 

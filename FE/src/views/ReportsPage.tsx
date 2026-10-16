@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 export interface ReportsPageProps {
   onTriggerPdfToast?: (customMsg?: string) => void;
   fmtMoney: (idr: string, usd: string) => string;
+  totalUsersCount?: number;
 }
 
 interface CustomSubjectItem {
