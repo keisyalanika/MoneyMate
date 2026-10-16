@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Dashboard } from '../../src/pages/Dashboard Web';
+import { Dashboard } from '../../src/views/Dashboard Web';
 
-export default function DashboardPage() {
-  return <Dashboard userEmail="KeisyaExaHaniyah@gmail.com" onLogout={() => {}} />;
+export default function Page() {
+  return <Dashboard initialTab="overview" />;
 }
