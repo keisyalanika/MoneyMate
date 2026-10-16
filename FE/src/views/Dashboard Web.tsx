@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from '../components/Sidebar';
+import { Sidebar } from '../../app/components/Sidebar';
 import { OverviewPage } from './OverviewPage';
 import { UserManagementPage, UserItem } from './UserManagementPage';
 import { TransactionsPage } from './TransactionsPage';
