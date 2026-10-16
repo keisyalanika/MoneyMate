@@ -9,13 +9,10 @@ import notificationRoutes from './notificationRoutes';
 import adminRoutes from './adminRoutes';
 import reportRoutes from './reportRoutes';
 import settingsRoutes from './settingsRoutes';
-<<<<<<< Updated upstream
-=======
 import userRoutes from './userRoutes';
 import incomeSourceRoutes from './incomeSourceRoutes';
 import insightRoutes from './insightRoutes';
 import walletRoutes from './walletRoutes';
->>>>>>> Stashed changes
 
 const apiRouter = Router();
 
@@ -30,6 +27,8 @@ apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/reports', reportRoutes);
 apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/income-sources', incomeSourceRoutes);
+apiRouter.use('/insights', insightRoutes);
 
 export default apiRouter;
-

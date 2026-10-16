@@ -129,9 +129,6 @@ class ApiService {
       BudgetModel(id: 'bg-001', categoryId: 'cat-exp-1', categoryName: 'Makanan & Minuman', limitAmount: 3000000, spentAmount: 125000, percentage: 4.17),
     ];
   }
-<<<<<<< Updated upstream
-}
-=======
 
   // ================= GOALS =================
   static Future<List<Map<String, dynamic>>> fetchGoals() async {
@@ -430,5 +427,3 @@ class ApiService {
   }
 }
 
-
->>>>>>> Stashed changes

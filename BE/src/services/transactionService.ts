@@ -13,12 +13,6 @@ export const getAllTransactions = async (filters: {
   offset?: number;
 }) => {
   let query = `
-<<<<<<< Updated upstream
-    SELECT t.*, c.name AS category_name, c.icon AS category_icon, u.name AS user_name
-    FROM transactions t
-    LEFT JOIN categories c ON t.category_id = c.id
-    LEFT JOIN users u ON t.user_id = u.id
-=======
     SELECT t.*, c.name AS category_name, c.icon AS category_icon, c.color AS category_color,
            u.name AS user_name, u.email AS user_email, u.avatar_url AS user_avatar,
            w.name AS wallet_name,
@@ -28,7 +22,6 @@ export const getAllTransactions = async (filters: {
     LEFT JOIN users u ON t.user_id = u.id
     LEFT JOIN wallets w ON t.wallet_id = w.id
     LEFT JOIN income_sources ins ON t.income_source_id = ins.id
->>>>>>> Stashed changes
     WHERE 1=1
   `;
   const params: any[] = [];

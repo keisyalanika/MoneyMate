@@ -249,10 +249,6 @@ INSERT INTO categories (name, type, icon, color, is_pinned) VALUES
 -- ============================================
 -- SEED DATA: Default Admin User (password: admin123)
 -- ============================================
-<<<<<<< Updated upstream
-INSERT INTO users (name, email, password, role) VALUES
-  ('Admin MoneyMate', 'admin@moneymate.com', '$2a$10$XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', 'admin');
-=======
 INSERT INTO users (name, email, password, role, birth_date, bio) VALUES
   ('Admin MoneyMate', 'admin@moneymate.com', '$2b$10$YvwgKwpIEQ8PYLJYyvqViu4ESQMumlBDDXBzVxuVsuYeh4SA6I2Mm', 'admin', '1998-05-12', 'Administrator Utama MoneyMate'),
   ('Keisya Exa Haniyah', 'keisyaexahaniyah@gmail.com', '$2b$10$ywFIMhPR.GYD.G2gGybpjOoKfDnqiSYH0GKMk.imNGZJtGnbwfIiu', 'student', '2003-08-15', 'Mahasiswa Pengguna Aktif MoneyMate');
@@ -264,5 +260,3 @@ INSERT INTO wallets (user_id, name, balance, currency, is_default) VALUES
   (2, 'Dompet Utama (Cash)', 1500000.00, 'IDR', 1),
   (2, 'Rekening Bank BCA', 850000.00, 'IDR', 0),
   (2, 'E-Wallet GoPay', 100000.00, 'IDR', 0);
-
->>>>>>> Stashed changes

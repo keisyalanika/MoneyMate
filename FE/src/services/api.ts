@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FinancialSummary, Transaction, Category, Budget } from '../models/types';
+import { FinancialSummary, Transaction, Category, Budget, Goal, IncomeSource, AiInsightItem, ReportItem, UserSettings } from '../models/types';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -167,8 +167,6 @@ export const fetchBudgets = async (): Promise<Budget[]> => {
     ];
   }
 };
-<<<<<<< Updated upstream
-=======
 
 export const createGoal = async (data: { title: string; target_amount: number; icon?: string; deadline?: string }): Promise<Goal> => {
   const res = await client.post('/goals', data);
@@ -347,5 +345,3 @@ export const submitResetPassword = async (email: string, otp_code: string, new_p
   return res.data;
 };
 
-
->>>>>>> Stashed changes
