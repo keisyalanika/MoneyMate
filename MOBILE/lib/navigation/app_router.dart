@@ -15,6 +15,8 @@ import '../screens/notification_screen.dart';
 import '../screens/connect_bank_screen.dart';
 import '../screens/security_screen.dart';
 import '../screens/help_center_screen.dart';
+import '../screens/data_management_screen.dart';
+import '../screens/user_screen.dart';
 
 class AppRouter {
   // Definisi Rute (Route Names)
@@ -32,6 +34,8 @@ class AppRouter {
   static const String connectBank = '/connect-bank';
   static const String security = '/security';
   static const String helpCenter = '/help-center';
+  static const String dataManagement = '/data-management';
+  static const String userData = '/user-data';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -63,6 +67,10 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const SecurityScreen());
       case helpCenter:
         return MaterialPageRoute(builder: (_) => const HelpCenterScreen());
+      case dataManagement:
+        return MaterialPageRoute(builder: (_) => const DataManagementScreen());
+      case userData:
+        return MaterialPageRoute(builder: (_) => const UserScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

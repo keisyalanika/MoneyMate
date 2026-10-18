@@ -4,6 +4,7 @@ import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
 import 'notification_screen.dart';
 import '../utils/theme.dart';
+import 'data_management_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -183,8 +184,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Bantuan',
                     onTap: () => Navigator.pushNamed(context, AppRouter.helpCenter),
                   ),
-                  // Kotak kosong (invisible) agar alignment Wrap tetap rapi di sebelah kiri untuk baris kedua
-                  SizedBox(width: cardWidth),
+                  _buildMenuCard(
+                    width: cardWidth,
+                    icon: Icons.storage_rounded,
+                    title: 'Penyimpanan\nLokal',
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const DataManagementScreen()));
+                    },
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
