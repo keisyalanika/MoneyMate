@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryBrown.withOpacity(0.2),
+                    color: AppColors.primaryBrown.withValues(alpha: 0.2),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -51,19 +51,19 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 16),
             // Brand Text
-            Text.rich(
+            const Text.rich(
               TextSpan(
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
                 ),
                 children: [
-                  const TextSpan(
+                  TextSpan(
                     text: 'Money',
                     style: TextStyle(color: AppColors.textDark),
                   ),
-                  const TextSpan(
+                  TextSpan(
                     text: 'Mate',
                     style: TextStyle(color: AppColors.accentOrange),
                   ),

@@ -23,15 +23,15 @@ class TransactionModel {
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      amount: (json['amount'] as num).toDouble(),
-      type: json['type'] ?? 'EXPENSE',
-      categoryId: json['categoryId'] ?? '',
-      categoryName: json['categoryName'] ?? '',
-      categoryIcon: json['categoryIcon'] ?? '',
-      date: json['date'] ?? '',
-      notes: json['notes'],
+      id: json['id']?.toString() ?? '',
+      title: json['note'] ?? json['title'] ?? 'Transaksi',
+      amount: (json['amount'] is num) ? (json['amount'] as num).toDouble() : double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
+      type: (json['type']?.toString().toUpperCase() == 'INCOME') ? 'INCOME' : 'EXPENSE',
+      categoryId: (json['category_id'] ?? json['categoryId'])?.toString() ?? '',
+      categoryName: json['category_name'] ?? json['categoryName'] ?? 'Lainnya',
+      categoryIcon: json['category_icon'] ?? json['categoryIcon'] ?? 'tag',
+      date: json['date']?.toString() ?? '',
+      notes: json['note'] ?? json['notes'],
     );
   }
 

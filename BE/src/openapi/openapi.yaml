@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: MoneyMate REST API
+  description: API Backend untuk Aplikasi Pengelola Keuangan Mahasiswa & Portal Admin Kampus
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local Development Server
+paths:
+  /auth/login:
+    post:
+      summary: User Login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login sukses
+  /auth/register:
+    post:
+      summary: User Register
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Berhasil registrasi
+  /summary:
+    get:
+      summary: Get Financial Summary
+      tags:
+        - Summary
+      responses:
+        '200':
+          description: Data ringkasan keuangan
+  /transactions:
+    get:
+      summary: Get Transactions List
+      tags:
+        - Transactions
+      responses:
+        '200':
+          description: Daftar transaksi

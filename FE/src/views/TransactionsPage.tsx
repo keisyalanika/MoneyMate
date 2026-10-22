@@ -1,25 +1,38 @@
 'use client';
 
 import React, { useState } from 'react';
+import { UserItem } from './UserManagementPage';
 
 interface TransactionsPageProps {
   onTriggerPdfToast: () => void;
+  users?: UserItem[];
 }
 
-export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onTriggerPdfToast }) => {
+export const TransactionsPage: React.FC<TransactionsPageProps> = ({ onTriggerPdfToast, users }) => {
   const [trxSearch, setTrxSearch] = useState('');
 
-  const transactions = [
-    { id: 101, date: '2026-10-05 14:20', student: 'Keisya Lanika', desc: 'Pembelian Buku & Alat Tulis', category: 'Akademik', method: 'Transfer Bank', amount: '-Rp 150.000', isExpense: true },
-    { id: 102, date: '2026-10-05 12:10', student: 'Bima Santoso', desc: 'Makan Siang Kantin Utama', category: 'Makanan', method: 'QRIS', amount: '-Rp 25.000', isExpense: true },
-    { id: 103, date: '2026-10-04 18:45', student: 'Aulia Rahma', desc: 'Kiriman Orang Tua', category: 'Pemasukan', method: 'Transfer Bank', amount: '+Rp 2.000.000', isExpense: false },
-    { id: 104, date: '2026-10-04 09:30', student: 'Rizky Aditya', desc: 'Pembayaran Kos Bulan Oktober', category: 'Tempat Tinggal', method: 'Virtual Account', amount: '-Rp 850.000', isExpense: true },
-    { id: 105, date: '2026-10-03 20:15', student: 'Nadia Putri', desc: 'Belanja Kebutuhan Supermarket', category: 'Belanja', method: 'E-Wallet', amount: '-Rp 175.000', isExpense: true },
-    { id: 106, date: '2026-10-03 11:05', student: 'Ahmad Fauzi', desc: 'Top Up Saldo E-Money Kampus', category: 'Top Up', method: 'Virtual Account', amount: '+Rp 500.000', isExpense: false },
-    { id: 107, date: '2026-10-02 16:40', student: 'Bambang Santoso', desc: 'Langganan Internet & Kuota Riset', category: 'Utilitas', method: 'Debit Mandiri', amount: '-Rp 220.000', isExpense: true },
-    { id: 108, date: '2026-10-02 08:30', student: 'Dewi Lestari', desc: 'Pembelian Cat & Kanvas Tugas DKV', category: 'Akademik', method: 'QRIS', amount: '-Rp 310.000', isExpense: true },
-    { id: 109, date: '2026-10-01 19:10', student: 'Reza Hardiansyah', desc: 'Honor Asisten Laboratorium', category: 'Pemasukan', method: 'Transfer Bank', amount: '+Rp 750.000', isExpense: false }
-  ];
+      // Pemantauan Transaksi (Strictly synchronized with User Management by index)
+  const transactions = React.useMemo(() => {
+    const metaList = [
+      { id: 101, date: '2026-10-05 14:20', defaultStudent: 'Kayla', desc: 'Pembelian Buku & Alat Tulis', category: 'Akademik', method: 'Transfer Bank', amount: '-Rp 150.000', isExpense: true },
+      { id: 102, date: '2026-10-05 12:10', defaultStudent: 'Exa', desc: 'Makan Siang Kantin Utama', category: 'Makanan', method: 'QRIS', amount: '-Rp 25.000', isExpense: true },
+      { id: 103, date: '2026-10-04 18:45', defaultStudent: 'Keisya Lanika', desc: 'Kiriman Orang Tua', category: 'Pemasukan', method: 'Transfer Bank', amount: '+Rp 2.000.000', isExpense: false },
+      { id: 104, date: '2026-10-04 09:30', defaultStudent: 'Bima Santoso', desc: 'Pembayaran Kos Bulan Oktober', category: 'Tempat Tinggal', method: 'Virtual Account', amount: '-Rp 850.000', isExpense: true },
+      { id: 105, date: '2026-10-03 20:15', defaultStudent: 'Aulia Rahma', desc: 'Belanja Kebutuhan Supermarket', category: 'Belanja', method: 'E-Wallet', amount: '-Rp 175.000', isExpense: true },
+      { id: 106, date: '2026-10-03 11:05', defaultStudent: 'Rizky Aditya', desc: 'Top Up Saldo E-Money Kampus', category: 'Top Up', method: 'Virtual Account', amount: '+Rp 500.000', isExpense: false },
+      { id: 107, date: '2026-10-02 16:40', defaultStudent: 'Nadia Putri', desc: 'Langganan Internet & Kuota Riset', category: 'Utilitas', method: 'Debit Mandiri', amount: '-Rp 220.000', isExpense: true },
+      { id: 108, date: '2026-10-02 08:30', defaultStudent: 'Ahmad Fauzi', desc: 'Pembelian Cat & Kanvas Tugas DKV', category: 'Akademik', method: 'QRIS', amount: '-Rp 310.000', isExpense: true },
+      { id: 109, date: '2026-10-01 19:10', defaultStudent: 'Bambang Santoso', desc: 'Honor Asisten Laboratorium', category: 'Pemasukan', method: 'Transfer Bank', amount: '+Rp 750.000', isExpense: false }
+    ];
+
+    return metaList.map((tx, idx) => {
+      const u = (users && users[idx]) ? users[idx] : null;
+      return {
+        ...tx,
+        student: u ? u.name : tx.defaultStudent
+      };
+    });
+  }, [users]);
 
   const filteredTransactions = transactions.filter(t =>
     t.student.toLowerCase().includes(trxSearch.toLowerCase()) ||

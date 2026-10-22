@@ -99,6 +99,26 @@ function calculateBudgetMetrics(cfg: {
 // 9 User dummy sinkron dengan UserManagement & Dashboard
 const INITIAL_STUDENT_PRESETS = [
   {
+    id: 'b-101',
+    name: 'Kayla',
+    semester: '4',
+    avatar: 'K',
+    color: 'bg-rose-100 text-rose-800',
+    budgetNum: 2000000,
+    realisasiNum: 2350000,
+    catKritis: 'Makanan & Kos'
+  },
+  {
+    id: 'b-102',
+    name: 'Exa',
+    semester: '4',
+    avatar: 'E',
+    color: 'bg-amber-100 text-amber-800',
+    budgetNum: 1500000,
+    realisasiNum: 1200000,
+    catKritis: 'Hiburan & Nongkrong'
+  },
+  {
     id: 'b1',
     name: 'Keisya Lanika',
     semester: '4',
@@ -167,26 +187,6 @@ const INITIAL_STUDENT_PRESETS = [
     budgetNum: 2200000,
     realisasiNum: 1100000,
     catKritis: 'Operasional Harian'
-  },
-  {
-    id: 'b8',
-    name: 'Dewi Lestari',
-    semester: '4',
-    avatar: 'DL',
-    color: 'bg-rose-100 text-rose-800',
-    budgetNum: 2400000,
-    realisasiNum: 2640000,
-    catKritis: 'Perlengkapan Desain'
-  },
-  {
-    id: 'b9',
-    name: 'Reza Hardiansyah',
-    semester: '4',
-    avatar: 'RH',
-    color: 'bg-emerald-100 text-emerald-800',
-    budgetNum: 1800000,
-    realisasiNum: 1080000,
-    catKritis: 'Bahan Praktikum'
   }
 ];
 
@@ -220,7 +220,7 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({
   // Toast State
   const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null);
 
-  // Sinkronisasi data user dari usersList atau default INITIAL_STUDENT_PRESETS
+    // Sinkronisasi data user dari usersList atau default INITIAL_STUDENT_PRESETS
   const studentBudgets: StudentBudgetItem[] = React.useMemo(() => {
     if (users && users.length > 0) {
       return users.map((u, idx) => {
@@ -231,7 +231,7 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({
           name: u.name,
           semester: preset ? preset.semester : '4',
           avatar: initials || 'MM',
-          color: preset ? preset.color : 'bg-emerald-100 text-emerald-800',
+          color: preset ? preset.color : (idx % 3 === 0 ? 'bg-rose-100 text-rose-800' : idx % 3 === 1 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'),
           budgetNum: preset ? preset.budgetNum : 2000000,
           realisasiNum: preset ? preset.realisasiNum : 1300000,
           catKritis: preset ? preset.catKritis : 'Operasional Harian'
@@ -720,7 +720,7 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({
       {/* ================================================================================= */}
       {selectedStudent && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fadeIn">
-          <div className="bg-[#FAF7F4] border border-[#E5DDD8] rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl space-y-4 text-xs text-[#2D2825] my-auto relative">
+          <div className="bg-[#FAF7F4] border border-[#E5DDD8] rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl text-xs text-[#2D2825] my-auto relative max-h-[92vh] overflow-hidden flex flex-col justify-between">
             
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-3 border-b border-[#E8DFD8] pb-3.5">
@@ -772,271 +772,237 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({
               </button>
             </div>
 
-            {/* 3 Metric Stat Cards */}
-            <div className="grid grid-cols-3 gap-2.5">
-              {/* Card 1 */}
-              <div className="p-3 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-0.5">
-                <div className="flex items-center justify-between text-[9px] font-bold text-[#8C7A70] uppercase">
-                  <span>{modalMode === 'preview' ? 'TOTAL REALISASI' : modalMode === 'thumbs' ? 'SISA SALDO AMAN' : 'DEFISIT TERCATAT'}</span>
-                  <span>{modalMode === 'thumbs' ? '👍' : '↗'}</span>
-                </div>
-                <div className={`text-base font-black ${modalMode === 'thumbs' ? 'text-emerald-700' : selectedStudent.isOver ? 'text-[#C25E38]' : 'text-[#5C2D16]'}`}>
-                  {modalMode === 'preview' ? selectedStudent.realisasi : selectedStudent.quotaText}
-                </div>
-                <div className="text-[9px] text-[#C25E38] font-bold">
-                  • {selectedStudent.percent} dari Pagu {selectedStudent.budget}
-                </div>
-              </div>
-
-              {/* Card 2 */}
-              <div className="p-3 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-0.5">
-                <div className="flex items-center justify-between text-[9px] font-bold text-[#8C7A70] uppercase">
-                  <span>{modalMode === 'preview' ? 'STATUS KEPATUHAN' : 'SISA WAKTU SIKLUS'}</span>
-                  <span>📅</span>
-                </div>
-                <div className="text-base font-black text-[#2D2825]">
-                  {modalMode === 'preview' ? selectedStudent.status : '11 Hari Lagi'}
-                </div>
-                <div className="text-[9px] text-[#8C7A70]">
-                  {modalMode === 'preview' ? selectedStudent.quotaText : 'Siklus kiriman: tgl 1 tiap bulan'}
-                </div>
-              </div>
-
-              {/* Card 3 */}
-              <div className="p-3 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-0.5">
-                <div className="flex items-center justify-between text-[9px] font-bold text-[#8C7A70] uppercase">
-                  <span>{modalMode === 'thumbs' ? 'POS PALING HEMAT' : 'POS KRITIS UTAMA'}</span>
-                  <span>🍴</span>
-                </div>
-                <div className="text-sm font-black text-[#5C2D16] truncate" title={selectedStudent.catKritis}>
-                  {selectedStudent.catKritis}
-                </div>
-                <div className="text-[9px] text-[#8C7A70] font-mono">
-                  {modalMode === 'thumbs' ? 'Pengeluaran sangat terkontrol' : 'Rp 950.000 / Rp 600.000'}
-                </div>
-              </div>
-            </div>
-
-            {/* Realization Progress Box */}
-            <div className="p-3.5 bg-[#FAF0EB] border border-[#E8D6CB] rounded-2xl space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="text-[#2D2825]">
-                  Realisasi Pos {selectedStudent.catKritis} ({selectedStudent.percent} {selectedStudent.isOver ? 'Melampaui Batas' : 'Terpakai'})
-                </span>
-                <span className={`font-black ${selectedStudent.isOver ? 'text-[#C25E38]' : 'text-emerald-700'}`}>
-                  {selectedStudent.isOver ? `Defisit ${selectedStudent.quotaText}` : selectedStudent.quotaText}
-                </span>
-              </div>
-
-              <div className="w-full h-2.5 bg-[#E2D4CD] rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    selectedStudent.isOver
-                      ? 'bg-gradient-to-r from-amber-500 to-[#C25E38]'
-                      : selectedStudent.statusType === 'waspada'
-                      ? 'bg-amber-600'
-                      : 'bg-emerald-600'
-                  }`}
-                  style={{ width: Math.min(parseFloat(selectedStudent.percent), 100) + '%' }}
-                ></div>
-              </div>
-
-              <div className="flex items-center justify-between text-[10px] text-[#8C7A70]">
-                <span>Rp 0 (Awal)</span>
-                <span>Batas Aman: {selectedStudent.budget}</span>
-                <span className="font-bold text-[#5C2D16]">Tercapai: {selectedStudent.realisasi}</span>
-              </div>
-            </div>
-
-            {/* Mode Preview vs Mode Kirim/Thumbs */}
-            {modalMode === 'preview' ? (
-              /* ================== TAMPILAN MODE PREVIEW ================== */
+            {/* Modal Body (2-Column Horizontal Grid to fit on 1 screen without scrolling) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start py-1">
+              
+              {/* LEFT COLUMN: Metric Cards, Progress, & AI Message */}
               <div className="space-y-3">
-                {/* Rincian Komposisi Pengeluaran */}
-                <div className="bg-white border border-[#E5DDD8] rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-[#2D2825] flex items-center gap-1.5">
-                      <span>📊</span> Komposisi Pengeluaran Finansial Mahasiswa
-                    </span>
-                    <span className="px-2 py-0.5 text-[9px] font-bold bg-[#FAF4F0] text-[#5C2D16] border border-[#E6D4CB] rounded">
-                      Rekam Jejak Terverifikasi
-                    </span>
+                {/* 3 Metric Stat Cards */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2.5 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-0.5">
+                    <div className="flex items-center justify-between text-[8px] font-bold text-[#8C7A70] uppercase">
+                      <span>{modalMode === 'preview' ? 'TOTAL REALISASI' : modalMode === 'thumbs' ? 'SISA SALDO AMAN' : 'DEFISIT TERCATAT'}</span>
+                      <span>{modalMode === 'thumbs' ? '👍' : '↗'}</span>
+                    </div>
+                    <div className={`text-sm font-black ${modalMode === 'thumbs' ? 'text-emerald-700' : selectedStudent.isOver ? 'text-[#C25E38]' : 'text-[#5C2D16]'}`}>
+                      {modalMode === 'preview' ? selectedStudent.realisasi : selectedStudent.quotaText}
+                    </div>
+                    <div className="text-[8px] text-[#C25E38] font-bold truncate">
+                      • {selectedStudent.percent} dari {selectedStudent.budget}
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-[#554A43]">{selectedStudent.catKritis} (Pos Terbesar)</span>
-                        <strong className="text-[#2D2825]">42% • Rp 987.000</strong>
-                      </div>
-                      <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#5C2D16] rounded-full" style={{ width: '42%' }}></div>
-                      </div>
+                  <div className="p-2.5 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-0.5">
+                    <div className="flex items-center justify-between text-[8px] font-bold text-[#8C7A70] uppercase">
+                      <span>{modalMode === 'preview' ? 'STATUS' : 'SIKLUS'}</span>
+                      <span>📅</span>
                     </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-[#554A43]">Kebutuhan Studi &amp; Akademik</span>
-                        <strong className="text-[#2D2825]">28% • Rp 658.000</strong>
-                      </div>
-                      <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-600 rounded-full" style={{ width: '28%' }}></div>
-                      </div>
+                    <div className="text-sm font-black text-[#2D2825]">
+                      {modalMode === 'preview' ? selectedStudent.status : '11 Hari'}
                     </div>
+                    <div className="text-[8px] text-[#8C7A70] truncate">
+                      {modalMode === 'preview' ? selectedStudent.quotaText : 'Tgl 1 tiap bulan'}
+                    </div>
+                  </div>
 
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-[#554A43]">Transportasi &amp; Penunjang Lain</span>
-                        <strong className="text-[#2D2825]">30% • Rp 705.000</strong>
-                      </div>
-                      <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-600 rounded-full" style={{ width: '30%' }}></div>
-                      </div>
+                  <div className="p-2.5 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-0.5">
+                    <div className="flex items-center justify-between text-[8px] font-bold text-[#8C7A70] uppercase">
+                      <span>{modalMode === 'thumbs' ? 'POS HEMAT' : 'POS KRITIS'}</span>
+                      <span>🍴</span>
+                    </div>
+                    <div className="text-xs font-black text-[#5C2D16] truncate" title={selectedStudent.catKritis}>
+                      {selectedStudent.catKritis}
+                    </div>
+                    <div className="text-[8px] text-[#8C7A70] truncate">
+                      {modalMode === 'thumbs' ? 'Sangat Terkontrol' : 'Rp 950rb / 600rb'}
                     </div>
                   </div>
                 </div>
 
-                {/* Audit AI Analysis */}
-                <div className="bg-[#FAF4F0] border border-[#E6D4CB] rounded-2xl p-3.5 space-y-1.5">
-                  <div className="font-bold text-[#5C2D16] flex items-center gap-1.5">
-                    <span>🤖</span> Evaluasi Pola Transaksi Mahasiswa (AI Insight)
-                  </div>
-                  <p className="text-[11px] text-[#554A43] leading-relaxed">
-                    Berdasarkan audit pola transaksi, <strong>{selectedStudent.name}</strong> menunjukkan kedisiplinan baik pada alokasi biaya akademik, dengan sisa saldo aman tercatat. Rekam jejak transaksi tercatat rapi dan akuntabel.
-                  </p>
-                </div>
-
-                {/* Rekam Jejak Audit */}
-                <div className="p-3 bg-white border border-[#E5DDD8] rounded-xl space-y-1 text-[11px] text-[#554A43]">
-                  <div className="flex justify-between py-0.5 border-b border-[#F0E8E4]">
-                    <span>✓ Sinkronisasi Rekening Bank Kampus:</span>
-                    <strong className="text-emerald-700">Terkoneksi Aktif</strong>
-                  </div>
-                  <div className="flex justify-between py-0.5 border-b border-[#F0E8E4]">
-                    <span>✓ Rekomendasi Batas Belanja Harian:</span>
-                    <strong className="text-[#2D2825]">Rp 45.000 / hari</strong>
-                  </div>
-                  <div className="flex justify-between py-0.5">
-                    <span>⏱️ Riwayat Intervensi Semester Ini:</span>
-                    <strong className="text-[#8C7A70]">Belum pernah ada peringatan tercatat</strong>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* ================== TAMPILAN MODE KIRIM / THUMBS ================== */
-              <div className="space-y-3">
-                {/* Draft Pesan Intervensi Cerdas (AI Kampus) */}
-                <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 space-y-2.5 shadow-2xs">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-[#2D2825] flex items-center gap-1.5">
-                      <span>🤖</span> {modalMode === 'thumbs' ? 'Draft Pesan Apresiasi (AI Kampus)' : 'Draft Pesan Intervensi Cerdas (AI Kampus)'}
+                {/* Realization Progress Box */}
+                <div className="p-2.5 bg-[#FAF0EB] border border-[#E8D6CB] rounded-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-[#2D2825]">
+                      Pos {selectedStudent.catKritis} ({selectedStudent.percent} {selectedStudent.isOver ? 'Defisit' : 'Terpakai'})
                     </span>
-                    <span className="px-2 py-0.5 text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded">
-                      • Rekomendasi Terpersonalisasi
+                    <span className={`font-black ${selectedStudent.isOver ? 'text-[#C25E38]' : 'text-emerald-700'}`}>
+                      {selectedStudent.isOver ? `Defisit ${selectedStudent.quotaText}` : selectedStudent.quotaText}
                     </span>
                   </div>
 
-                  <p className="text-xs text-[#554A43] leading-relaxed bg-[#FAF7F4] p-3 rounded-xl border border-[#E8DFD8]">
-                    {aiCustomMessage}
-                  </p>
+                  <div className="w-full h-2 bg-[#E2D4CD] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        selectedStudent.isOver
+                          ? 'bg-gradient-to-r from-amber-500 to-[#C25E38]'
+                          : selectedStudent.statusType === 'waspada'
+                          ? 'bg-amber-600'
+                          : 'bg-emerald-600'
+                      }`}
+                      style={{ width: Math.min(parseFloat(selectedStudent.percent), 100) + '%' }}
+                    ></div>
+                  </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-[#8C7A70] pt-0.5">
-                    <span>⚙️ Dihasilkan dari Pola Transaksi Mingguan</span>
+                  <div className="flex items-center justify-between text-[9px] text-[#8C7A70]">
+                    <span>Batas Aman: {selectedStudent.budget}</span>
+                    <span className="font-bold text-[#5C2D16]">Tercapai: {selectedStudent.realisasi}</span>
+                  </div>
+                </div>
+
+                {/* Draft Pesan Intervensi / Apresiasi (AI Kampus) */}
+                <div className="bg-white border border-[#E5DDD8] rounded-xl p-3 space-y-1.5 shadow-2xs">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-[#2D2825] flex items-center gap-1.5">
+                      <span>🤖</span> {modalMode === 'thumbs' ? 'Draft Pesan Apresiasi (AI)' : 'Draft Pesan Intervensi (AI)'}
+                    </span>
                     <button
                       type="button"
                       onClick={handleRegenerateAi}
-                      className="font-bold text-[#5C2D16] hover:underline cursor-pointer"
+                      className="text-[10px] font-bold text-[#5C2D16] hover:underline cursor-pointer"
                     >
-                      Regenerate AI
+                      Regenerate
                     </button>
                   </div>
-                </div>
-
-                {/* Opsi Tindakan */}
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-[#8C7A70] uppercase tracking-wider">
-                    {modalMode === 'thumbs' ? 'OPSI APRESIASI MAHASISWA' : 'OPSI TINDAKAN ADMINISTRATIF'}
-                  </div>
-
-                  {modalMode === 'thumbs' ? (
-                    <div className="space-y-2">
-                      <label className="flex items-start gap-2.5 cursor-pointer p-2 bg-white rounded-xl border border-[#E5DDD8]">
-                        <input
-                          type="checkbox"
-                          checked={pushNotif}
-                          onChange={e => setPushNotif(e.target.checked)}
-                          className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
-                        />
-                        <div>
-                          <div className="font-bold text-xs text-[#2D2825]">Kirimkan Notifikasi Apresiasi &amp; Badge Disiplin Finansial 🎖️</div>
-                          <div className="text-[10px] text-[#8C7A70]">Kirimkan pesan apresiasi langsung ke dashboard aplikasi MoneyMate mahasiswa.</div>
-                        </div>
-                      </label>
-
-                      <label className="flex items-start gap-2.5 cursor-pointer p-2 bg-white rounded-xl border border-[#E5DDD8]">
-                        <input
-                          type="checkbox"
-                          checked={voucherReward}
-                          onChange={e => setVoucherReward(e.target.checked)}
-                          className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
-                        />
-                        <div>
-                          <div className="font-bold text-xs text-[#2D2825]">Berikan Voucher Diskon Kantin Mitra Kampus 🍽️</div>
-                          <div className="text-[10px] text-[#8C7A70]">Klaim promo makan hemat 15% di kantin kampus binaan institusi.</div>
-                        </div>
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="flex items-start gap-2.5 cursor-pointer p-2 bg-white rounded-xl border border-[#E5DDD8]">
-                        <input
-                          type="checkbox"
-                          checked={pushNotif}
-                          onChange={e => setPushNotif(e.target.checked)}
-                          className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
-                        />
-                        <div>
-                          <div className="font-bold text-xs text-[#2D2825]">Kirimkan Push Notifikasi &amp; WhatsApp Bot Kampus 📟</div>
-                          <div className="text-[10px] text-[#8C7A70]">
-                            Pesan langsung dikirimkan ke aplikasi MoneyMate mahasiswa dan nomor terdaftar (+62 821-****-9821).
-                          </div>
-                        </div>
-                      </label>
-
-                      <label className="flex items-start gap-2.5 cursor-pointer p-2 bg-white rounded-xl border border-[#E5DDD8]">
-                        <input
-                          type="checkbox"
-                          checked={autoLockdown}
-                          onChange={e => setAutoLockdown(e.target.checked)}
-                          className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
-                        />
-                        <div>
-                          <div className="font-bold text-xs text-[#2D2825]">Kunci Pembelian Kategori Fleksibel (Auto-Lockdown) 🔒</div>
-                          <div className="text-[10px] text-[#8C7A70]">
-                            Nonaktifkan kuota dompet kampus untuk merchant kafe mitra selama sisa 11 hari siklus ini.
-                          </div>
-                        </div>
-                      </label>
-
-                      <label className="flex items-start gap-2.5 cursor-pointer p-2 bg-white rounded-xl border border-[#E5DDD8]">
-                        <input
-                          type="checkbox"
-                          checked={counseling}
-                          onChange={e => setCounseling(e.target.checked)}
-                          className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
-                        />
-                        <div>
-                          <div className="font-bold text-xs text-[#554A43]">Alokasikan ke Konseling Keuangan BAAK ☕</div>
-                          <div className="text-[10px] text-[#8C7A70]">
-                            Jadwalkan sesi pendampingan manajerial keuangan pribadi gratis dengan konselor kemahasiswaan.
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  )}
+                  <p className="text-[11px] text-[#554A43] leading-relaxed bg-[#FAF7F4] p-2.5 rounded-lg border border-[#E8DFD8]">
+                    {aiCustomMessage}
+                  </p>
                 </div>
               </div>
-            )}
+
+              {/* RIGHT COLUMN: Actions & Options */}
+              <div className="space-y-3">
+                {modalMode === 'preview' ? (
+                  <div className="space-y-2.5">
+                    <div className="bg-white border border-[#E5DDD8] rounded-xl p-3 space-y-2 shadow-2xs">
+                      <div className="font-bold text-xs text-[#2D2825] flex items-center gap-1.5">
+                        <span>📊</span> Komposisi Pengeluaran
+                      </div>
+                      <div className="space-y-1.5 text-[10px]">
+                        <div>
+                          <div className="flex justify-between mb-0.5">
+                            <span className="text-[#554A43]">{selectedStudent.catKritis} (Pos Utama)</span>
+                            <strong className="text-[#2D2825]">42% • Rp 987.000</strong>
+                          </div>
+                          <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#5C2D16] rounded-full" style={{ width: '42%' }}></div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-0.5">
+                            <span className="text-[#554A43]">Kebutuhan Akademik</span>
+                            <strong className="text-[#2D2825]">28% • Rp 658.000</strong>
+                          </div>
+                          <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-600 rounded-full" style={{ width: '28%' }}></div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-0.5">
+                            <span className="text-[#554A43]">Transportasi & Penunjang</span>
+                            <strong className="text-[#2D2825]">30% • Rp 705.000</strong>
+                          </div>
+                          <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-600 rounded-full" style={{ width: '30%' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white border border-[#E5DDD8] rounded-xl space-y-1.5 text-[10px] text-[#554A43]">
+                      <div className="flex justify-between py-0.5 border-b border-[#F0E8E4]">
+                        <span>✓ Rekening Bank Kampus:</span>
+                        <strong className="text-emerald-700">Tersinkronisasi Aktif</strong>
+                      </div>
+                      <div className="flex justify-between py-0.5 border-b border-[#F0E8E4]">
+                        <span>✓ Rekomendasi Belanja Harian:</span>
+                        <strong className="text-[#2D2825]">Rp 45.000 / hari</strong>
+                      </div>
+                      <div className="flex justify-between py-0.5">
+                        <span>⏱️ Riwayat Intervensi:</span>
+                        <strong className="text-[#8C7A70]">Belum pernah ada</strong>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-bold text-[#8C7A70] uppercase tracking-wider">
+                      {modalMode === 'thumbs' ? 'OPSI APRESIASI PENGGUNA' : 'OPSI TINDAKAN ADMINISTRATIF'}
+                    </div>
+
+                    {modalMode === 'thumbs' ? (
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-2.5 cursor-pointer p-2.5 bg-white rounded-xl border border-[#E5DDD8] hover:border-[#5C2D16]/30 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={pushNotif}
+                            onChange={e => setPushNotif(e.target.checked)}
+                            className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
+                          />
+                          <div>
+                            <div className="font-bold text-xs text-[#2D2825]">Kirimkan Notifikasi Apresiasi 🎖️</div>
+                            <div className="text-[10px] text-[#8C7A70]">Pesan penghargaan dikirimkan langsung ke aplikasi mobile pengguna.</div>
+                          </div>
+                        </label>
+
+                        <label className="flex items-start gap-2.5 cursor-pointer p-2.5 bg-white rounded-xl border border-[#E5DDD8] hover:border-[#5C2D16]/30 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={voucherReward}
+                            onChange={e => setVoucherReward(e.target.checked)}
+                            className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
+                          />
+                          <div>
+                            <div className="font-bold text-xs text-[#2D2825]">Berikan Voucher Diskon Mitra Kampus 🍽️</div>
+                            <div className="text-[10px] text-[#8C7A70]">Klaim promo makan hemat 15% di mitra binaan kampus.</div>
+                          </div>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-2.5 cursor-pointer p-2.5 bg-white rounded-xl border border-[#E5DDD8] hover:border-[#5C2D16]/30 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={pushNotif}
+                            onChange={e => setPushNotif(e.target.checked)}
+                            className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
+                          />
+                          <div>
+                            <div className="font-bold text-xs text-[#2D2825]">Push Notifikasi & WhatsApp Bot 📟</div>
+                            <div className="text-[10px] text-[#8C7A70]">Notifikasi instan dikirimkan ke aplikasi dan kontak pengguna.</div>
+                          </div>
+                        </label>
+
+                        <label className="flex items-start gap-2.5 cursor-pointer p-2.5 bg-white rounded-xl border border-[#E5DDD8] hover:border-[#5C2D16]/30 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={autoLockdown}
+                            onChange={e => setAutoLockdown(e.target.checked)}
+                            className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
+                          />
+                          <div>
+                            <div className="font-bold text-xs text-[#2D2825]">Kunci Pembelian Kategori Fleksibel 🔒</div>
+                            <div className="text-[10px] text-[#8C7A70]">Batasi kuota belanja untuk merchant kafe/hiburan hingga siklus baru.</div>
+                          </div>
+                        </label>
+
+                        <label className="flex items-start gap-2.5 cursor-pointer p-2.5 bg-white rounded-xl border border-[#E5DDD8] hover:border-[#5C2D16]/30 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={counseling}
+                            onChange={e => setCounseling(e.target.checked)}
+                            className="accent-[#5C2D16] w-4 h-4 mt-0.5 rounded cursor-pointer"
+                          />
+                          <div>
+                            <div className="font-bold text-xs text-[#2D2825]">Alokasikan Konseling Finansial ☕</div>
+                            <div className="text-[10px] text-[#8C7A70]">Jadwalkan pendampingan perencanaan anggaran pribadi.</div>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Modal Footer */}
             <div className="pt-3 border-t border-[#E8DFD8] flex items-center justify-between">

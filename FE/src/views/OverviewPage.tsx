@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { UserItem } from './UserManagementPage';
 
 export interface OverviewPageProps {
   onTriggerPdfToast: () => void;
@@ -8,6 +9,7 @@ export interface OverviewPageProps {
   onNavigateTab?: (tab: string) => void;
   onTriggerAiNotification?: (title: string, message: string) => void;
   totalUsersCount?: number;
+  users?: UserItem[];
 }
 
 type Period = 'Hari Ini' | '7 Hari' | '1 Bulan' | 'Kustom';
@@ -27,7 +29,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   fmtMoney,
   onNavigateTab,
   onTriggerAiNotification,
-  totalUsersCount = 9
+  totalUsersCount = 9,
+  users
 }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('7 Hari');
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
@@ -179,14 +182,37 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     }, 5000);
   };
 
-  // Recent Transactions Data (Consistent with Users)
-  const recentTransactions = [
-    { id: 'TRX-9481', user: 'Ahmad Fauzi', sub: 'NIM: 10293846 • TI', category: 'Pembayaran SPP Kuliah', method: 'Virtual Account BCA', amount: 'Rp 14.500.000', isIncome: true, status: 'Berhasil', statusType: 'success', time: '10 mnt lalu', avatar: 'AF' },
-    { id: 'TRX-9482', user: 'Nadia Putri', sub: 'NIM: 10293845 • Akuntansi', category: 'Alokasi Dana Auto-Save', method: 'Debit Mandiri', amount: 'Rp 500.000', isIncome: false, status: 'Berhasil', statusType: 'success', time: '24 mnt lalu', avatar: 'NP' },
-    { id: 'TRX-9483', user: 'Bambang Santoso', sub: 'NIM: 10293847 • Komunikasi', category: 'Top-Up Saldo Digital', method: 'Merchant Wallet', amount: 'Rp 750.000', isIncome: true, status: 'Berhasil', statusType: 'success', time: '41 mnt lalu', avatar: 'BS' },
-    { id: 'TRX-9484', user: 'Dewi Lestari', sub: 'NIM: 10293848 • DKV', category: 'Beli Buku & Modul DKV', method: 'Kartu Kredit', amount: 'Rp 1.250.000', isIncome: false, status: 'Menunggu', statusType: 'pending', time: '1 jam lalu', avatar: 'DL' },
-    { id: 'TRX-9485', user: 'Reza Hardiansyah', sub: 'NIM: 10293849 • Sipil', category: 'Honor Asisten Praktikum', method: 'Payroll Kampus', amount: 'Rp 45.000', isIncome: true, status: 'Berhasil', statusType: 'success', time: '2 jam lalu', avatar: 'RH' }
-  ];
+      // Recent Transactions Data (Strictly synchronized with User Management by index)
+  const recentTransactions = React.useMemo(() => {
+    const metaList = [
+      { id: 'TRX-9481', defaultUser: 'Kayla', prodi: 'Informatika', category: 'Pembayaran SPP Kuliah', method: 'Virtual Account BCA', amount: 'Rp 14.500.000', isIncome: true, status: 'Berhasil', statusType: 'success' as const, time: '10 mnt lalu', avatar: 'K' },
+      { id: 'TRX-9482', defaultUser: 'Exa', prodi: 'Sistem Informasi', category: 'Alokasi Dana Auto-Save', method: 'Debit Mandiri', amount: 'Rp 500.000', isIncome: false, status: 'Berhasil', statusType: 'success' as const, time: '24 mnt lalu', avatar: 'E' },
+      { id: 'TRX-9483', defaultUser: 'Keisya Lanika', prodi: 'Informatika', category: 'Top-Up Saldo Digital', method: 'Merchant Wallet', amount: 'Rp 750.000', isIncome: true, status: 'Berhasil', statusType: 'success' as const, time: '41 mnt lalu', avatar: 'KL' },
+      { id: 'TRX-9484', defaultUser: 'Bima Santoso', prodi: 'Sistem Informasi', category: 'Beli Buku & Modul DKV', method: 'Kartu Kredit', amount: 'Rp 1.250.000', isIncome: false, status: 'Menunggu', statusType: 'pending' as const, time: '1 jam lalu', avatar: 'BS' },
+      { id: 'TRX-9485', defaultUser: 'Aulia Rahma', prodi: 'Manajemen', category: 'Honor Asisten Praktikum', method: 'Payroll Kampus', amount: 'Rp 45.000', isIncome: true, status: 'Berhasil', statusType: 'success' as const, time: '2 jam lalu', avatar: 'AR' }
+    ];
+
+    return metaList.map((t, idx) => {
+      // Pick user by index from users prop if available
+      const matchedUser = (users && users[idx]) ? users[idx] : null;
+      const userName = matchedUser ? matchedUser.name : t.defaultUser;
+      const initials = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      const prodiName = matchedUser?.prodi || t.prodi;
+      return {
+        id: t.id,
+        user: userName,
+        sub: `${prodiName} • Pengguna Aktif`,
+        category: t.category,
+        method: t.method,
+        amount: t.amount,
+        isIncome: t.isIncome,
+        status: t.status,
+        statusType: t.statusType,
+        time: t.time,
+        avatar: initials || t.avatar
+      };
+    });
+  }, [users]);
 
   const filteredTrx = recentTransactions.filter(t => 
     t.id.toLowerCase().includes(searchTable.toLowerCase()) || 
@@ -677,7 +703,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               />
               <span className="absolute left-2.5 top-2 text-[#8C7A70] text-xs">🔍</span>
             </div>
-            <button className="px-3 py-1.5 bg-white border border-[#E5DDD8] text-[#5C2D16] font-bold text-xs rounded-xl hover:bg-[#FAF7F4] flex items-center gap-1 cursor-pointer">
+            <button
+              onClick={() => onNavigateTab?.('transactions')}
+              className="px-3 py-1.5 bg-white border border-[#E5DDD8] text-[#5C2D16] font-bold text-xs rounded-xl hover:bg-[#FAF7F4] flex items-center gap-1 cursor-pointer"
+            >
               ≡ Lihat Semua
             </button>
           </div>

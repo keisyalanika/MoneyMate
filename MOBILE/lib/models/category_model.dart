@@ -15,9 +15,9 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? '',
-      type: json['type'] ?? 'EXPENSE',
+      type: (json['type']?.toString().toUpperCase() == 'INCOME') ? 'INCOME' : 'EXPENSE',
       icon: json['icon'] ?? '',
       color: json['color'] ?? '#3B82F6',
     );
