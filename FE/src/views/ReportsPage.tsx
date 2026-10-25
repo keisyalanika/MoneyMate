@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export interface ReportsPageProps {
   onTriggerPdfToast?: (customMsg?: string) => void;
@@ -55,12 +55,14 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
   // Modal 1: Buat Laporan Finansial Kustom (Figma media_1791764387084.png)
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(['arus_kas', 'over_budget', 'pengeluaran_khusus']);
-  const [customFakultas, setCustomFakultas] = useState('Semua Fakultas (8 Fakultas Aktif)');
-  const [customAngkatan, setCustomAngkatan] = useState('Semua');
+  // customFakultas removed
+  // customAngkatan removed
   const [customKondisi, setCustomKondisi] = useState('Semua Kondisi (Prima + Warning + Kritis)');
-  const [customPreset, setCustomPreset] = useState('Semester Ganjil 2026/2027 (Berjalan)');
-  const [customStartDate, setCustomStartDate] = useState('01 September 2026');
-  const [customEndDate, setCustomEndDate] = useState('31 Oktober 2026');
+  // customPreset removed
+  const [customStartDate, setCustomStartDate] = useState('2026-09-01');
+  const startDateInputRef = useRef<HTMLInputElement>(null);
+  const [customEndDate, setCustomEndDate] = useState('2026-10-31');
+  const endDateInputRef = useRef<HTMLInputElement>(null);
 
   // Modal 2: Jadwalkan Laporan Otomatis
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -119,12 +121,12 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
       .map(s => s.title);
     const reportName = chosenTitles.length > 0 ? `Laporan Kustom: ${chosenTitles.slice(0, 2).join(', ')}${chosenTitles.length > 2 ? ' +' + (chosenTitles.length - 2) + ' subjek' : ''}` : 'Laporan Kustom Komprehensif';
     const dateRange = `${customStartDate} – ${customEndDate}`;
-    const fileName = `Laporan_Kustom_${customAngkatan !== 'Semua' ? 'Angkatan_' + customAngkatan + '_' : ''}Audit_${customStartDate.slice(-4)}.pdf`;
+    const fileName = `Laporan_Kustom_Audit_${customStartDate}_sd_${customEndDate}.pdf`;
 
     setToastDetails({
       title: 'Laporan Kustom PDF Berhasil Diunduh!',
       reportName,
-      range: `${customPreset} (${dateRange})`,
+      range: dateRange,
       fileName
     });
     setToastGenerate(true);
@@ -139,7 +141,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
 
   // Handle Schedule Save
   const handleSaveSchedule = () => {
-    const activeStakeholders = [];
+    const activeStakeholders: string[] = [];
     if (stakeholders.keuangan) activeStakeholders.push('Biro Keuangan');
     if (stakeholders.baak) activeStakeholders.push('BAAK');
     if (stakeholders.dekanat) activeStakeholders.push('Dekanat');
@@ -460,7 +462,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
               </div>
               <h3 className="font-bold text-xs text-[#2D2825]">Rekap Eksekutif Dekanat</h3>
               <p className="text-[11px] text-[#8C7A70] leading-relaxed">
-                Ringkasan komprehensif tingkat kesehatan keuangan mahasiswa per fakultas dengan grafik perbandingan antar angkatan.
+                Ringkasan komprehensif tingkat kesehatan keuangan seluruh pengguna dengan grafik perbandingan pengeluaran.
               </p>
             </div>
 
@@ -605,54 +607,17 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
               </div>
             </div>
 
-            {/* Section 2: Parameter Filter & Kohort Mahasiswa */}
+            {/* Section 2: Parameter Filter & Kondisi Finansial (Tanpa Fakultas & Tahun Angkatan) */}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2 font-bold text-[#2D2825]">
                 <span className="w-5 h-5 rounded-full bg-[#3D2314] text-white text-[11px] flex items-center justify-center font-bold">2</span>
-                <span>Parameter Filter & Kohort Mahasiswa</span>
+                <span>Parameter Filter & Kondisi Finansial</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Fakultas */}
-                <div>
-                  <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Fakultas / Departemen</label>
-                  <select
-                    value={customFakultas}
-                    onChange={e => setCustomFakultas(e.target.value)}
-                    className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none cursor-pointer"
-                  >
-                    <option value="Semua Fakultas (8 Fakultas Aktif)">Semua Fakultas (8 Fakultas Aktif)</option>
-                    <option value="Fakultas Ilmu Komputer & Informatika">Fakultas Ilmu Komputer & Informatika</option>
-                    <option value="Fakultas Ekonomi & Bisnis">Fakultas Ekonomi & Bisnis</option>
-                    <option value="Fakultas Teknik & Rekayasa">Fakultas Teknik & Rekayasa</option>
-                    <option value="Fakultas Kedokteran & Kesehatan">Fakultas Kedokteran & Kesehatan</option>
-                  </select>
-                </div>
-
-                {/* Tahun Angkatan */}
-                <div>
-                  <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Tahun Angkatan</label>
-                  <div className="flex items-center gap-1">
-                    {['Semua', '2024', '2023', '2022', '2021'].map(ang => (
-                      <button
-                        key={ang}
-                        type="button"
-                        onClick={() => setCustomAngkatan(ang)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          customAngkatan === ang
-                            ? 'bg-[#3D2314] text-white shadow-xs'
-                            : 'bg-white border border-[#E5DDD8] text-[#5C2D16] hover:bg-[#FAF4F0]'
-                        }`}
-                      >
-                        {ang}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Kondisi Finansial Dompet */}
                 <div>
-                  <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Kondisi Finansial Dompet</label>
+                  <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Kondisi Finansial Pengguna</label>
                   <select
                     value={customKondisi}
                     onChange={e => setCustomKondisi(e.target.value)}
@@ -664,56 +629,86 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
                     <option value="Kritis (Defisit & Over-Budget)">Kritis (Defisit & Over-Budget)</option>
                   </select>
                 </div>
+
+                {/* Status Akun Pengguna */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Status Keaktifan Akun</label>
+                  <select
+                    defaultValue="Semua Pengguna Aktif"
+                    className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none cursor-pointer"
+                  >
+                    <option value="Semua Pengguna Aktif">Semua Pengguna Terdaftar (9 Pengguna)</option>
+                    <option value="Pengguna Aktif Saja">Pengguna Aktif Saja</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Section 3: Periode & Rentang Waktu (Requirement 2: Tanpa tulisan enkripsi token) */}
+                        {/* Section 3: Periode & Rentang Waktu (Tanpa Preset Akademik, Kalender Interaktif) */}
             <div className="space-y-2.5">
               <div className="flex items-center gap-2 font-bold text-[#2D2825]">
                 <span className="w-5 h-5 rounded-full bg-[#3D2314] text-white text-[11px] flex items-center justify-center font-bold">3</span>
-                <span>Periode & Rentang Waktu</span>
+                <span>Periode & Rentang Tanggal Audit</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Preset Akademik</label>
-                  <div className="relative">
-                    <select
-                      value={customPreset}
-                      onChange={e => setCustomPreset(e.target.value)}
-                      className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none cursor-pointer pr-7"
-                    >
-                      <option value="Semester Ganjil 2026/2027 (Berjalan)">Semester Ganjil 2026/2027 (Berjalan)</option>
-                      <option value="Semester Genap 2025/2026">Semester Genap 2025/2026</option>
-                      <option value="Tahun Anggaran 2026">Tahun Anggaran 2026</option>
-                    </select>
-                    <span className="absolute right-2.5 top-2 text-xs text-[#8C7A70] pointer-events-none">📅</span>
-                  </div>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Mulai Tanggal */}
                 <div>
                   <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Mulai Tanggal</label>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
-                      type="text"
+                      ref={startDateInputRef}
+                      type="date"
                       value={customStartDate}
                       onChange={e => setCustomStartDate(e.target.value)}
-                      className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none"
+                      className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 pr-10 text-xs font-medium text-[#2D2825] focus:outline-none focus:border-[#5C2D16] cursor-pointer"
                     />
-                    <span className="absolute right-2.5 top-2 text-xs text-[#8C7A70] pointer-events-none">📅</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (startDateInputRef.current) {
+                          try {
+                            startDateInputRef.current.showPicker();
+                          } catch (err) {
+                            startDateInputRef.current.focus();
+                          }
+                        }
+                      }}
+                      className="absolute right-2.5 top-2 text-base text-[#5C2D16] hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                      title="Klik emoji kalender untuk memilih tanggal"
+                    >
+                      📅
+                    </button>
                   </div>
                 </div>
 
+                {/* Sampai Tanggal */}
                 <div>
                   <label className="block text-[10px] font-semibold text-[#8C7A70] mb-1">Sampai Tanggal</label>
-                  <div className="relative">
+                  <div className="relative flex items-center">
                     <input
-                      type="text"
+                      ref={endDateInputRef}
+                      type="date"
                       value={customEndDate}
                       onChange={e => setCustomEndDate(e.target.value)}
-                      className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-medium text-[#2D2825] focus:outline-none"
+                      className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 pr-10 text-xs font-medium text-[#2D2825] focus:outline-none focus:border-[#5C2D16] cursor-pointer"
                     />
-                    <span className="absolute right-2.5 top-2 text-xs text-[#8C7A70] pointer-events-none">📅</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (endDateInputRef.current) {
+                          try {
+                            endDateInputRef.current.showPicker();
+                          } catch (err) {
+                            endDateInputRef.current.focus();
+                          }
+                        }
+                      }}
+                      className="absolute right-2.5 top-2 text-base text-[#5C2D16] hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+                      title="Klik emoji kalender untuk memilih tanggal"
+                    >
+                      📅
+                    </button>
                   </div>
                 </div>
               </div>
@@ -825,18 +820,61 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
               </div>
             </div>
 
-            {/* 2. Waktu Eksekusi */}
-            <div className="space-y-1.5">
+            {/* 2. Waktu Eksekusi (Rekomendasi Pilihan & Custom Waktu) */}
+            <div className="space-y-2">
               <label className="block text-[11px] font-bold text-[#8C7A70] uppercase">2. WAKTU PENGIRIMAN (WIB)</label>
-              <select
-                value={scheduleTime}
-                onChange={e => setScheduleTime(e.target.value)}
-                className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-2 text-xs font-semibold text-[#2D2825] focus:outline-none cursor-pointer"
-              >
-                <option value="07:30 WIB">07:30 WIB (Pagi hari sebelum jam kerja)</option>
-                <option value="12:00 WIB">12:00 WIB (Siang hari)</option>
-                <option value="17:00 WIB">17:00 WIB (Penutupan jam operasional)</option>
-              </select>
+              
+              {/* Rekomendasi Pilihan Waktu */}
+              <div>
+                <span className="text-[10px] text-[#8C7A70] font-medium block mb-1">Rekomendasi Pilihan Waktu:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { val: '07:30 WIB', label: '07:30 WIB (Pagi)' },
+                    { val: '09:00 WIB', label: '09:00 WIB (Awal Kerja)' },
+                    { val: '12:00 WIB', label: '12:00 WIB (Siang)' },
+                    { val: '17:00 WIB', label: '17:00 WIB (Sore)' },
+                    { val: '20:00 WIB', label: '20:00 WIB (Malam)' }
+                  ].map(item => (
+                    <button
+                      key={item.val}
+                      type="button"
+                      onClick={() => setScheduleTime(item.val)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        scheduleTime === item.val
+                          ? 'bg-[#5C2D16] text-white shadow-xs'
+                          : 'bg-white border border-[#E5DDD8] text-[#5C2D16] hover:bg-[#FAF4F0]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Input Custom Waktu */}
+              <div className="pt-1">
+                <span className="text-[10px] text-[#8C7A70] font-medium block mb-1">Atau Tentukan Waktu Kustom Sendiri:</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="time"
+                      value={scheduleTime.replace(/\s*WIB/i, '').trim()}
+                      onChange={e => {
+                        if (e.target.value) {
+                          setScheduleTime(`${e.target.value} WIB`);
+                        }
+                      }}
+                      className="w-full bg-white border border-[#E5DDD8] rounded-xl px-3 py-1.5 text-xs font-semibold text-[#2D2825] focus:outline-none focus:border-[#5C2D16] cursor-pointer"
+                    />
+                  </div>
+                  <span className="px-3 py-1.5 bg-[#F5EDE8] border border-[#ECD9CE] text-[#5C2D16] font-bold text-xs rounded-xl">
+                    WIB
+                  </span>
+                </div>
+                <div className="text-[10px] text-[#8C7A70] mt-1">
+                  Waktu aktif terpilih: <strong className="text-[#5C2D16]">{scheduleTime}</strong>
+                </div>
+              </div>
             </div>
 
             {/* 3. Penerima Laporan */}
@@ -877,7 +915,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
                     className="accent-[#5C2D16] w-4 h-4 rounded"
                   />
                   <div>
-                    <div className="font-bold text-xs text-[#2D2825]">Dekanat Seluruh Fakultas (8 Fakultas)</div>
+                    <div className="font-bold text-xs text-[#2D2825]">Pimpinan Institusi & Dekanat</div>
                     <div className="text-[10px] text-[#8C7A70]">dekanat@universitas.ac.id</div>
                   </div>
                 </label>
@@ -926,7 +964,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
               <div className="flex items-center justify-between text-[11px] text-[#8C7A70] mb-1">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 bg-[#FAF4F0] text-[#5C2D16] font-bold rounded">Siswa: Keisya Lanika</span>
-                  <span>• NIM 220194827</span>
+                  
                   <span>• Smt 4</span>
                 </div>
                 <button onClick={() => setShowInterventionModal(false)} className="text-[#8C7A70] hover:text-[#2D2825] text-base cursor-pointer">✕</button>

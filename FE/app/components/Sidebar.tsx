@@ -16,7 +16,7 @@ import {
   Zap
 } from 'lucide-react';
 
-interface SidebarProps {
+export interface SidebarProps {
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
   activeMenu?: string;
@@ -27,27 +27,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
 
   let currentTab = activeTab;
   if (activeMenu) {
-    const map: Record<string, string> = {
-      'dashboard overview': 'overview',
-      'user management': 'users',
+    const mapMenuToTab: Record<string, string> = {
+      'overview': 'overview',
+      'users': 'users',
       'transactions': 'transactions',
-      'budget monitoring': 'budgets',
-      'ai financial insight': 'ai',
-      'analytics & statistik': 'analytics',
-      'analytics & statistics': 'analytics',
+      'budgets': 'budgets',
+      'ai': 'ai',
+      'analytics': 'analytics',
       'reports': 'reports',
       'settings': 'settings',
-      'profil admin': 'profile',
       'profile': 'profile'
     };
-    currentTab = map[activeMenu.toLowerCase()] || currentTab;
+    currentTab = mapMenuToTab[activeMenu] || activeTab;
   }
 
   const handleTabClick = (tab: string) => {
     if (setActiveTab) {
       setActiveTab(tab);
     } else {
-      router.push(tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`);
+      router.push(`/dashboard/${tab === 'overview' ? '' : tab}`);
     }
   };
 
@@ -63,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
   };
 
   return (
-    <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs select-none">
+    <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs h-full overflow-y-auto">
       <div className="space-y-5">
         {/* Brand Logo Header */}
         <div className="flex items-center gap-3 px-2 py-1">
@@ -72,14 +70,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
           </div>
           <div>
             <div className="font-extrabold text-base tracking-tight text-[#5C2D16]">MoneyMate</div>
-            <div className="text-[10px] text-[#8C7A70] font-medium uppercase tracking-wider">Campus Finance</div>
+            
           </div>
           <span className="px-2 py-0.5 text-[9px] font-bold bg-[#E6D0C7] text-[#5C2D16] rounded ml-auto uppercase">ADMIN</span>
         </div>
 
-        {/* Navigation Items (Consistent English) */}
+        {/* Navigation Items */}
         <nav className="space-y-1 text-xs font-semibold">
-          {/* Section 1: MAIN MENU */}
           <div className="pt-1 pb-1">
             <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MAIN MENU</div>
           </div>
@@ -129,12 +126,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             )}
           >
             <Target className={'w-4 h-4 ' + (currentTab === 'budgets' ? 'text-white' : 'text-[#6E5D53]')} />
-            <span>Budget Monitoring</span>
+            <span>Monitoring Budget</span>
           </button>
 
-          {/* Section 2: SMART FEATURES */}
           <div className="pt-3 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">SMART FEATURES</div>
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">INTELLIGENCE</div>
           </div>
 
           <button
@@ -146,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             )}
           >
             <Sparkles className={'w-4 h-4 ' + (currentTab === 'ai' ? 'text-white' : 'text-[#C25E38]')} />
-            <span>AI Financial Insight</span>
+            <span>AI Intelligence</span>
           </button>
 
           <button
@@ -158,13 +154,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             )}
           >
             <TrendingUp className={'w-4 h-4 ' + (currentTab === 'analytics' ? 'text-white' : 'text-[#6E5D53]')} />
-            <span>Analytics & Statistics</span>
+            <span>Analytics</span>
           </button>
-
-          {/* Section 3: MANAGEMENT */}
-          <div className="pt-3 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">MANAGEMENT</div>
-          </div>
 
           <button
             onClick={() => handleTabClick('reports')}
@@ -175,8 +166,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             )}
           >
             <FileText className={'w-4 h-4 ' + (currentTab === 'reports' ? 'text-white' : 'text-[#6E5D53]')} />
-            <span>Reports</span>
+            <span>Reports &amp; Audit</span>
           </button>
+
+          <div className="pt-3 pb-1">
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">ADMIN PREFERENCES</div>
+          </div>
 
           <button
             onClick={() => handleTabClick('settings')}
@@ -199,13 +194,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             )}
           >
             <User className={'w-4 h-4 ' + (currentTab === 'profile' ? 'text-white' : 'text-[#6E5D53]')} />
-            <span>Profil Admin</span>
+            <span>Admin Profile</span>
           </button>
         </nav>
       </div>
 
-      {/* Sidebar Bottom: Server Status & Quick Logout Button */}
-      <div className="pt-4 border-t border-[#E5DDD8] space-y-2.5">
+      {/* Sidebar Bottom */}
+      <div className="pt-4 border-t border-[#E5DDD8] space-y-3">
+        {/* Dedicated Sidebar Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full py-2 px-3 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Keluar Akun</span>
+        </button>
+
+        {/* Server Status Card */}
         <div className="p-2.5 bg-white border border-[#E5DDD8] rounded-xl text-[10px] space-y-1 shadow-xs">
           <div className="flex items-center gap-1.5 font-bold text-[#2D2825]">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -218,16 +223,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
             <span className="font-mono">34ms</span>
           </div>
         </div>
-
-        {/* Dedicated Sidebar Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="w-full py-2 px-3 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98"
-        >
-          <LogOut className="w-3.5 h-3.5 text-rose-600" />
-          <span>Keluar (Logout)</span>
-        </button>
       </div>
     </aside>
   );
 };
+
+export default Sidebar;

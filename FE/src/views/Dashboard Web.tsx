@@ -15,15 +15,15 @@ import { ProfilePage } from './ProfilePage';
 import { Search, Bell, LogOut } from 'lucide-react';
 
 const INITIAL_USERS: UserItem[] = [
-  { id: 1, name: 'Keisya Lanika', email: 'KeisyaExaHaniyah@gmail.com', nim: '10293841', prodi: 'Informatika', saldo: 'Rp 2.450.000', status: 'Aktif' },
-  { id: 2, name: 'Bima Santoso', email: 'bima.santoso@student.ac.id', nim: '10293842', prodi: 'Sistem Informasi', saldo: 'Rp 1.150.000', status: 'Aktif' },
-  { id: 3, name: 'Aulia Rahma', email: 'aulia.r@student.ac.id', nim: '10293843', prodi: 'Manajemen', saldo: 'Rp 4.800.000', status: 'Aktif' },
-  { id: 4, name: 'Rizky Aditya', email: 'rizky.a@student.ac.id', nim: '10293844', prodi: 'Teknik Elektro', saldo: 'Rp 850.000', status: 'Aktif' },
-  { id: 5, name: 'Nadia Putri', email: 'nadia.p@student.ac.id', nim: '10293845', prodi: 'Akuntansi', saldo: 'Rp 3.200.000', status: 'Aktif' },
-  { id: 6, name: 'Ahmad Fauzi', email: 'ahmad.fauzi@student.ac.id', nim: '10293846', prodi: 'Teknik Informatika', saldo: 'Rp 1.750.000', status: 'Aktif' },
-  { id: 7, name: 'Bambang Santoso', email: 'bambang.s@student.ac.id', nim: '10293847', prodi: 'Ilmu Komunikasi', saldo: 'Rp 2.100.000', status: 'Aktif' },
-  { id: 8, name: 'Dewi Lestari', email: 'dewi.lestari@student.ac.id', nim: '10293848', prodi: 'Desain Komunikasi Visual', saldo: 'Rp 3.900.000', status: 'Aktif' },
-  { id: 9, name: 'Reza Hardiansyah', email: 'reza.h@student.ac.id', nim: '10293849', prodi: 'Teknik Sipil', saldo: 'Rp 1.350.000', status: 'Aktif' }
+  { id: 101, name: 'Kayla', email: 'kayla@gmail.com', prodi: 'Informatika', saldo: 'Rp 15.000.000', status: 'Aktif' },
+  { id: 102, name: 'Exa', email: 'angeliqueexaa@student.ub.ac.id', prodi: 'Sistem Informasi', saldo: 'Rp 150.000.000', status: 'Aktif' },
+  { id: 1, name: 'Keisya Lanika', email: 'KeisyaExaHaniyah@gmail.com', prodi: 'Informatika', saldo: 'Rp 2.450.000', status: 'Aktif' },
+  { id: 2, name: 'Bima Santoso', email: 'bima.santoso@student.ac.id', prodi: 'Sistem Informasi', saldo: 'Rp 1.150.000', status: 'Aktif' },
+  { id: 3, name: 'Aulia Rahma', email: 'aulia.r@student.ac.id', prodi: 'Manajemen', saldo: 'Rp 4.800.000', status: 'Aktif' },
+  { id: 4, name: 'Rizky Aditya', email: 'rizky.a@student.ac.id', prodi: 'Teknik Elektro', saldo: 'Rp 850.000', status: 'Aktif' },
+  { id: 5, name: 'Nadia Putri', email: 'nadia.p@student.ac.id', prodi: 'Akuntansi', saldo: 'Rp 3.200.000', status: 'Aktif' },
+  { id: 6, name: 'Ahmad Fauzi', email: 'ahmad.fauzi@student.ac.id', prodi: 'Teknik Informatika', saldo: 'Rp 1.750.000', status: 'Aktif' },
+  { id: 7, name: 'Bambang Santoso', email: 'bambang.s@student.ac.id', prodi: 'Ilmu Komunikasi', saldo: 'Rp 2.100.000', status: 'Aktif' }
 ];
 
 interface DashboardProps {
@@ -343,6 +343,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
               fmtMoney={fmtMoney}
               onNavigateTab={setActiveTab}
               onTriggerAiNotification={handleAiNotification}
+              users={usersList}
+              totalUsersCount={usersList.length}
             />
           )}
           {activeTab === 'users' && (
@@ -353,7 +355,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
               onUpdateUser={handleUpdateUserGlobal}
             />
           )}
-          {activeTab === 'transactions' && <TransactionsPage onTriggerPdfToast={handleDownloadPdf} />}
+          {activeTab === 'transactions' && <TransactionsPage onTriggerPdfToast={handleDownloadPdf} users={usersList} />}
           {activeTab === 'budgets' && (
             <BudgetsPage
               onTriggerPdfToast={handleDownloadPdf}

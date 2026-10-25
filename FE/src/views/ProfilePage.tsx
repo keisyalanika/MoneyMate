@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
 
 interface ProfilePageProps {
@@ -58,6 +59,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
       onLogout();
     }
     router.push('/login');
+
   };
 
   return (
@@ -76,6 +78,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
       </div>
 
       {profileSavedMsg && (
+
         <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-fadeIn shadow-xs">
           <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
           <span>{profileSavedMsg}</span>
@@ -86,10 +89,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
         <div className="p-3 bg-rose-50 border border-rose-300 text-rose-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-fadeIn shadow-xs">
           <span className="w-4 h-4 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">✕</span>
           <span>{passError}</span>
+
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
         {/* Left Column: Avatar & Logout Button */}
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-between space-y-5">
           <div className="flex flex-col items-center space-y-2.5 w-full">
@@ -97,6 +102,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
               <div className="w-20 h-20 rounded-2xl bg-[#5C2D16] text-[#F7F5F0] font-extrabold text-2xl flex items-center justify-center shadow-md">
                 AD
               </div>
+
               <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white text-white flex items-center justify-center text-[10px] font-bold">✓</span>
             </div>
 
@@ -115,6 +121,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
               <div className="text-[10px] text-[#8C7A70]">IP Kampus 10.20.14.88</div>
             </div>
           </div>
+
 
           {/* ACTIVE WORKING LOGOUT BUTTON */}
           <button
@@ -145,11 +152,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
               >
                 Simpan Profil
               </button>
+
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[#6E5D53] mb-1">Nama</label>
+
                 <input
                   type="text"
                   value={profileName}
@@ -183,12 +192,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
                   disabled
                   className="w-full bg-[#FAF4F0] border border-[#E6D4CB] rounded-xl px-3 py-1.5 text-xs font-bold text-[#5C2D16] cursor-not-allowed"
                 />
+
               </div>
             </div>
           </form>
 
+
           {/* Form 2: Ubah Kata Sandi */}
           <form onSubmit={handleSavePassword} className="bg-white border border-[#E5DDD8] rounded-2xl p-5 shadow-sm space-y-3">
+
             <div className="flex items-center gap-2 border-b border-[#F0E8E4] pb-2.5">
               <span className="text-base">🔒</span>
               <h3 className="font-bold text-sm text-[#2D2825]">Ubah Kata Sandi</h3>
@@ -197,6 +209,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-[#6E5D53] mb-1">Kata Sandi Baru</label>
+
                 <input
                   type="password"
                   placeholder="Masukkan kata sandi baru"
@@ -214,16 +227,19 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
                   onChange={e => setConfirmPassword(e.target.value)}
                   className="w-full bg-[#FAF7F4] border border-[#E5DDD8] rounded-xl px-3 py-1.5 text-xs font-medium text-[#2D2825] focus:outline-none focus:border-[#5C2D16]"
                 />
+
               </div>
             </div>
 
             <div className="flex justify-end pt-2">
+
               <button
                 type="submit"
                 className="px-4 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow transition-all cursor-pointer"
               >
                 Perbarui Kata Sandi
               </button>
+
             </div>
           </form>
         </div>
@@ -232,4 +248,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userEmail, onLogout })
   );
 };
 
+
 export default ProfilePage;
+

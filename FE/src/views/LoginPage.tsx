@@ -5,9 +5,10 @@ import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface Props {
   onLoginSuccess: (email: string) => void;
+  onNavigateRegister?: () => void;
 }
 
-export const LoginPage: React.FC<Props> = ({ onLoginSuccess }) => {
+export const LoginPage: React.FC<Props> = ({ onLoginSuccess, onNavigateRegister }) => {
   const [email, setEmail] = useState('KeisyaExaHaniyah@gmail.com');
   const [password, setPassword] = useState('Admin123');
   const [showPassword, setShowPassword] = useState(false);

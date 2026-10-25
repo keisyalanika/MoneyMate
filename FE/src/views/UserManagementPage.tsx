@@ -6,7 +6,6 @@ export interface UserItem {
   id: number;
   name: string;
   email: string;
-  nim?: string;
   prodi?: string;
   saldo: string;
   status: 'Aktif' | 'Nonaktif';
