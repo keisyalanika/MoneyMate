@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
+import '../services/auth_provider.dart';
 import 'add_transaction_screen.dart';
 
 // Global state sementara untuk mensimulasikan penambahan transaksi
@@ -19,16 +21,30 @@ class _TransactionScreenState extends State<TransactionScreen> {
   bool hasData = false; 
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<AuthProvider>(context, listen: false).fetchTransactions();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Map<String, dynamic>?>(
-      valueListenable: newTransactionNotifier,
-      builder: (context, newTx, child) {
-        // Jika ada transaksi baru, paksa tampilkan mode "Filled"
-        bool shouldShowData = hasData || newTx != null;
-        if (!shouldShowData) {
-          return _buildEmptyState(context);
-        }
-        return _buildFilledState(context, newTx);
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        return ValueListenableBuilder<Map<String, dynamic>?>(
+          valueListenable: newTransactionNotifier,
+          builder: (context, newTx, child) {
+            final txList = auth.transactions;
+            final bool shouldShowData = hasData || txList.isNotEmpty || newTx != null;
+            if (!shouldShowData) {
+              return _buildEmptyState(context);
+            }
+            return _buildFilledState(context, auth, newTx);
+          },
+        );
       },
     );
   }
@@ -267,11 +283,12 @@ class _TransactionScreenState extends State<TransactionScreen> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const AddTransactionScreen()),
                   );
+                  if (mounted) setState(() {});
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBrown,
@@ -296,39 +313,50 @@ class _TransactionScreenState extends State<TransactionScreen> {
   // ==========================================
   // 2. TAMPILAN JIKA ADA TRANSAKSI (FILLED STATE)
   // ==========================================
-  Widget _buildFilledState(BuildContext context, Map<String, dynamic>? newTx) {
-    // Base data dummy + tambahan dari newTx
-    const int baseIncome = 8500000;
-    const int baseExpense = 3420000;
-    const int baseTxMasuk = 3;
-    const int baseTxKeluar = 21;
+  Widget _buildFilledState(BuildContext context, AuthProvider auth, Map<String, dynamic>? newTx) {
+    int totalIncome = 0;
+    int totalExpense = 0;
+    int txMasuk = 0;
+    int txKeluar = 0;
 
-    int newAmount = 0;
-    if (newTx != null) {
-      final raw = newTx['amount'].toString().replaceAll(RegExp(r'[^0-9]'), '');
-      newAmount = int.tryParse(raw) ?? 0;
-    }
-    final int totalIncome = newTx != null && !(newTx['isExpense'] as bool)
-        ? baseIncome + newAmount
-        : baseIncome;
-    final int totalExpense = newTx != null && (newTx['isExpense'] as bool)
-        ? baseExpense + newAmount
-        : baseExpense;
-    final int txMasuk = newTx != null && !(newTx['isExpense'] as bool)
-        ? baseTxMasuk + 1
-        : baseTxMasuk;
-    final int txKeluar = newTx != null && (newTx['isExpense'] as bool)
-        ? baseTxKeluar + 1
-        : baseTxKeluar;
+    final dynamicTxs = auth.transactions;
 
-    // Net hari ini (3 transaksi dummy: -25.000 -22.000 -50.000 = -97.000)
-    int netHariIni = -97000;
-    if (newTx != null) {
-      netHariIni += (newTx['isExpense'] as bool) ? -newAmount : newAmount;
+    if (dynamicTxs.isNotEmpty) {
+      for (final tx in dynamicTxs) {
+        final amt = (tx['amount'] is num)
+            ? (tx['amount'] as num).round()
+            : (double.tryParse(tx['amount']?.toString() ?? '0')?.round() ?? 0);
+        final bool isExp = tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
+        if (isExp) {
+          totalExpense += amt;
+          txKeluar++;
+        } else {
+          totalIncome += amt;
+          txMasuk++;
+        }
+      }
+    } else {
+      const int baseIncome = 8500000;
+      const int baseExpense = 3420000;
+      int newAmount = 0;
+      if (newTx != null) {
+        final raw = newTx['amount'].toString().replaceAll(RegExp(r'[^0-9]'), '');
+        newAmount = int.tryParse(raw) ?? 0;
+      }
+      totalIncome = newTx != null && !(newTx['isExpense'] as bool)
+          ? baseIncome + newAmount
+          : baseIncome;
+      totalExpense = newTx != null && (newTx['isExpense'] as bool)
+          ? baseExpense + newAmount
+          : baseExpense;
+      txMasuk = newTx != null && !(newTx['isExpense'] as bool) ? 4 : 3;
+      txKeluar = newTx != null && (newTx['isExpense'] as bool) ? 22 : 21;
     }
+
+    final int netHariIni = totalIncome - totalExpense;
     final String netHariIniStr = netHariIni < 0
-        ? '-Rp ${_formatAmount((-netHariIni).toString())}'
-        : '+Rp ${_formatAmount(netHariIni.toString())}';
+        ? '-Rp ${_formatAmount(-netHariIni)}'
+        : '+Rp ${_formatAmount(netHariIni)}';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -589,142 +617,177 @@ class _TransactionScreenState extends State<TransactionScreen> {
               ),
               child: Column(
                 children: [
-                  if (newTx != null) ...[
+                  if (dynamicTxs.isNotEmpty)
+                    ...dynamicTxs.asMap().entries.map((entry) {
+                      final i = entry.key;
+                      final tx = entry.value;
+                      final bool isExp = tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
+                      final String cat = tx['category']?.toString() ?? tx['title']?.toString() ?? 'Lainnya';
+                      final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
+                          ? tx['note'].toString()
+                          : cat;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildTransactionItem(
+                            icon: _getCategoryIcon(cat),
+                            iconBg: isExp ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
+                            iconColor: isExp ? AppColors.primaryBrown : const Color(0xFF16A34A),
+                            title: cat,
+                            hasReceipt: tx['receipt_image_url'] != null,
+                            subtitle1: note,
+                            subtitle2: isExp ? 'Pengeluaran' : 'Pemasukan',
+                            amount: '${isExp ? '-' : '+'}Rp ${_formatAmount(tx['amount'])}',
+                            isExpense: isExp,
+                            time: tx['time']?.toString() ?? 'Hari ini',
+                            badgeText: isExp ? null : 'Pemasukan',
+                            badgeColor: const Color(0xFFDCFCE7),
+                            badgeTextColor: const Color(0xFF16A34A),
+                          ),
+                          if (i < dynamicTxs.length - 1)
+                            const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                        ],
+                      );
+                    }) else ...[
+                    if (newTx != null) ...[
+                      _buildTransactionItem(
+                        icon: _getCategoryIcon(newTx['category']),
+                        iconBg: newTx['isExpense'] ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
+                        iconColor: newTx['isExpense'] ? AppColors.primaryBrown : const Color(0xFF16A34A),
+                        title: newTx['category'],
+                        hasReceipt: false,
+                        subtitle1: (newTx['note'] != null && newTx['note'].toString().isNotEmpty)
+                            ? newTx['note'].toString()
+                            : newTx['category'],
+                        subtitle2: newTx['isExpense'] ? 'Pengeluaran' : 'Pemasukan',
+                        amount: '${newTx['isExpense'] ? '-' : '+'}Rp ${_formatAmount(newTx['amount'])}',
+                        isExpense: newTx['isExpense'],
+                        time: '${DateFormat('HH:mm').format(DateTime.now())} WIB',
+                      ),
+                      const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                    ],
                     _buildTransactionItem(
-                      icon: _getCategoryIcon(newTx['category']),
-                      iconBg: newTx['isExpense'] ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
-                      iconColor: newTx['isExpense'] ? AppColors.primaryBrown : const Color(0xFF16A34A),
-                      title: newTx['category'],
-                      hasReceipt: false,
-                      subtitle1: (newTx['note'] != null && newTx['note'].toString().isNotEmpty)
-                          ? newTx['note'].toString()
-                          : newTx['category'],
-                      subtitle2: 'Tunai',
-                      amount: '${newTx['isExpense'] ? '-' : '+'}Rp ${_formatAmount(newTx['amount'].toString())}',
-                      isExpense: newTx['isExpense'],
-                      time: '${DateFormat('HH:mm').format(DateTime.now())} WIB',
+                      icon: Icons.restaurant,
+                      iconBg: const Color(0xFFF5F0EB),
+                      iconColor: const Color(0xFF592314),
+                      title: 'Restoran & Makan Siang',
+                      hasReceipt: true,
+                      subtitle1: 'Ayam Geprek Bu Sri',
+                      subtitle2: 'Dompet Utama',
+                      amount: '-Rp 25.000',
+                      isExpense: true,
+                      time: '12:45 WIB',
                     ),
                     const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                    _buildTransactionItem(
+                      icon: Icons.coffee,
+                      iconBg: const Color(0xFFF5F0EB),
+                      iconColor: const Color(0xFF8C796E),
+                      title: 'Kopi Janji Jiwa',
+                      hasReceipt: false,
+                      subtitle1: 'Iced Caramel Macchiato',
+                      subtitle2: 'QRIS BCA',
+                      amount: '-Rp 22.000',
+                      isExpense: true,
+                      time: '08:15 WIB',
+                    ),
+                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                    _buildTransactionItem(
+                      icon: Icons.local_gas_station,
+                      iconBg: const Color(0xFFF5F0EB),
+                      iconColor: const Color(0xFF8C796E),
+                      title: 'Bensin Pertamax',
+                      hasReceipt: false,
+                      subtitle1: 'SPBU Pertamina',
+                      subtitle2: 'Tunai',
+                      amount: '-Rp 50.000',
+                      isExpense: true,
+                      time: '07:10 WIB',
+                    ),
                   ],
-                  _buildTransactionItem(
-                    icon: Icons.restaurant,
-                    iconBg: const Color(0xFFF5F0EB),
-                    iconColor: const Color(0xFF592314),
-                    title: 'Restoran & Makan Siang',
-                    hasReceipt: true,
-                    subtitle1: 'Ayam Geprek Bu Sri',
-                    subtitle2: 'Dompet Utama',
-                    amount: '-Rp 25.000',
-                    isExpense: true,
-                    time: '12:45 WIB',
-                  ),
-                  const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                  _buildTransactionItem(
-                    icon: Icons.coffee,
-                    iconBg: const Color(0xFFF5F0EB),
-                    iconColor: const Color(0xFF8C796E),
-                    title: 'Kopi Janji Jiwa',
-                    hasReceipt: false,
-                    subtitle1: 'Iced Caramel Macchiato',
-                    subtitle2: 'QRIS BCA',
-                    amount: '-Rp 22.000',
-                    isExpense: true,
-                    time: '08:15 WIB',
-                  ),
-                  const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                  _buildTransactionItem(
-                    icon: Icons.local_gas_station,
-                    iconBg: const Color(0xFFF5F0EB),
-                    iconColor: const Color(0xFF8C796E),
-                    title: 'Bensin Pertamax',
-                    hasReceipt: false,
-                    subtitle1: 'SPBU Pertamina',
-                    subtitle2: 'Tunai',
-                    amount: '-Rp 50.000',
-                    isExpense: true,
-                    time: '07:10 WIB',
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            // Kemarin Group
-            _buildDateHeader('Kemarin', '6 Sep 2026 • Net +Rp 974.000'),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFF0E5D8)),
+            if (dynamicTxs.isEmpty) ...[
+              const SizedBox(height: 24),
+              // Kemarin Group
+              _buildDateHeader('Kemarin', '6 Sep 2026 • Net +Rp 974.000'),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFF0E5D8)),
+                ),
+                child: Column(
+                  children: [
+                    _buildTransactionItem(
+                      icon: Icons.payments_outlined,
+                      iconBg: const Color(0xFFE8F5E9),
+                      iconColor: const Color(0xFF16A34A),
+                      title: 'Freelance Project Logo UI',
+                      badgeText: 'Gaji / Fee',
+                      badgeColor: const Color(0xFFDCFCE7),
+                      badgeTextColor: const Color(0xFF16A34A),
+                      subtitle1: 'Klien Studio Kreatif',
+                      subtitle2: 'Transfer BCA',
+                      amount: '+Rp 1.500.000',
+                      isExpense: false,
+                      time: '19:30 WIB',
+                    ),
+                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                    _buildTransactionItem(
+                      icon: Icons.shopping_basket_outlined,
+                      iconBg: const Color(0xFFF5F0EB),
+                      iconColor: const Color(0xFF8C796E),
+                      title: 'Belanja Mingguan',
+                      hasReceipt: true,
+                      subtitle1: 'Superindo Kebutuhan Pokok',
+                      subtitle2: 'Debit Mandiri',
+                      amount: '-Rp 340.000',
+                      isExpense: true,
+                      time: '17:45 WIB',
+                    ),
+                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                    _buildTransactionItem(
+                      icon: Icons.movie_creation_outlined,
+                      iconBg: const Color(0xFFF5F0EB),
+                      iconColor: const Color(0xFF8C796E),
+                      title: 'Netflix & Spotify Duo',
+                      hasReceipt: false,
+                      subtitle1: 'Hiburan Bulanan',
+                      subtitle2: 'Kartu Kredit',
+                      amount: '-Rp 186.000',
+                      isExpense: true,
+                      time: '10:00 WIB',
+                    ),
+                  ],
+                ),
               ),
-              child: Column(
-                children: [
-                  _buildTransactionItem(
-                    icon: Icons.payments_outlined,
-                    iconBg: const Color(0xFFE8F5E9),
-                    iconColor: const Color(0xFF16A34A),
-                    title: 'Freelance Project Logo UI',
-                    badgeText: 'Gaji / Fee',
-                    badgeColor: const Color(0xFFDCFCE7),
-                    badgeTextColor: const Color(0xFF16A34A),
-                    subtitle1: 'Klien Studio Kreatif',
-                    subtitle2: 'Transfer BCA',
-                    amount: '+Rp 1.500.000',
-                    isExpense: false,
-                    time: '19:30 WIB',
-                  ),
-                  const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                  _buildTransactionItem(
-                    icon: Icons.shopping_basket_outlined,
-                    iconBg: const Color(0xFFF5F0EB),
-                    iconColor: const Color(0xFF8C796E),
-                    title: 'Belanja Mingguan',
-                    hasReceipt: true,
-                    subtitle1: 'Superindo Kebutuhan Pokok',
-                    subtitle2: 'Debit Mandiri',
-                    amount: '-Rp 340.000',
-                    isExpense: true,
-                    time: '17:45 WIB',
-                  ),
-                  const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                  _buildTransactionItem(
-                    icon: Icons.movie_creation_outlined,
-                    iconBg: const Color(0xFFF5F0EB),
-                    iconColor: const Color(0xFF8C796E),
-                    title: 'Netflix & Spotify Duo',
-                    hasReceipt: false,
-                    subtitle1: 'Hiburan Bulanan',
-                    subtitle2: 'Kartu Kredit',
-                    amount: '-Rp 186.000',
-                    isExpense: true,
-                    time: '10:00 WIB',
-                  ),
-                ],
+              const SizedBox(height: 24),
+              // 4 Sep 2026 Group
+              _buildDateHeader('4 Sep 2026', 'Rabu • -Rp 450.000'),
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFF0E5D8)),
+                ),
+                child: _buildTransactionItem(
+                  icon: Icons.shopping_bag_outlined,
+                  iconBg: const Color(0xFFF5F0EB),
+                  iconColor: const Color(0xFF8C796E),
+                  title: 'Sepatu Olahraga',
+                  hasReceipt: true,
+                  subtitle1: 'Toko Olahraga',
+                  subtitle2: 'Debit Mandiri',
+                  amount: '-Rp 450.000',
+                  isExpense: true,
+                  time: '14:20 WIB',
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // 4 Sep 2026 Group
-            _buildDateHeader('4 Sep 2026', 'Rabu • -Rp 450.000'),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFF0E5D8)),
-              ),
-              child: _buildTransactionItem(
-                icon: Icons.shopping_bag_outlined,
-                iconBg: const Color(0xFFF5F0EB),
-                iconColor: const Color(0xFF8C796E),
-                title: 'Sepatu Olahraga',
-                hasReceipt: true,
-                subtitle1: 'Toko Olahraga',
-                subtitle2: 'Debit Mandiri',
-                amount: '-Rp 450.000',
-                isExpense: true,
-                time: '14:20 WIB',
-              ),
-            ),
+            ],
             const SizedBox(height: 100), // spacing for bottom nav
           ],
         ),
@@ -733,10 +796,21 @@ class _TransactionScreenState extends State<TransactionScreen> {
   }
 
   /// Format angka menjadi format ribuan Indonesia, contoh: "50000" → "50.000"
-  String _formatAmount(String raw) {
-    final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
-    if (cleaned.isEmpty) return '0';
-    final number = int.tryParse(cleaned) ?? 0;
+  String _formatAmount(dynamic raw) {
+    if (raw == null) return '0';
+    int number = 0;
+    if (raw is num) {
+      number = raw.round();
+    } else {
+      final str = raw.toString();
+      final parsedDouble = double.tryParse(str);
+      if (parsedDouble != null) {
+        number = parsedDouble.round();
+      } else {
+        final cleaned = str.replaceAll(RegExp(r'[^0-9]'), '');
+        number = int.tryParse(cleaned) ?? 0;
+      }
+    }
     return NumberFormat('#,###', 'id_ID').format(number).replaceAll(',', '.');
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
+import '../services/auth_provider.dart';
 import '../utils/theme.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -10,13 +12,68 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final TextEditingController _emailController =
-      TextEditingController(text: 'KeisyaExaHaniyah@gmail.com');
+  final TextEditingController _emailController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSendOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan masukkan alamat email Anda.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Format email tidak valid (contoh: user@gmail.com).'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final res = await auth.sendForgotPasswordOtp(email);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Kode pemulihan berhasil dikirim.'),
+          backgroundColor: AppColors.greenAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      Navigator.pushNamed(
+        context,
+        AppRouter.otpVerification,
+        arguments: {
+          'email': email,
+          'otp': res['otp']?.toString(),
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Gagal mengirim kode pemulihan.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+    }
   }
 
   @override
@@ -256,24 +313,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRouter.otpVerification);
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'Kirim Kode Pemulihan',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                onPressed: _isLoading ? null : _handleSendOtp,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Kirim Kode Pemulihan',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 24),

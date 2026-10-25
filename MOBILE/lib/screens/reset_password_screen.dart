@@ -1,22 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
+import '../services/auth_provider.dart';
 import 'password_success_modal.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final String? email;
+  final String? otp;
+
+  const ResetPasswordScreen({
+    super.key,
+    this.email,
+    this.otp,
+  });
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
-  bool _obscureText1 = false;
+  bool _obscureText1 = true;
   bool _obscureText2 = true;
+  bool _isLoading = false;
 
-  final TextEditingController _passController1 =
-      TextEditingController(text: 'Semester3!');
-  final TextEditingController _passController2 =
-      TextEditingController(text: 'Semester3!');
+  final TextEditingController _passController1 = TextEditingController();
+  final TextEditingController _passController2 = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _passController1.addListener(() => setState(() {}));
+    _passController2.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -25,10 +40,115 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  // fungsi menampilkan Modal / Bottom Sheet Sukses
+  bool get _hasMin8 => _passController1.text.length >= 8;
+  bool get _hasUpperLower =>
+      RegExp(r'(?=.*[a-z])(?=.*[A-Z])').hasMatch(_passController1.text);
+  bool get _hasDigits => RegExp(r'[0-9]').hasMatch(_passController1.text);
+  bool get _hasSpecial =>
+      RegExp(r'[!@#\$%^&*(),.?":{}|<>]').hasMatch(_passController1.text);
+
+  int get _strengthScore {
+    int score = 0;
+    if (_hasMin8) score++;
+    if (_hasUpperLower) score++;
+    if (_hasDigits) score++;
+    if (_hasSpecial) score++;
+    return score;
+  }
+
+  String get _strengthLabel {
+    switch (_strengthScore) {
+      case 1:
+        return 'Lemah';
+      case 2:
+        return 'Cukup';
+      case 3:
+        return 'Kuat 👍';
+      case 4:
+        return 'Sangat Kuat 🔒';
+      default:
+        return 'Sangat Lemah';
+    }
+  }
+
+  int get _strengthPercent {
+    switch (_strengthScore) {
+      case 1:
+        return 25;
+      case 2:
+        return 50;
+      case 3:
+        return 75;
+      case 4:
+        return 100;
+      default:
+        return 10;
+    }
+  }
+
+  bool get _isMatch =>
+      _passController1.text.isNotEmpty &&
+      _passController1.text == _passController2.text;
+
   // fungsi menampilkan Modal / Bottom Sheet Sukses
   void _showSuccessBottomSheet(BuildContext context) {
     showPasswordResetSuccessModal(context);
+  }
+
+  Future<void> _handleResetPassword() async {
+    final pass1 = _passController1.text.trim();
+    final pass2 = _passController2.text.trim();
+
+    if (pass1.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan masukkan kata sandi baru.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    if (pass1.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kata sandi baru minimal 6 karakter.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    if (pass1 != pass2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konfirmasi kata sandi tidak cocok.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final res = await auth.resetPassword(
+      email: widget.email ?? '',
+      newPassword: pass1,
+      otp: widget.otp ?? '',
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      _showSuccessBottomSheet(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Gagal mereset kata sandi.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+    }
   }
 
   @override
@@ -120,6 +240,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
+                hintText: 'Masukkan kata sandi baru',
                 prefixIcon: const Icon(
                   Icons.lock_outline,
                   color: AppColors.textDark,
@@ -169,18 +290,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
-                        'Kekuatan Sandi: Kuat 👍',
-                        style: TextStyle(
+                        'Kekuatan Sandi: $_strengthLabel',
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryBrown,
                         ),
                       ),
                       Text(
-                        '75% Aman',
-                        style: TextStyle(
+                        '$_strengthPercent% Aman',
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primaryBrown,
@@ -193,25 +314,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   // Progress Bars (4 Segment)
                   Row(
                     children: [
-                      Expanded(child: _buildBar(true)),
+                      Expanded(child: _buildBar(_strengthScore >= 1)),
                       const SizedBox(width: 6),
-                      Expanded(child: _buildBar(true)),
+                      Expanded(child: _buildBar(_strengthScore >= 2)),
                       const SizedBox(width: 6),
-                      Expanded(child: _buildBar(true, isDark: true)),
+                      Expanded(
+                          child: _buildBar(_strengthScore >= 3, isDark: true)),
                       const SizedBox(width: 6),
-                      Expanded(child: _buildBar(false)),
+                      Expanded(
+                          child: _buildBar(_strengthScore >= 4, isDark: true)),
                     ],
                   ),
                   const SizedBox(height: 14),
 
                   // Checklists
-                  _buildCheckItem('Minimal 8 karakter', true),
+                  _buildCheckItem('Minimal 8 karakter', _hasMin8),
                   const SizedBox(height: 6),
-                  _buildCheckItem('Mengandung huruf besar & kecil', true),
+                  _buildCheckItem(
+                      'Mengandung huruf besar & kecil', _hasUpperLower),
                   const SizedBox(height: 6),
-                  _buildCheckItem('Mengandung angka', true),
+                  _buildCheckItem('Mengandung angka', _hasDigits),
                   const SizedBox(height: 6),
-                  _buildCheckItem('Mengandung simbol/karakter khusus', true),
+                  _buildCheckItem(
+                      'Mengandung simbol/karakter khusus', _hasSpecial),
                 ],
               ),
             ),
@@ -220,8 +345,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             // Input Konfirmasi Kata Sandi Baru
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   'Konfirmasi Kata Sandi Baru',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -229,24 +354,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     fontSize: 13,
                   ),
                 ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.check,
-                      size: 14,
-                      color: AppColors.accentOrange,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Cocok',
-                      style: TextStyle(
-                        color: AppColors.accentOrange,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                if (_passController2.text.isNotEmpty)
+                  Row(
+                    children: [
+                      Icon(
+                        _isMatch ? Icons.check_circle : Icons.cancel_outlined,
+                        size: 14,
+                        color: _isMatch
+                            ? AppColors.greenAccent
+                            : AppColors.errorText,
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isMatch ? 'Cocok' : 'Tidak Cocok',
+                        style: TextStyle(
+                          color: _isMatch
+                              ? AppColors.greenAccent
+                              : AppColors.errorText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -259,6 +389,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 fontWeight: FontWeight.w500,
               ),
               decoration: InputDecoration(
+                hintText: 'Ulangi kata sandi baru',
                 prefixIcon: const Icon(
                   Icons.lock_outline,
                   color: AppColors.textDark,
@@ -329,22 +460,33 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   elevation: 0,
                 ),
-                onPressed: () => _showSuccessBottomSheet(context),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'Simpan Kata Sandi Baru',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                onPressed: _isLoading ? null : _handleResetPassword,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Simpan Kata Sandi Baru',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward,
+                              color: Colors.white, size: 18),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -391,23 +533,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(2),
-          decoration: const BoxDecoration(
-            color: AppColors.accentOrange,
+          decoration: BoxDecoration(
+            color: isChecked ? AppColors.greenAccent : AppColors.inputBorder,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.check,
             size: 10,
-            color: Colors.white,
+            color: isChecked ? Colors.white : AppColors.textMuted,
           ),
         ),
         const SizedBox(width: 8),
         Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppColors.textDark,
-            fontWeight: FontWeight.w500,
+            color: isChecked ? AppColors.textDark : AppColors.textMuted,
+            fontWeight: isChecked ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ],

@@ -13,7 +13,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    // Optimasi V2: Pangkas durasi transisi loading awal agar instan dan responsif
+    Future.delayed(const Duration(milliseconds: 750), () {
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRouter.login);
       }

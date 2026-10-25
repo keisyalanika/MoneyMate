@@ -15,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final _nameController = TextEditingController();
+  final _nicknameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,6 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _nicknameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
@@ -58,6 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final result = await authProvider.register(
       name: _nameController.text.trim(),
+      nickname: _nicknameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text,
       phone: _phoneController.text.trim(),
@@ -164,6 +167,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: _buildInputDecoration(
                     hint: 'Masukkan nama lengkap',
                     icon: Icons.person_outline,
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Input Nama Panggilan / Nickname (Opsional)
+                _buildLabel('Nama Panggilan / Nickname (Opsional)'),
+                TextFormField(
+                  controller: _nicknameController,
+                  decoration: _buildInputDecoration(
+                    hint: 'Contoh: Keisya (otomatis kata pertama jika kosong)',
+                    icon: Icons.badge_outlined,
                   ),
                 ),
                 const SizedBox(height: 14),

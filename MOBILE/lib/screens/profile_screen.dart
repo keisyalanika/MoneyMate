@@ -4,7 +4,6 @@ import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
 import 'notification_screen.dart';
 import '../utils/theme.dart';
-import 'data_management_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -60,13 +59,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Menghitung lebar layar untuk membagi card menu menjadi 3 kolom yang proporsional
+    // Menghitung lebar layar untuk membagi card menu menjadi 2 kolom yang proporsional
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth - 40 - 32) / 3; // 40 = padding horizontal (20 kiri, 20 kanan), 32 = jarak antar card (16 * 2)
+    final cardWidth = (screenWidth - 40 - 16) / 2; // 40 = padding horizontal (20 kiri, 20 kanan), 16 = jarak antar card
 
     final auth = Provider.of<AuthProvider>(context);
-    final userName = _localUserName ?? (auth.userName.isNotEmpty ? auth.userName : 'Pengguna MoneyMate');
-    final userEmail = _localUserEmail ?? (auth.token != null ? '${userName.toLowerCase().replaceAll(' ', '.')}@email.com' : 'Belum masuk');
+    final userName = _localUserName ?? (auth.userName.isNotEmpty && auth.userName != 'Guest' ? auth.userName : 'Pengguna MoneyMate');
+    final userEmail = _localUserEmail ?? (auth.userEmail.isNotEmpty ? auth.userEmail : (auth.token != null ? '${userName.toLowerCase().replaceAll(' ', '.')}@email.com' : 'Belum masuk'));
+    final userNickname = auth.userNickname;
+    final initialLetter = auth.userInitial;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -104,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
+                    initialLetter,
                     style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
@@ -124,17 +125,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: AppColors.primaryBrown,
                 ),
               ),
+              if (userNickname.isNotEmpty && userNickname != userName) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '@$userNickname',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFD95B27),
+                  ),
+                ),
+              ],
               const SizedBox(height: 4),
               Text(
                 userEmail,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: AppColors.primaryBrown,
+                  color: AppColors.textMuted,
                 ),
               ),
               const SizedBox(height: 32),
 
-              // 4. Grid Menu Options (Navigasi ke 5 Halaman Fitur)
+              // 4. Grid Menu Options (Navigasi Menu Profil)
               Wrap(
                 spacing: 16,
                 runSpacing: 16,
@@ -155,6 +167,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _localUserEmail = updated['email'];
                           }
                         });
+                        auth.updateProfileData(
+                          name: updated['name'],
+                          nickname: updated['nickname'],
+                          email: updated['email'],
+                          phone: updated['phone'],
+                        );
                       }
                     },
                   ),
@@ -168,12 +186,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   _buildMenuCard(
                     width: cardWidth,
-                    icon: Icons.account_balance_rounded,
-                    title: 'Hubungkan\nBank',
-                    onTap: () => Navigator.pushNamed(context, AppRouter.connectBank),
-                  ),
-                  _buildMenuCard(
-                    width: cardWidth,
                     icon: Icons.security_rounded,
                     title: 'Keamanan',
                     onTap: () => Navigator.pushNamed(context, AppRouter.security),
@@ -184,49 +196,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Bantuan',
                     onTap: () => Navigator.pushNamed(context, AppRouter.helpCenter),
                   ),
-                  _buildMenuCard(
-                    width: cardWidth,
-                    icon: Icons.storage_rounded,
-                    title: 'Penyimpanan\nLokal',
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const DataManagementScreen()));
-                    },
-                  ),
                 ],
               ),
               const SizedBox(height: 32),
-
-              // 5. App Usage Statistics Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'App Usage Statistics',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildStatRow('Kebutuhan Pokok', 'Rp 1.750.000'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(color: AppColors.inputBorder, height: 1),
-                    ),
-                    _buildStatRow('Transportasi', 'Rp 500.000'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
 
               // 6. Tombol Logout Sederhana
               SizedBox(
@@ -315,30 +287,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  // Widget Builder untuk baris statistik
-  Widget _buildStatRow(String label, String amount) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textMuted,
-          ),
-        ),
-        Text(
-          amount,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textDark,
-          ),
-        ),
-      ],
     );
   }
 }

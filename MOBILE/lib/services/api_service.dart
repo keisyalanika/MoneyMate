@@ -288,5 +288,150 @@ class ApiService {
       return false;
     }
   }
+
+  // ================= WALLETS =================
+  static Future<Map<String, dynamic>> fetchWallets() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/wallets'), headers: headers);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchWallets: $e');
+    }
+    return {'success': false, 'data': [], 'totalBalance': 2450000};
+  }
+
+  static Future<Map<String, dynamic>> adjustWalletBalance({
+    required int walletId,
+    required String type, // 'add' or 'subtract'
+    required double amount,
+    String? note,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallets/$walletId/adjust'),
+        headers: headers,
+        body: json.encode({
+          'type': type,
+          'amount': amount,
+          'note': note ?? (type == 'add' ? 'Penyesuaian Tambah Saldo' : 'Penyesuaian Kurangi Saldo'),
+        }),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final body = json.decode(response.body);
+        return {'success': false, 'message': body['message'] ?? 'Gagal menyesuaikan saldo'};
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error adjustWalletBalance: $e');
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> setupInitialWalletBalance(double amount) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallets/setup-initial'),
+        headers: headers,
+        body: json.encode({
+          'amount': amount,
+          'wallet_name': 'Dompet Utama',
+        }),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error setupInitialWalletBalance: $e');
+    }
+    return {'success': false};
+  }
+
+  // ================= LUPA KATA SANDI & OTP =================
+  static Future<Map<String, dynamic>> sendForgotPasswordOtp(String email) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/forgot-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({'email': email.trim().toLowerCase()}),
+          )
+          .timeout(const Duration(seconds: 4));
+
+      final body = json.decode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': body['message'] ?? 'Kode pemulihan telah dikirim.',
+        'otp': body['otp'],
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error sendForgotPasswordOtp: $e');
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server backend. Pastikan server BE dan MySQL aktif.',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/verify-otp'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'email': email.trim().toLowerCase(),
+              'otp': otp.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 4));
+
+      final body = json.decode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': body['message'] ?? 'Verifikasi OTP berhasil.',
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error verifyOtp: $e');
+      return {
+        'success': false,
+        'message': 'Gagal memverifikasi ke server backend.',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String newPassword,
+    required String otp,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/reset-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'email': email.trim().toLowerCase(),
+              'newPassword': newPassword,
+              'otp': otp.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 4));
+
+      final body = json.decode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': body['message'] ?? 'Kata sandi berhasil diperbarui.',
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error resetPassword: $e');
+      return {
+        'success': false,
+        'message': 'Gagal memperbarui sandi ke server backend.',
+      };
+    }
+  }
 }
 

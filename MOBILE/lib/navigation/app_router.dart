@@ -10,6 +10,7 @@ import '../screens/forgot_password_screen.dart';
 import '../screens/otp_verification_screen.dart';
 import '../screens/reset_password_screen.dart';
 import '../screens/dashboard_screen.dart';
+import '../screens/budget_screen.dart';
 import '../screens/edit_profile_screen.dart';
 import '../screens/notification_screen.dart';
 import '../screens/connect_bank_screen.dart';
@@ -28,6 +29,7 @@ class AppRouter {
   static const String otpVerification = '/otp-verification';
   static const String resetPassword = '/reset-password';
   static const String dashboard = '/dashboard';
+  static const String budget = '/budget';
   static const String mainNav = '/main-navigation';
   static const String editProfile = '/edit-profile';
   static const String profileNotification = '/profile-notification';
@@ -49,12 +51,28 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const RegisterScreen());
       case forgotPassword:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
-      case otpVerification:
-        return MaterialPageRoute(builder: (_) => const OtpVerificationScreen());
-      case resetPassword:
-        return MaterialPageRoute(builder: (_) => const ResetPasswordScreen());
+      case otpVerification: {
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(
+            email: args?['email'],
+            serverOtp: args?['otp'],
+          ),
+        );
+      }
+      case resetPassword: {
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(
+            email: args?['email'],
+            otp: args?['otp'],
+          ),
+        );
+      }
       case dashboard:
         return MaterialPageRoute(builder: (_) => const DashboardScreen());
+      case budget:
+        return MaterialPageRoute(builder: (_) => const BudgetScreen());
       case mainNav:
         return MaterialPageRoute(builder: (_) => const MainNavigationWrapper());
       case editProfile:

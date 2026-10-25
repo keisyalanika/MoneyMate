@@ -15,6 +15,8 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState extends State<GoalsScreen> {
   List<Map<String, dynamic>> _goals = [];
   bool _isLoading = true;
+  int _selectedFilterIndex = 0; // 0: Semua, 1: Berjalan, 2: Tercapai
+  bool _showTutorial = true; // Tutorial banner untuk V2 Usability
 
   @override
   void initState() {
@@ -125,6 +127,61 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
+                    // Tutorial / Onboarding Tooltip Card (Berdasarkan hasil usability testing V1)
+                    if (_showTutorial)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFFED7AA)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF97316),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.lightbulb_outline, color: Colors.white, size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Panduan Singkat Fitur Goals',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                          color: Color(0xFF9A3412),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () => setState(() => _showTutorial = false),
+                                        child: const Icon(Icons.close, size: 16, color: Color(0xFF9A3412)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    '1. Tekan "+ Buat Goal" di bawah untuk menentukan target tabungan baru.\n2. Tap kartu impianmu untuk melihat rincian progres atau menabung dana.\n3. Pantau status otomatis "On Track" hingga impian tercapai!',
+                                    style: TextStyle(fontSize: 11, color: Color(0xFF7C2D12), height: 1.35),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // Top Summary Card (Live Dynamic)
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -223,82 +280,100 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Filter Chips
+                    // Filter Chips (Interaktif)
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildFilterChip('Semua (${_goals.length})', true),
+                          _buildFilterChip('Semua (${_goals.length})', _selectedFilterIndex == 0, () {
+                            setState(() => _selectedFilterIndex = 0);
+                          }),
                           const SizedBox(width: 8),
-                          _buildFilterChip('Sedang Berjalan ($activeCount)', false),
+                          _buildFilterChip('Sedang Berjalan ($activeCount)', _selectedFilterIndex == 1, () {
+                            setState(() => _selectedFilterIndex = 1);
+                          }),
                           const SizedBox(width: 8),
-                          _buildFilterChip('Tercapai ($completedCount)', false),
+                          _buildFilterChip('Tercapai ($completedCount)', _selectedFilterIndex == 2, () {
+                            setState(() => _selectedFilterIndex = 2);
+                          }),
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
 
                     // Goals List or Empty State
-                    if (_goals.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFF0E5D8)),
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFAF4F0),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.emoji_events_outlined, color: AppColors.primaryBrown, size: 36),
-                            ),
-                            const SizedBox(height: 14),
-                            const Text(
-                              'Belum Ada Target Goals',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Rencanakan tabungan impianmu seperti laptop baru, liburan, atau dana darurat dengan menekan tombol di bawah.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.4),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ..._goals.map((g) {
-                        final double collected = double.tryParse('${g['current_amount'] ?? 0}') ?? 0.0;
-                        final double target = double.tryParse('${g['target_amount'] ?? 0}') ?? 1.0;
-                        final double pct = target > 0 ? (collected / target).clamp(0.0, 1.0) : 0.0;
-                        final double shortage = (target - collected).clamp(0.0, double.infinity);
+                    Builder(builder: (context) {
+                      final filteredGoals = _goals.where((g) {
                         final bool isDone = g['is_completed'] == 1 || g['is_completed'] == true;
+                        if (_selectedFilterIndex == 1) return !isDone;
+                        if (_selectedFilterIndex == 2) return isDone;
+                        return true;
+                      }).toList();
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildGoalItem(
-                            context: context,
-                            category: isDone ? 'SELESAI' : 'TARGET FINANSIAL',
-                            statusText: isDone ? 'Tercapai' : 'On Track',
-                            statusColor: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                            title: g['title'] ?? 'Goal',
-                            subtitle: g['deadline'] != null ? 'Batas Waktu: ${g['deadline']}' : 'Target Tabungan Pribadi',
-                            icon: Icons.flag,
-                            collected: _formatRp(collected),
-                            target: _formatRp(target),
-                            shortage: shortage > 0 ? 'Kurang ${_formatRp(shortage)}' : 'Target Terpenuhi!',
-                            percent: (pct * 100).round(),
-                            estimate: isDone ? 'Goal Selesai' : 'Sedang Berjalan',
-                            progressColor: isDone ? const Color(0xFF10B981) : AppColors.primaryBrown,
-                            isHeaderOrange: !isDone,
+                      if (filteredGoals.isEmpty) {
+                        return Container(
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFF0E5D8)),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFAF4F0),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.emoji_events_outlined, color: AppColors.primaryBrown, size: 36),
+                              ),
+                              const SizedBox(height: 14),
+                              const Text(
+                                'Tidak Ada Target pada Kategori Ini',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Rencanakan tabungan impianmu seperti laptop baru, liburan, atau dana darurat dengan menekan tombol di bawah.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.4),
+                              ),
+                            ],
                           ),
                         );
-                      }),
+                      }
+
+                      return Column(
+                        children: filteredGoals.map((g) {
+                          final double collected = double.tryParse('${g['current_amount'] ?? 0}') ?? 0.0;
+                          final double target = double.tryParse('${g['target_amount'] ?? 0}') ?? 1.0;
+                          final double pct = target > 0 ? (collected / target).clamp(0.0, 1.0) : 0.0;
+                          final double shortage = (target - collected).clamp(0.0, double.infinity);
+                          final bool isDone = g['is_completed'] == 1 || g['is_completed'] == true;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildGoalItem(
+                              context: context,
+                              category: isDone ? 'SELESAI' : 'TARGET FINANSIAL',
+                              statusText: isDone ? 'Tercapai' : 'On Track',
+                              statusColor: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                              title: g['title'] ?? 'Goal',
+                              subtitle: g['deadline'] != null ? 'Batas Waktu: ${g['deadline']}' : 'Target Tabungan Pribadi',
+                              icon: Icons.flag,
+                              collected: _formatRp(collected),
+                              target: _formatRp(target),
+                              shortage: shortage > 0 ? 'Kurang ${_formatRp(shortage)}' : 'Target Terpenuhi!',
+                              percent: (pct * 100).round(),
+                              estimate: isDone ? 'Goal Selesai' : 'Sedang Berjalan',
+                              progressColor: isDone ? const Color(0xFF10B981) : AppColors.primaryBrown,
+                              isHeaderOrange: !isDone,
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -320,20 +395,23 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primaryBrown : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? AppColors.primaryBrown : const Color(0xFFEBE6DF)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : AppColors.textDark,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 12,
+  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryBrown : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? AppColors.primaryBrown : const Color(0xFFEBE6DF)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.textDark,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 12,
+          ),
         ),
       ),
     );

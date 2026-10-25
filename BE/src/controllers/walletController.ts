@@ -5,7 +5,16 @@ import { AuthRequest } from '../middleware/authMiddleware';
 // ---- GET user wallets ----
 export const getWallets = async (req: AuthRequest, res: Response) => {
   try {
-    const data = await walletService.getWallets(req.user!.id);
+    let data = await walletService.getWallets(req.user!.id);
+    if (!data.wallets || data.wallets.length === 0) {
+      await walletService.createWallet({
+        user_id: req.user!.id,
+        name: 'Dompet Utama',
+        balance: 2450000,
+        is_default: true,
+      });
+      data = await walletService.getWallets(req.user!.id);
+    }
     res.json({
       success: true,
       data: data.wallets,

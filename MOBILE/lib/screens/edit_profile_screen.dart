@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_provider.dart';
 import '../utils/theme.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -13,6 +15,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   // Controller untuk form data
   late final TextEditingController _nameController;
+  late final TextEditingController _nicknameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _birthDateController;
@@ -23,10 +26,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Default initial dummy data (siap dihubungkan ke state/backend nanti)
-    _nameController = TextEditingController(text: 'Keisya Exa Haniyah');
-    _emailController = TextEditingController(text: 'keisya.haniyah@gmail.com');
-    _phoneController = TextEditingController(text: '081234567890');
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    _nameController = TextEditingController(text: auth.userName != 'Guest' ? auth.userName : '');
+    _nicknameController = TextEditingController(text: auth.userNickname != 'Guest' && auth.userNickname != 'Pengguna' ? auth.userNickname : '');
+    _emailController = TextEditingController(text: auth.userEmail);
+    _phoneController = TextEditingController(text: auth.userPhone.isNotEmpty ? auth.userPhone : '081234567890');
     _birthDateController = TextEditingController(text: '15 Agustus 2003');
     _bioController = TextEditingController(text: 'Pengguna aktif MoneyMate');
   }
@@ -34,6 +38,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _nicknameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _birthDateController.dispose();
@@ -47,8 +52,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isLoading = true);
 
-    // Simulasi delay request ke backend
-    await Future.delayed(const Duration(milliseconds: 700));
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    await auth.updateProfileData(
+      name: _nameController.text.trim(),
+      nickname: _nicknameController.text.trim(),
+      email: _emailController.text.trim(),
+      phone: _phoneController.text.trim(),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -62,9 +74,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     Navigator.pop(context, {
-      'name': _nameController.text,
-      'email': _emailController.text,
-      'phone': _phoneController.text,
+      'name': _nameController.text.trim(),
+      'nickname': _nicknameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone': _phoneController.text.trim(),
     });
   }
 
@@ -116,10 +129,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ],
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'M',
-                            style: TextStyle(
+                            Provider.of<AuthProvider>(context).userInitial,
+                            style: const TextStyle(
                               fontSize: 38,
                               color: Colors.white,
                               fontFamily: 'serif',
@@ -175,6 +188,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         icon: Icons.person_outline_rounded,
                         validator: (value) =>
                             value == null || value.isEmpty ? 'Nama tidak boleh kosong' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildInputLabel('Nama Panggilan / Nickname'),
+                      _buildTextField(
+                        controller: _nicknameController,
+                        hint: 'Contoh: Keisya, Budi',
+                        icon: Icons.badge_outlined,
                       ),
                       const SizedBox(height: 16),
 

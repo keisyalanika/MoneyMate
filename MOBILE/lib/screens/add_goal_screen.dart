@@ -71,7 +71,32 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline, color: AppColors.textMuted),
-            onPressed: () {},
+            tooltip: 'Petunjuk Buat Goal',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  title: Row(
+                    children: const [
+                      Icon(Icons.tips_and_updates, color: AppColors.accentOrange, size: 22),
+                      SizedBox(width: 8),
+                      Text('Panduan Membuat Goal', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  content: const Text(
+                    'Isi nama impianmu (contoh: Beli Laptop Baru) dan target nominal yang ingin dicapai.\n\nKamu juga bisa menyetor saldo awal atau menyalakan pengingat otomatis agar progres tabunganmu terpantau konsisten.',
+                    style: TextStyle(fontSize: 12, height: 1.4),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBrown)),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

@@ -47,6 +47,14 @@ class PreferencesService {
     return _prefs?.getString('user_name') ?? 'Guest';
   }
 
+  Future<void> saveUserNickname(String nickname) async {
+    await _prefs?.setString('user_nickname', nickname);
+  }
+
+  String getUserNickname() {
+    return _prefs?.getString('user_nickname') ?? '';
+  }
+
   Future<void> saveUserEmail(String email) async {
     await _prefs?.setString('user_email', email);
   }
@@ -55,12 +63,28 @@ class PreferencesService {
     return _prefs?.getString('user_email') ?? '';
   }
 
+  Future<void> saveUserPhone(String phone) async {
+    await _prefs?.setString('user_phone', phone);
+  }
+
+  String getUserPhone() {
+    return _prefs?.getString('user_phone') ?? '';
+  }
+
   Future<void> saveUserRole(String role) async {
     await _prefs?.setString('user_role', role);
   }
 
   String getUserRole() {
     return _prefs?.getString('user_role') ?? 'user';
+  }
+
+  Future<void> clearUserSession() async {
+    await _prefs?.remove('user_name');
+    await _prefs?.remove('user_nickname');
+    await _prefs?.remove('user_email');
+    await _prefs?.remove('user_phone');
+    await _prefs?.remove('user_role');
   }
 
   // =============== PENGATURAN MATA UANG ===============

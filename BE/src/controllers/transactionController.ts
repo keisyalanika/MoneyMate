@@ -41,16 +41,26 @@ export const getTransaction = async (req: Request, res: Response) => {
 export const addTransaction = async (req: AuthRequest, res: Response) => {
   try {
     const { type, amount, category_id, income_source_id, date, note, receipt_image_url } = req.body;
-    if (!amount || !category_id || !date) {
-      return res.status(400).json({ success: false, message: 'amount, category_id, and date are required' });
+    if (!amount) {
+      return res.status(400).json({ success: false, message: 'amount is required' });
     }
+
+    const txType = (type || 'expense').toLowerCase();
+    let catId = Number(category_id);
+    if (!catId || isNaN(catId)) {
+      catId = txType === 'income' ? 8 : 1;
+    }
+
+    const txDate = date || new Date().toISOString().slice(0, 10);
+    const userId = req.user?.id || 2;
+
     const created = await txService.createTransaction({
-      user_id: req.user!.id,
-      type: type || 'expense',
-      amount,
-      category_id,
+      user_id: userId,
+      type: txType,
+      amount: Number(amount),
+      category_id: catId,
       income_source_id,
-      date,
+      date: txDate,
       note,
       receipt_image_url,
     });

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_provider.dart';
 import 'ai_chat_screen.dart';
 
 class AiInsightScreen extends StatefulWidget {
@@ -116,10 +118,13 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Halo, Keisya!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-                      SizedBox(height: 4),
-                      Text('Berikut adalah analisis keuangan kamu berdasarkan pola pengeluaran bulan ini.', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
+                    children: [
+                      Text(
+                        'Halo, ${Provider.of<AuthProvider>(context, listen: false).userNickname}!',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14)),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text('Berikut adalah analisis keuangan kamu berdasarkan pola pengeluaran bulan ini.', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
                     ],
                   ),
                 ),

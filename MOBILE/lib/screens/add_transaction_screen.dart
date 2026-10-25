@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 import '../utils/notification_helper.dart';
+import '../services/auth_provider.dart';
+import 'transaction_screen.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -313,20 +316,45 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final String nominal = _nominalController.text.trim();
-                  if (nominal.isEmpty) return; // Validasi sederhana
+                  if (nominal.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Silakan masukkan nominal transaksi.')),
+                    );
+                    return;
+                  }
 
-                  // Mengirimkan notifikasi data transaksi baru ke _TransactionScreen
-                  // dan menutup modal, mengembalikan 'true' agar main_navigation
-                  // bisa memindahkan tab ke Transaksi.
-                  NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat!');
-                  Navigator.pop(context, {
-                    'amount': nominal,
+                  final double amount =
+                      double.tryParse(nominal.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0;
+                  if (amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Nominal transaksi harus lebih dari 0.')),
+                    );
+                    return;
+                  }
+
+                  final auth = Provider.of<AuthProvider>(context, listen: false);
+                  await auth.addTransaction(
+                    type: isIncome ? 'income' : 'expense',
+                    amount: amount,
+                    category: _selectedCategory,
+                    date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+                    note: _noteController.text.trim(),
+                  );
+
+                  final txMap = {
                     'category': _selectedCategory,
+                    'amount': amount,
                     'isExpense': !isIncome,
                     'note': _noteController.text.trim(),
-                  });
+                    'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
+                  };
+                  newTransactionNotifier.value = txMap;
+
+                  if (!mounted) return;
+                  NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat!');
+                  Navigator.pop(context, txMap);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBrown,

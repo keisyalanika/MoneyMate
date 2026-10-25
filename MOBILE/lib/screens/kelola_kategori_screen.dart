@@ -24,6 +24,8 @@ class KelolaCategoryScreen extends StatefulWidget {
   State<KelolaCategoryScreen> createState() => _KelolaCategoryScreenState();
 }
 
+typedef KelolaKategoriScreen = KelolaCategoryScreen;
+
 class _KelolaCategoryScreenState extends State<KelolaCategoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();

@@ -59,11 +59,13 @@ class _LaporanScreenState extends State<LaporanScreen> {
               // Header Judul & Tombol Kembali
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back, color: AppColors.textDark),
-                  ),
-                  const SizedBox(width: 12),
+                  if (Navigator.canPop(context)) ...[
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                   const Text(
                     'Laporan Keuangan',
                     style: TextStyle(
@@ -75,6 +77,48 @@ class _LaporanScreenState extends State<LaporanScreen> {
                 ],
               ),
               const SizedBox(height: 20),
+
+              // Shortcut Filter Chips (Bulan Ini, Bulan Lalu, 7 Hari Terakhir)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: [
+                    _buildShortcutChip('Bulan Ini', () {
+                      final now = DateTime.now();
+                      setState(() {
+                        _startDate = DateTime(now.year, now.month, 1);
+                        _endDate = DateTime(now.year, now.month + 1, 0);
+                      });
+                    }),
+                    const SizedBox(width: 8),
+                    _buildShortcutChip('Bulan Lalu', () {
+                      final now = DateTime.now();
+                      setState(() {
+                        _startDate = DateTime(now.year, now.month - 1, 1);
+                        _endDate = DateTime(now.year, now.month, 0);
+                      });
+                    }),
+                    const SizedBox(width: 8),
+                    _buildShortcutChip('7 Hari Terakhir', () {
+                      final now = DateTime.now();
+                      setState(() {
+                        _startDate = now.subtract(const Duration(days: 7));
+                        _endDate = now;
+                      });
+                    }),
+                    const SizedBox(width: 8),
+                    _buildShortcutChip('30 Hari Terakhir', () {
+                      final now = DateTime.now();
+                      setState(() {
+                        _startDate = now.subtract(const Duration(days: 30));
+                        _endDate = now;
+                      });
+                    }),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
 
               GestureDetector(
                 onTap: () => _selectDateRange(context),
@@ -119,7 +163,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Card Pengeluaran Interactive Analysis
               Container(
@@ -286,6 +330,43 @@ class _LaporanScreenState extends State<LaporanScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildShortcutChip(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.inputBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bolt, size: 13, color: AppColors.accentOrange),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

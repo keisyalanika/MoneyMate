@@ -15,12 +15,12 @@ class MainNavigationWrapper extends StatefulWidget {
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    DashboardScreen(),
-    TransactionScreen(),
-    SizedBox(), // Placeholder untuk tombol tengah (+)
-    LaporanScreen(),
-    ProfileScreen(),
+  List<Widget> get _pages => const [
+    DashboardScreen(key: ValueKey('tab_dashboard')),
+    TransactionScreen(key: ValueKey('tab_transaction')),
+    SizedBox(key: ValueKey('tab_placeholder')),
+    LaporanScreen(key: ValueKey('tab_laporan')),
+    ProfileScreen(key: ValueKey('tab_profile')),
   ];
 
   void _goToAddTransaction(BuildContext context) async {
@@ -28,10 +28,10 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       context,
       MaterialPageRoute(builder: (context) => const AddTransactionScreen()),
     );
-    if (result != null && result is Map<String, dynamic>) {
-      // Perbarui global state agar Transaksi terbaru muncul
-      newTransactionNotifier.value = result;
-      // Pindahkan tab aktif ke halaman Transaksi (index 1)
+    if (result != null) {
+      if (result is Map<String, dynamic>) {
+        newTransactionNotifier.value = result;
+      }
       setState(() {
         _currentIndex = 1;
       });
@@ -42,7 +42,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        key: const ValueKey('main_nav_indexed_stack_v2_fixed'),
+        index: _currentIndex.clamp(0, 4),
         children: _pages,
       ),
       bottomNavigationBar: Container(
@@ -62,8 +63,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
           selectedItemColor: const Color(0xFF5E2B16),
           unselectedItemColor: Colors.grey.shade400,
           type: BottomNavigationBarType.fixed,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
+          selectedFontSize: 10,
+          unselectedFontSize: 10,
           onTap: (idx) {
             if (idx == 2) {
               _goToAddTransaction(context);
@@ -82,12 +83,12 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             ),
             BottomNavigationBarItem(
               icon: Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(9),
                 decoration: const BoxDecoration(
                   color: Color(0xFF5E2B16),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 22),
+                child: const Icon(Icons.add, color: Colors.white, size: 20),
               ),
               label: '',
             ),

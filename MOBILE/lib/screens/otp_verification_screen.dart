@@ -1,9 +1,19 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 import '../navigation/app_router.dart';
+import '../services/auth_provider.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  const OtpVerificationScreen({super.key});
+  final String? email;
+  final String? serverOtp;
+
+  const OtpVerificationScreen({
+    super.key,
+    this.email,
+    this.serverOtp,
+  });
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -15,18 +25,45 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
-  // Isi dummy nilai seperti pada desain
+  bool _isLoading = false;
+  bool _isResending = false;
+  int _countdown = 60;
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
-    _controllers[0].text = '9';
-    _controllers[1].text = '3';
-    _controllers[2].text = '7';
-    _controllers[3].text = '1';
+    _startCountdown();
+
+    for (int i = 0; i < 6; i++) {
+      _focusNodes[i].addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
+
+    // Auto-focus first input after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_focusNodes.isNotEmpty) {
+        _focusNodes[0].requestFocus();
+      }
+    });
+  }
+
+  void _startCountdown() {
+    _timer?.cancel();
+    setState(() => _countdown = 60);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown > 0) {
+        if (mounted) setState(() => _countdown--);
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -36,8 +73,77 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.dispose();
   }
 
+  Future<void> _handleVerifyOtp() async {
+    final otp = _controllers.map((c) => c.text.trim()).join();
+    if (otp.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan lengkapi 6 digit kode OTP.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    final email = widget.email ?? '';
+    setState(() => _isLoading = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final res = await auth.verifyOtp(email, otp);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      Navigator.pushNamed(
+        context,
+        AppRouter.resetPassword,
+        arguments: {
+          'email': email,
+          'otp': otp,
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Kode OTP salah atau telah kadaluarsa.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleResendOtp() async {
+    if (_countdown > 0 || _isResending) return;
+    final email = widget.email ?? '';
+    if (email.isEmpty) return;
+
+    setState(() => _isResending = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final res = await auth.sendForgotPasswordOtp(email);
+    if (!mounted) return;
+    setState(() => _isResending = false);
+
+    if (res['success'] == true) {
+      _startCountdown();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Kode OTP baru telah dikirim.'),
+          backgroundColor: AppColors.greenAccent,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? 'Gagal mengirim ulang kode OTP.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final emailText = widget.email ?? 'email Anda';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -111,14 +217,63 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Masukkan 6 digit kode OTP yang kami kirimkan ke halo.kayla@gmail.com untuk mengatur ulang kata sandi Anda.',
-              style: TextStyle(
+            Text(
+              'Masukkan 6 digit kode OTP yang kami kirimkan ke $emailText untuk mengatur ulang kata sandi Anda.',
+              style: const TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 12,
                 height: 1.4,
               ),
             ),
+
+            if (widget.serverOtp != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.accentOrange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 16, color: AppColors.accentOrange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Demo OTP: ${widget.serverOtp}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.accentOrange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        final code = widget.serverOtp!;
+                        for (int i = 0; i < code.length && i < 6; i++) {
+                          _controllers[i].text = code[i];
+                        }
+                        if (_focusNodes.isNotEmpty) {
+                          _focusNodes.last.requestFocus();
+                        }
+                      },
+                      child: const Text(
+                        'Isi Otomatis',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryBrown,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
             // OTP Box Container Card
@@ -188,38 +343,57 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(
+                          children: [
+                            const Icon(
                               Icons.access_time,
                               size: 14,
                               color: AppColors.primaryBrown,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(
-                              'Kirim ulang kode dalam ',
-                              style: TextStyle(
+                              _countdown > 0
+                                  ? 'Kirim ulang kode dalam '
+                                  : 'Belum menerima kode?',
+                              style: const TextStyle(
                                 color: AppColors.textDark,
                                 fontSize: 11,
                               ),
                             ),
-                            Text(
-                              '00:32',
-                              style: TextStyle(
-                                color: AppColors.primaryBrown,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                            if (_countdown > 0)
+                              Text(
+                                '00:${_countdown.toString().padLeft(2, '0')}',
+                                style: const TextStyle(
+                                  color: AppColors.primaryBrown,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Kirim Ulang Kode',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: (_countdown == 0 && !_isResending)
+                              ? _handleResendOtp
+                              : null,
+                          child: _isResending
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(
+                                  'Kirim Ulang Kode',
+                                  style: TextStyle(
+                                    color: _countdown == 0
+                                        ? AppColors.accentOrange
+                                        : AppColors.textMuted,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: _countdown == 0
+                                        ? TextDecoration.underline
+                                        : TextDecoration.none,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
@@ -241,24 +415,31 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRouter.resetPassword);
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
-                      'Lanjutkan ke Sandi Baru',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                onPressed: _isLoading ? null : _handleVerifyOtp,
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Lanjutkan ke Sandi Baru',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                        ],
                       ),
-                    ),
-                    SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -349,7 +530,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Widget _buildOtpBox(int index) {
-    bool isFocused = index == 4; // Menyimulasikan kotak ke-5 aktif
+    bool isFocused = _focusNodes[index].hasFocus;
     return Container(
       width: 44,
       height: 52,
@@ -377,8 +558,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           border: InputBorder.none,
         ),
         onChanged: (value) {
-          if (value.isNotEmpty && index < 5) {
-            _focusNodes[index + 1].requestFocus();
+          if (value.isNotEmpty) {
+            if (index < 5) {
+              _focusNodes[index + 1].requestFocus();
+            } else {
+              _focusNodes[index].unfocus();
+            }
+          } else if (value.isEmpty && index > 0) {
+            _focusNodes[index - 1].requestFocus();
           }
         },
       ),
