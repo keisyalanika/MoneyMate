@@ -10,8 +10,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata = {
-  title: 'MoneyMate - Portal Keuangan Kampus',
-  description: 'Konsolidasi metrik perbankan mikro & pemantauan tren finansial real-time.',
+  title: 'MoneyMate - Portal Keuangan Kampus & Budget Monitoring',
+  description: 'Sistem manajemen anggaran mahasiswa, monitoring real-time, dan tata kelola akun terverifikasi.',
 };
 
 export default function RootLayout({

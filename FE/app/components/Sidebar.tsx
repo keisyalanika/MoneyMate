@@ -1,4 +1,7 @@
+'use client';
+
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -8,17 +11,59 @@ import {
   TrendingUp,
   FileText,
   Settings,
+  User,
+  LogOut,
   Zap
 } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
+  activeMenu?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setActiveTab, activeMenu }) => {
+  const router = useRouter();
+
+  let currentTab = activeTab;
+  if (activeMenu) {
+    const map: Record<string, string> = {
+      'dashboard overview': 'overview',
+      'user management': 'users',
+      'transactions': 'transactions',
+      'budget monitoring': 'budgets',
+      'ai financial insight': 'ai',
+      'analytics & statistik': 'analytics',
+      'analytics & statistics': 'analytics',
+      'reports': 'reports',
+      'settings': 'settings',
+      'profil admin': 'profile',
+      'profile': 'profile'
+    };
+    currentTab = map[activeMenu.toLowerCase()] || currentTab;
+  }
+
+  const handleTabClick = (tab: string) => {
+    if (setActiveTab) {
+      setActiveTab(tab);
+    } else {
+      router.push(tab === 'overview' ? '/dashboard' : `/dashboard/${tab}`);
+    }
+  };
+
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('moneymate_user_email');
+      localStorage.removeItem('moneymate_users_db');
+      sessionStorage.clear();
+    }
+    router.push('/login');
+  };
+
   return (
-    <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs">
+    <aside className="w-64 bg-[#FAF7F4] border-r border-[#E5DDD8] flex flex-col justify-between p-4 shrink-0 shadow-xs select-none">
       <div className="space-y-5">
         {/* Brand Logo Header */}
         <div className="flex items-center gap-3 px-2 py-1">
@@ -40,50 +85,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           </div>
 
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={() => handleTabClick('overview')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'overview'
+              currentTab === 'overview'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <LayoutDashboard className={'w-4 h-4 ' + (activeTab === 'overview' ? 'text-white' : 'text-[#6E5D53]')} />
+            <LayoutDashboard className={'w-4 h-4 ' + (currentTab === 'overview' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Dashboard Overview</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('users')}
+            onClick={() => handleTabClick('users')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'users'
+              currentTab === 'users'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <Users className={'w-4 h-4 ' + (activeTab === 'users' ? 'text-white' : 'text-[#6E5D53]')} />
+            <Users className={'w-4 h-4 ' + (currentTab === 'users' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>User Management</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('transactions')}
+            onClick={() => handleTabClick('transactions')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'transactions'
+              currentTab === 'transactions'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <CreditCard className={'w-4 h-4 ' + (activeTab === 'transactions' ? 'text-white' : 'text-[#6E5D53]')} />
+            <CreditCard className={'w-4 h-4 ' + (currentTab === 'transactions' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Transactions</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('budgets')}
+            onClick={() => handleTabClick('budgets')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'budgets'
+              currentTab === 'budgets'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <Target className={'w-4 h-4 ' + (activeTab === 'budgets' ? 'text-white' : 'text-[#6E5D53]')} />
+            <Target className={'w-4 h-4 ' + (currentTab === 'budgets' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Budget Monitoring</span>
           </button>
 
@@ -93,26 +138,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           </div>
 
           <button
-            onClick={() => setActiveTab('ai')}
+            onClick={() => handleTabClick('ai')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'ai'
+              currentTab === 'ai'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <Sparkles className={'w-4 h-4 ' + (activeTab === 'ai' ? 'text-white' : 'text-[#C25E38]')} />
+            <Sparkles className={'w-4 h-4 ' + (currentTab === 'ai' ? 'text-white' : 'text-[#C25E38]')} />
             <span>AI Financial Insight</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('analytics')}
+            onClick={() => handleTabClick('analytics')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'analytics'
+              currentTab === 'analytics'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <TrendingUp className={'w-4 h-4 ' + (activeTab === 'analytics' ? 'text-white' : 'text-[#6E5D53]')} />
+            <TrendingUp className={'w-4 h-4 ' + (currentTab === 'analytics' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Analytics & Statistics</span>
           </button>
 
@@ -122,33 +167,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           </div>
 
           <button
-            onClick={() => setActiveTab('reports')}
+            onClick={() => handleTabClick('reports')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'reports'
+              currentTab === 'reports'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <FileText className={'w-4 h-4 ' + (activeTab === 'reports' ? 'text-white' : 'text-[#6E5D53]')} />
+            <FileText className={'w-4 h-4 ' + (currentTab === 'reports' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Reports</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleTabClick('settings')}
             className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
-              activeTab === 'settings'
+              currentTab === 'settings'
                 ? 'bg-[#5C2D16] text-white shadow-md font-bold'
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <Settings className={'w-4 h-4 ' + (activeTab === 'settings' ? 'text-white' : 'text-[#6E5D53]')} />
+            <Settings className={'w-4 h-4 ' + (currentTab === 'settings' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>Settings</span>
+          </button>
+
+          <button
+            onClick={() => handleTabClick('profile')}
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
+              currentTab === 'profile'
+                ? 'bg-[#5C2D16] text-white shadow-md font-bold'
+                : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
+            )}
+          >
+            <User className={'w-4 h-4 ' + (currentTab === 'profile' ? 'text-white' : 'text-[#6E5D53]')} />
+            <span>Profil Admin</span>
           </button>
         </nav>
       </div>
 
-      {/* Sidebar Bottom Server Status Card */}
-      <div className="pt-4 border-t border-[#E5DDD8]">
+      {/* Sidebar Bottom: Server Status & Quick Logout Button */}
+      <div className="pt-4 border-t border-[#E5DDD8] space-y-2.5">
         <div className="p-2.5 bg-white border border-[#E5DDD8] rounded-xl text-[10px] space-y-1 shadow-xs">
           <div className="flex items-center gap-1.5 font-bold text-[#2D2825]">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -161,6 +218,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <span className="font-mono">34ms</span>
           </div>
         </div>
+
+        {/* Dedicated Sidebar Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full py-2 px-3 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98"
+        >
+          <LogOut className="w-3.5 h-3.5 text-rose-600" />
+          <span>Keluar (Logout)</span>
+        </button>
       </div>
     </aside>
   );

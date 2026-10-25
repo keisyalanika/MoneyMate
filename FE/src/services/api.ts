@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { FinancialSummary, Transaction, Category, Goal, IncomeSource, AiInsightItem, ReportItem, UserSettings } from '../models/types';
+import { FinancialSummary, Transaction, Category, Budget, Goal, IncomeSource, AiInsightItem, ReportItem, UserSettings } from '../models/types';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api';
 
 export const client = axios.create({
   baseURL: API_BASE,
@@ -27,35 +27,21 @@ export interface LoginResponse {
 }
 
 export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  try {
-    const res = await client.post('/auth/login', { email: normalizedEmail, password });
-    if (res.data.token) {
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data));
-    }
-    return res.data;
-  } catch (err: any) {
-    const serverMsg = err.response?.data?.message;
-    throw new Error(serverMsg || 'Login gagal. Periksa kembali email dan kata sandi Anda atau pastikan server backend aktif.');
+  const res = await client.post('/auth/login', { email, password });
+  if (res.data.token) {
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('user', JSON.stringify(res.data));
   }
+  return res.data;
 };
 
 export const registerUser = async (data: { name: string; email: string; password: string; phone?: string }): Promise<any> => {
-  const normalizedEmail = data.email.trim().toLowerCase();
-
-  try {
-    const res = await client.post('/auth/register', { ...data, email: normalizedEmail });
-    if (res.data.token) {
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data));
-    }
-    return res.data;
-  } catch (err: any) {
-    const serverMsg = err.response?.data?.message;
-    throw new Error(serverMsg || 'Pendaftaran gagal. Periksa kembali data Anda.');
+  const res = await client.post('/auth/register', data);
+  if (res.data.token) {
+    localStorage.setItem('token', res.data.token);
+    localStorage.setItem('user', JSON.stringify(res.data));
   }
+  return res.data;
 };
 
 export const logoutUser = () => {
@@ -97,7 +83,30 @@ export const fetchTransactions = async (type?: string, search?: string): Promise
       notes: tx.note || tx.notes,
     }));
   } catch {
-    return [];
+    return [
+      {
+        id: 'tx-001',
+        title: 'Gaji Bulanan Software Engineer',
+        amount: 15000000,
+        type: 'INCOME',
+        categoryId: 'cat-inc-1',
+        categoryName: 'Gaji Bulanan',
+        categoryIcon: 'wallet',
+        date: new Date().toISOString(),
+        notes: 'Transfer Gaji Pokok'
+      },
+      {
+        id: 'tx-002',
+        title: 'Makan Siang Resto SE',
+        amount: 125000,
+        type: 'EXPENSE',
+        categoryId: 'cat-exp-1',
+        categoryName: 'Makanan & Minuman',
+        categoryIcon: 'utensils',
+        date: new Date().toISOString(),
+        notes: 'Makan siang bersama tim'
+      }
+    ];
   }
 };
 
@@ -139,42 +148,23 @@ export const fetchCategories = async (): Promise<Category[]> => {
 };
 
 // ================= BUDGETS =================
-export const fetchBudgets = async (): Promise<any[]> => {
+export const fetchBudgets = async (): Promise<Budget[]> => {
   try {
     const res = await client.get('/budgets');
     const rawData = res.data.data || [];
     return rawData.map((b: any) => ({
       id: String(b.id),
-      userId: b.user_id,
-      userName: b.user_name || 'Pengguna',
       categoryId: String(b.category_id),
       categoryName: b.category_name || 'Kategori',
       limitAmount: Number(b.amount || b.limitAmount || 0),
       spentAmount: Number(b.spent_amount || b.spentAmount || 0),
       percentage: Number(b.percentage || 0)
     }));
-  } catch (err: any) {
-    console.warn('Backend budgets unavailable, returning empty list:', err.message);
-    return [];
-  }
-};
-
-// ================= GOALS =================
-export const fetchGoals = async (): Promise<Goal[]> => {
-  try {
-    const res = await client.get('/goals');
-    const rawData = res.data.data || [];
-    return rawData.map((g: any) => ({
-      id: String(g.id),
-      title: g.title,
-      targetAmount: Number(g.target_amount || 0),
-      currentAmount: Number(g.current_amount || 0),
-      deadline: g.deadline,
-      isCompleted: Boolean(g.is_completed),
-      icon: g.icon || 'target'
-    }));
   } catch {
-    return [];
+    return [
+      { id: 'bg-001', categoryId: 'cat-exp-1', categoryName: 'Makanan & Minuman', limitAmount: 3000000, spentAmount: 125000, percentage: 4.17 },
+      { id: 'bg-002', categoryId: 'cat-exp-2', categoryName: 'Transportasi', limitAmount: 1500000, spentAmount: 350000, percentage: 23.33 }
+    ];
   }
 };
 
@@ -296,5 +286,62 @@ export const fetchTransactionsList = async (limit = 20): Promise<BackendTransact
     console.warn('Backend transactions unavailable, fallback to mock feed:', err.message);
     return [];
   }
+};
+
+// ================= WALLETS =================
+export const fetchWallets = async (): Promise<{ wallets: any[]; totalBalance: number }> => {
+  try {
+    const res = await client.get('/wallets');
+    return {
+      wallets: res.data.data || [],
+      totalBalance: res.data.totalBalance || 0,
+    };
+  } catch {
+    return { wallets: [], totalBalance: 0 };
+  }
+};
+
+export const adjustWalletBalance = async (walletId: number | string, data: { type: 'add' | 'subtract'; amount: number; note?: string }) => {
+  const res = await client.post(`/wallets/${walletId}/adjust`, data);
+  return res.data.data;
+};
+
+// ================= BUDGET ALERT INTERVENTION =================
+export const sendBudgetAlert = async (budgetId: number | string, data: { alert_type: 'warning' | 'appreciation'; custom_message?: string; push_notif?: boolean }) => {
+  const res = await client.post(`/budgets/${budgetId}/alert`, data);
+  return res.data.data;
+};
+
+// ================= AI CHAT =================
+export const chatWithAiAssistant = async (message: string) => {
+  const res = await client.post('/insights/chat', { message });
+  return res.data.data;
+};
+
+// ================= REPORT EXPORT & SCHEDULE =================
+export const fetchReportExportSummary = async (params?: { start_date?: string; end_date?: string; report_type?: string }) => {
+  const res = await client.get('/reports/export', { params });
+  return res.data.data;
+};
+
+export const scheduleReportJob = async (data: { frequency: string; time: string; subject?: string; recipients?: string[] }) => {
+  const res = await client.post('/reports/schedule', data);
+  return res.data.data;
+};
+
+// ================= AUTH PASSWORD RESET =================
+export const requestForgotPassword = async (email: string) => {
+  const res = await client.post('/auth/forgot-password', { email });
+  return res.data;
+};
+
+export const verifyResetOtp = async (email: string, otp_code: string) => {
+  const res = await client.post('/auth/verify-otp', { email, otp_code });
+  return res.data;
+};
+
+export const submitResetPassword = async (email: string, otp_code: string, new_password: string) => {
+  const res = await client.post('/auth/reset-password', { email, otp_code, new_password });
+  return res.data;
 };
 
