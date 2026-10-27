@@ -97,6 +97,8 @@ flutter run
 - 📐 [Entity Relationship Diagram (ERD)](docs/ERD.md)
 - 🔌 [REST API Specifications](docs/API.md)
 - 🔄 [System & Application Flow](docs/FLOW.md)
+- 📱 [Mobile Offline-First & Local Persistence Guide (Tugas 9 PBL)](MOBILE/README.md)
+- 🎨 [Tautan Desain Figma PBL UAS MoneyMate](https://www.figma.com/design/MoneyMate-PBL-UAS)
 
 ---
 

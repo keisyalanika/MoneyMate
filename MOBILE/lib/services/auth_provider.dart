@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'api_service.dart';
+import '../core/storage/secure_storage_service.dart';
+import '../data/repositories/offline_first_repository.dart';
 
 class AuthProvider with ChangeNotifier {
+  final SecureStorageService _secureStorage = SecureStorageService();
+  final OfflineFirstRepository _repo = OfflineFirstRepository();
+
   bool _isLoggedIn = false;
   String _userName = 'Keisya Exa Haniyah';
   String _role = 'user';
@@ -13,6 +18,7 @@ class AuthProvider with ChangeNotifier {
   double _sisaBudget = 850000.0;
 
   String? _errorMessage;
+  bool _isLoading = false;
 
   bool get isLoggedIn => _isLoggedIn;
   String get userName => _userName;
@@ -21,6 +27,26 @@ class AuthProvider with ChangeNotifier {
   double get saldo => _saldo;
   double get sisaBudget => _sisaBudget;
   String? get errorMessage => _errorMessage;
+  bool get isLoading => _isLoading;
+
+  // Inisialisasi sesi dari FlutterSecureStorage (bukan shared_preferences)
+  Future<void> initSession() async {
+    final savedToken = await _secureStorage.getToken();
+    final savedName = await _secureStorage.getUserName();
+    final savedRole = await _secureStorage.getUserRole();
+
+    if (savedToken != null && savedToken.isNotEmpty) {
+      _token = savedToken;
+      _userName = savedName ?? 'Keisya Exa Haniyah';
+      _role = savedRole ?? 'user';
+      _isLoggedIn = true;
+      ApiService.token = _token;
+      notifyListeners();
+
+      // Sinkronisasi data offline-first secara background
+      _repo.syncAll();
+    }
+  }
 
   // Simpan akun pengguna yang terdaftar secara lokal untuk pengujian / offline fallback
   final Map<String, Map<String, String>> _registeredUsers = {
@@ -58,6 +84,8 @@ class AuthProvider with ChangeNotifier {
     String? phone,
   }) async {
     _errorMessage = null;
+    _isLoading = true;
+    notifyListeners();
     final normalizedEmail = email.trim().toLowerCase();
 
     // 1. Coba kirim ke Backend API
@@ -75,13 +103,14 @@ class AuthProvider with ChangeNotifier {
           )
           .timeout(const Duration(seconds: 4));
 
+      _isLoading = false;
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Simpan juga ke cache lokal agar bisa login instan
         _registeredUsers[normalizedEmail] = {
           'name': name.trim(),
           'password': password,
           'role': 'user',
         };
+        notifyListeners();
         return {'success': true, 'message': 'Pendaftaran berhasil! Silakan masuk.'};
       } else {
         try {
@@ -90,13 +119,16 @@ class AuthProvider with ChangeNotifier {
         } catch (_) {
           _errorMessage = 'Pendaftaran gagal (${response.statusCode})';
         }
+        notifyListeners();
         return {'success': false, 'message': _errorMessage};
       }
     } catch (e) {
+      _isLoading = false;
       debugPrint('Register with API failed/offline, registering locally: $e');
 
       // Offline / Fallback registration
       if (_registeredUsers.containsKey(normalizedEmail)) {
+        notifyListeners();
         return {'success': false, 'message': 'Email sudah terdaftar. Silakan gunakan email lain atau langsung masuk.'};
       }
 
@@ -105,6 +137,7 @@ class AuthProvider with ChangeNotifier {
         'password': password,
         'role': 'user',
       };
+      notifyListeners();
 
       return {
         'success': true,
@@ -115,6 +148,8 @@ class AuthProvider with ChangeNotifier {
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     _errorMessage = null;
+    _isLoading = true;
+    notifyListeners();
     final normalizedEmail = email.trim().toLowerCase();
 
     // Skenario simulasi dev jika email kosong
@@ -124,6 +159,17 @@ class AuthProvider with ChangeNotifier {
       _role = 'user';
       _token = 'token_local_${DateTime.now().millisecondsSinceEpoch}';
       ApiService.token = _token;
+      _isLoading = false;
+
+      // Simpan kredensial dan token ke FlutterSecureStorage
+      await _secureStorage.saveAuthSession(
+        token: _token!,
+        email: 'keisyaexahaniyah@gmail.com',
+        name: _userName,
+        role: _role,
+      );
+
+      _repo.syncAll();
       notifyListeners();
       return {'success': true, 'message': 'Login berhasil (simulasi)'};
     }
@@ -138,6 +184,7 @@ class AuthProvider with ChangeNotifier {
           )
           .timeout(const Duration(seconds: 4));
 
+      _isLoading = false;
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _isLoggedIn = true;
@@ -145,6 +192,17 @@ class AuthProvider with ChangeNotifier {
         _role = data['role'] ?? 'user';
         _token = data['token'];
         ApiService.token = _token;
+
+        // Simpan token & rahasia secara aman di FlutterSecureStorage
+        await _secureStorage.saveAuthSession(
+          token: _token!,
+          refreshToken: data['refreshToken'],
+          email: normalizedEmail,
+          name: _userName,
+          role: _role,
+        );
+
+        _repo.syncAll();
         notifyListeners();
         return {'success': true, 'message': 'Login berhasil'};
       } else {
@@ -158,9 +216,10 @@ class AuthProvider with ChangeNotifier {
         return {'success': false, 'message': _errorMessage};
       }
     } catch (e) {
+      _isLoading = false;
       debugPrint('Login with API failed/offline, checking registered users: $e');
 
-      // 2. Periksa akun yang sudah terdaftar (baik default maupun yang baru di-register)
+      // 2. Periksa akun yang sudah terdaftar secara lokal
       if (_registeredUsers.containsKey(normalizedEmail)) {
         final userData = _registeredUsers[normalizedEmail]!;
         if (userData['password'] == password) {
@@ -169,6 +228,15 @@ class AuthProvider with ChangeNotifier {
           _role = userData['role'] ?? 'user';
           _token = 'token_local_${DateTime.now().millisecondsSinceEpoch}';
           ApiService.token = _token;
+
+          await _secureStorage.saveAuthSession(
+            token: _token!,
+            email: normalizedEmail,
+            name: _userName,
+            role: _role,
+          );
+
+          _repo.syncAll();
           notifyListeners();
           return {
             'success': true,
@@ -181,7 +249,7 @@ class AuthProvider with ChangeNotifier {
         }
       }
 
-      // Fallback jika tidak offline dan akun cocok dengan nama default
+      // Fallback offline jika kata sandi terisi
       if (password.isNotEmpty) {
         _isLoggedIn = true;
         _userName = normalizedEmail.split('@').first;
@@ -189,6 +257,15 @@ class AuthProvider with ChangeNotifier {
         _role = 'user';
         _token = 'token_local_${DateTime.now().millisecondsSinceEpoch}';
         ApiService.token = _token;
+
+        await _secureStorage.saveAuthSession(
+          token: _token!,
+          email: normalizedEmail,
+          name: _userName,
+          role: _role,
+        );
+
+        _repo.syncAll();
         notifyListeners();
         return {
           'success': true,
@@ -196,20 +273,22 @@ class AuthProvider with ChangeNotifier {
         };
       }
 
-      _errorMessage =
-          'Akun dengan email ini belum terdaftar. Silakan daftar akun terlebih dahulu!';
+      _errorMessage = 'Akun dengan email ini belum terdaftar. Silakan daftar akun terlebih dahulu!';
       notifyListeners();
       return {'success': false, 'message': _errorMessage};
     }
   }
 
-  void logout() {
+  Future<void> logout() async {
     _isLoggedIn = false;
     _userName = 'Keisya Exa Haniyah';
     _role = 'user';
     _token = null;
     ApiService.token = null;
     _errorMessage = null;
+
+    // Bersihkan sesi rahasia dari flutter_secure_storage
+    await _secureStorage.clearAuthSession();
     notifyListeners();
   }
 }

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
+import '../services/auth_provider.dart';
+import '../providers/finance_provider.dart';
 import '../utils/theme.dart';
 import 'adjust_balance_bottom_sheet.dart'; // Import bottom sheet penyesuaian saldo
 import 'goals_screen.dart';
@@ -61,14 +65,19 @@ class DashboardScreen extends StatelessWidget {
   // --- WIDGET HELPER ---
 
   Widget _buildHeader(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final finance = Provider.of<FinanceProvider>(context);
+    final userName = auth.userName.isNotEmpty ? auth.userName : 'Keisya Lanika';
+    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'K';
+
     return Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 22,
           backgroundColor: AppColors.primary,
           child: Text(
-            'K',
-            style: TextStyle(
+            initial,
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -76,17 +85,17 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Halo,',
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
               Text(
-                'Keisya Lanika',
-                style: TextStyle(
+                userName,
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                   color: Colors.black87,
@@ -96,22 +105,22 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.grey.shade300),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.circle, color: Colors.green, size: 8),
-              SizedBox(width: 6),
+              const Icon(Icons.cloud_done, color: Colors.green, size: 14),
+              const SizedBox(width: 4),
               Text(
-                'MoneyMate',
-                style: TextStyle(
+                finance.lastFetchedMillis > 0 ? 'Offline Sync' : 'MoneyMate',
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontSize: 11,
                   color: AppColors.primary,
                 ),
               ),
@@ -138,6 +147,10 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildSaldoCard(BuildContext context) {
+    final finance = Provider.of<FinanceProvider>(context);
+    final String saldoDisplay = finance.totalBalance > 0
+        ? NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(finance.totalBalance)
+        : 'Rp 2.450.000';
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -211,9 +224,9 @@ class DashboardScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Rp 2.450.000',
-                      style: TextStyle(
+                    Text(
+                      saldoDisplay,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -729,38 +742,59 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildRecentTransactionsCard(BuildContext context) {
-    final transactions = [
-      {
-        'icon': Icons.restaurant_outlined,
-        'title': 'Restoran',
-        'subtitle': 'Ayam Geprek',
-        'amount': '- Rp 22.000',
-        'time': 'Hari ini',
-        'isExpense': true,
-        'bgColor': const Color(0xFFFFF0E6),
-        'iconColor': AppColors.secondary,
-      },
-      {
-        'icon': Icons.shopping_bag_outlined,
-        'title': 'Belanja',
-        'subtitle': 'Minimarket',
-        'amount': '- Rp 35.000',
-        'time': 'Kemarin',
-        'isExpense': true,
-        'bgColor': const Color(0xFFFFF0E6),
-        'iconColor': AppColors.secondary,
-      },
-      {
-        'icon': Icons.chair_outlined,
-        'title': 'Freelance',
-        'subtitle': 'Desain Logo',
-        'amount': '+ Rp 350.000',
-        'time': '22 Okt',
-        'isExpense': false,
-        'bgColor': const Color(0xFFE8F8F0),
-        'iconColor': Colors.teal,
-      },
-    ];
+    final finance = Provider.of<FinanceProvider>(context);
+    final hasRealTx = finance.transactions.isNotEmpty;
+    final transactions = hasRealTx
+        ? finance.transactions.take(4).map((tx) {
+            final isExp = tx.type == 'EXPENSE';
+            final formatted = NumberFormat.currency(
+              locale: 'id_ID',
+              symbol: isExp ? '- Rp ' : '+ Rp ',
+              decimalDigits: 0,
+            ).format(tx.amount);
+            return {
+              'icon': isExp ? Icons.shopping_bag_outlined : Icons.account_balance_wallet_outlined,
+              'title': tx.categoryName.isNotEmpty ? tx.categoryName : tx.title,
+              'subtitle': tx.notes?.isNotEmpty == true ? tx.notes! : tx.title,
+              'amount': formatted,
+              'time': tx.date.isNotEmpty ? tx.date.split('T').first : 'Hari ini',
+              'isExpense': isExp,
+              'bgColor': isExp ? const Color(0xFFFFF0E6) : const Color(0xFFE8F8F0),
+              'iconColor': isExp ? AppColors.secondary : Colors.teal,
+            };
+          }).toList()
+        : [
+            {
+              'icon': Icons.restaurant_outlined,
+              'title': 'Restoran',
+              'subtitle': 'Ayam Geprek',
+              'amount': '- Rp 22.000',
+              'time': 'Hari ini',
+              'isExpense': true,
+              'bgColor': const Color(0xFFFFF0E6),
+              'iconColor': AppColors.secondary,
+            },
+            {
+              'icon': Icons.shopping_bag_outlined,
+              'title': 'Belanja',
+              'subtitle': 'Minimarket',
+              'amount': '- Rp 35.000',
+              'time': 'Kemarin',
+              'isExpense': true,
+              'bgColor': const Color(0xFFFFF0E6),
+              'iconColor': AppColors.secondary,
+            },
+            {
+              'icon': Icons.chair_outlined,
+              'title': 'Freelance',
+              'subtitle': 'Desain Logo',
+              'amount': '+ Rp 350.000',
+              'time': '22 Okt',
+              'isExpense': false,
+              'bgColor': const Color(0xFFE8F8F0),
+              'iconColor': Colors.teal,
+            },
+          ];
 
     return Container(
       padding: const EdgeInsets.all(16),

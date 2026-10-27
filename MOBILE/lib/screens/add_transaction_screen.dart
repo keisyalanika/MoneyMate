@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 import '../utils/notification_helper.dart';
+import '../providers/finance_provider.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -314,20 +316,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final String nominal = _nominalController.text.trim();
-                  if (nominal.isEmpty) return; // Validasi sederhana
+                  if (nominal.isEmpty) return;
+                  final double rawAmount = double.tryParse(nominal.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0;
+                  if (rawAmount <= 0) return;
 
-                  // Mengirimkan notifikasi data transaksi baru ke _TransactionScreen
-                  // dan menutup modal, mengembalikan 'true' agar main_navigation
-                  // bisa memindahkan tab ke Transaksi.
-                  NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat!');
-                  Navigator.pop(context, {
-                    'amount': nominal,
-                    'category': _selectedCategory,
-                    'isExpense': !isIncome,
-                    'note': _noteController.text.trim(),
-                  });
+                  final finance = Provider.of<FinanceProvider>(context, listen: false);
+                  await finance.addTransaction(
+                    title: _noteController.text.trim().isNotEmpty
+                        ? _noteController.text.trim()
+                        : _selectedCategory,
+                    amount: rawAmount,
+                    type: isIncome ? 'INCOME' : 'EXPENSE',
+                    categoryId: 'cat_${_selectedCategory.toLowerCase().replaceAll(' ', '_')}',
+                    categoryName: _selectedCategory,
+                    categoryIcon: isIncome ? 'wallet' : 'shopping_bag',
+                    date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+                    notes: _noteController.text.trim(),
+                  );
+
+                  if (context.mounted) {
+                    NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat dan disimpan ke database lokal!');
+                    Navigator.pop(context, {
+                      'amount': nominal,
+                      'category': _selectedCategory,
+                      'isExpense': !isIncome,
+                      'note': _noteController.text.trim(),
+                    });
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBrown,

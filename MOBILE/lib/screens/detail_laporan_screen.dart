@@ -93,7 +93,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
     _SpendingCategory(name: 'Tagihan Rutin & Asuransi', subtitle: 'Listrik, air & premi proteksi', icon: Icons.receipt_long, iconColor: Color(0xFFC1440E), amount: 3530000, percent: 10.0),
   ];
 
-  final List<_PeriodData> _periodData = [
+  final List<_PeriodData> _periodData = const [
     // Tab 0: Bulan Ini (September 2026)
     _PeriodData(
       title: 'September 2026',
@@ -246,45 +246,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
                 tabs: _tabs.map((t) => Tab(text: t)).toList(),
               ),
             ),
-            const SizedBox(height: 4),
-
-            // ── Navigasi Periode ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() {}),
-                    child: const Icon(Icons.chevron_left, color: AppColors.textDark, size: 22),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.inputBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 14, color: AppColors.textMuted),
-                        const SizedBox(width: 6),
-                        Text(
-                          data.title,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => setState(() {}),
-                    child: const Icon(Icons.chevron_right, color: AppColors.textDark, size: 22),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 12),
 
             // ── Body Scroll ──
             Expanded(
@@ -382,9 +344,9 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
           const SizedBox(height: 4),
           Row(
             children: [
-              Text(
+              const Text(
                 'Tingkat Tabungan (Savings Rate)',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                style: TextStyle(fontSize: 12, color: Colors.white70),
               ),
               const Spacer(),
               Text(
@@ -421,7 +383,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -569,7 +531,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
                           width: 14,
                           height: 70 * bar * 0.6,
                           decoration: BoxDecoration(
-                            color: AppColors.accentOrange.withOpacity(0.7),
+                            color: AppColors.accentOrange.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -661,7 +623,7 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: cat.iconColor.withOpacity(0.12),
+              color: cat.iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(cat.icon, color: cat.iconColor, size: 18),
@@ -705,11 +667,11 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.file_download_outlined, color: AppColors.textMuted, size: 18),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.file_download_outlined, color: AppColors.textMuted, size: 18),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Ekspor Laporan',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),

@@ -9,8 +9,6 @@ class HelpCenterScreen extends StatefulWidget {
 }
 
 class _HelpCenterScreenState extends State<HelpCenterScreen> {
-  final TextEditingController _searchController = TextEditingController();
-
   final List<Map<String, String>> _faqs = [
     {
       'question': 'Bagaimana cara mencatat transaksi baru?',
@@ -38,28 +36,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           'Pada halaman login, kamu dapat menekan tautan "Lupa kata sandi?" dan ikuti petunjuk verifikasi yang dikirimkan ke email terdaftarmu.'
     },
   ];
-
-  late List<Map<String, String>> _filteredFaqs;
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredFaqs = List.from(_faqs);
-  }
-
-  void _filterFaqs(String query) {
-    setState(() {
-      if (query.trim().isEmpty) {
-        _filteredFaqs = List.from(_faqs);
-      } else {
-        _filteredFaqs = _faqs
-            .where((item) =>
-                item['question']!.toLowerCase().contains(query.toLowerCase()) ||
-                item['answer']!.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
-    });
-  }
 
   void _showContactSupportDialog() {
     final messageController = TextEditingController();
@@ -175,12 +151,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -209,34 +179,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search Bar
-              TextField(
-                controller: _searchController,
-                onChanged: _filterFaqs,
-                decoration: InputDecoration(
-                  hintText: 'Cari pertanyaan atau kata kunci...',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                  prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBrown, size: 22),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            _filterFaqs('');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
               // Contact Channels
               Row(
                 children: [
@@ -276,33 +218,13 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               ),
               const SizedBox(height: 12),
 
-              if (_filteredFaqs.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.search_off_rounded, size: 40, color: AppColors.textMuted),
-                      SizedBox(height: 8),
-                      Text(
-                        'Tidak ada FAQ yang cocok dengan pencarian.',
-                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _filteredFaqs.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final item = _filteredFaqs[index];
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _faqs.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final item = _faqs[index];
                     return Container(
                       decoration: BoxDecoration(
                         color: Colors.white,

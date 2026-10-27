@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../utils/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -237,6 +238,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildStatRow('Transportasi', 'Rp 500.000'),
                   ],
                 ),
+              ),
+
+              // 5b. Pengaturan Aplikasi (shared_preferences & flutter_secure_storage)
+              Consumer<SettingsProvider>(
+                builder: (context, settings, _) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryBrown),
+                            SizedBox(width: 8),
+                            Text(
+                              'Pengaturan Aplikasi (Local Preferences)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.dark_mode_outlined, size: 18, color: AppColors.textMuted),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Mode Gelap (Theme)',
+                                  style: TextStyle(fontSize: 13, color: AppColors.textDark),
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: settings.isDarkMode,
+                              activeThumbColor: AppColors.primaryBrown,
+                              onChanged: (val) => settings.toggleDarkMode(val),
+                            ),
+                          ],
+                        ),
+                        const Divider(color: AppColors.inputBorder, height: 1),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.notifications_active_outlined, size: 18, color: AppColors.textMuted),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Notifikasi Aplikasi',
+                                  style: TextStyle(fontSize: 13, color: AppColors.textDark),
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: settings.isNotificationEnabled,
+                              activeThumbColor: AppColors.primaryBrown,
+                              onChanged: (val) => settings.toggleNotification(val),
+                            ),
+                          ],
+                        ),
+                        const Divider(color: AppColors.inputBorder, height: 1),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Icon(Icons.verified_user_outlined, size: 16, color: Colors.green),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Kredensial disimpan aman via FlutterSecureStorage',
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),

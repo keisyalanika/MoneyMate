@@ -30,18 +30,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
     'Tahun 2026',
   ];
 
-  void _onPreviousPeriod() {
-    if (_selectedPeriodIndex > 0) {
-      setState(() => _selectedPeriodIndex--);
-    }
-  }
-
-  void _onNextPeriod() {
-    if (_selectedPeriodIndex < _periods.length - 1) {
-      setState(() => _selectedPeriodIndex++);
-    }
-  }
-
   void _showHelpDialog() {
     showDialog(
       context: context,
@@ -213,49 +201,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Date Switcher ( <  [Calendar] September 2026  > )
-              Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3ECE4),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left, color: Color(0xFF4A2511), size: 22),
-                      onPressed: _onPreviousPeriod,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF8A3A23)),
-                        const SizedBox(width: 8),
-                        Text(
-                          _periodDates[_selectedPeriodIndex],
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2C1A14),
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right, color: Color(0xFF4A2511), size: 22),
-                      onPressed: _onNextPeriod,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                    ),
-                  ],
-                ),
-              ),
-
-              // 2. Filter Pills Segmented Control
+              // 1. Filter Pills Segmented Control
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
