@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
-<<<<<<< HEAD
-=======
-import 'notification_screen.dart';
->>>>>>> dev/lanika
+import '../services/auth_provider.dart';
 import '../utils/theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -14,9 +12,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // State profil pengguna (mudah dihubungkan ke backend / Provider nantinya)
-  String _userName = 'Keisya Exa Haniyah';
-  String _userEmail = 'keisya.haniyah@gmail.com';
+  // State profil lokal pengguna (mendukung update langsung & integrasi AuthProvider)
+  String? _localUserName;
+  String? _localUserEmail;
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -38,7 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+             onPressed: () => Navigator.pop(ctx),
             child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
@@ -49,6 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: () {
               Navigator.pop(ctx);
+              try {
+                Provider.of<AuthProvider>(context, listen: false).logout();
+              } catch (_) {}
               Navigator.pushNamedAndRemoveUntil(context, AppRouter.login, (route) => false);
             },
             child: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -60,14 +61,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Menghitung lebar layar untuk membagi card menu menjadi 3 kolom yang proporsional
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth - 40 - 32) / 3; // 40 = padding horizontal (20 kiri, 20 kanan), 32 = jarak antar card (16 * 2)
+    final cardWidth = (screenWidth - 40 - 16) / 2; // 2 kolom simetris untuk 4 menu
+
+    // Ambil data dari AuthProvider jika tersedia di widget tree
+    AuthProvider? auth;
+    try {
+      auth = Provider.of<AuthProvider>(context);
+    } catch (_) {
+      auth = null;
+    }
+
+    final userName = _localUserName ??
+        ((auth != null && auth.isLoggedIn && auth.userName.isNotEmpty && auth.userName != 'Guest')
+            ? auth.userName
+            : 'Keisya Exa Haniyah');
+    final userEmail = _localUserEmail ??
+        ((auth != null && auth.isLoggedIn && auth.token != null)
+            ? '${userName.toLowerCase().replaceAll(' ', '.')}@email.com'
+            : 'keisya.haniyah@gmail.com');
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -100,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    _userName.isNotEmpty ? _userName[0].toUpperCase() : 'M',
+                    userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
                     style: const TextStyle(
                       fontSize: 40,
                       color: Colors.white,
@@ -113,7 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // 3. User Info
               Text(
-                _userName,
+                userName,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -122,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                _userEmail,
+                userEmail,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryBrown,
@@ -130,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 32),
 
-              // 4. Grid Menu Options (Navigasi ke 5 Halaman Fitur)
+              // 4. Grid Menu Options (Navigasi ke 4 Halaman Fitur)
               Wrap(
                 spacing: 16,
                 runSpacing: 16,
@@ -141,16 +159,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.edit_rounded,
                     title: 'Edit Profil',
                     onTap: () async {
+                      AuthProvider? authProvider;
+                      try {
+                        authProvider = Provider.of<AuthProvider>(context, listen: false);
+                      } catch (_) {}
                       final updated = await Navigator.pushNamed(context, AppRouter.editProfile);
                       if (updated != null && updated is Map<String, dynamic>) {
                         setState(() {
                           if (updated['name'] != null && updated['name'].toString().isNotEmpty) {
-                            _userName = updated['name'];
+                            _localUserName = updated['name'];
                           }
                           if (updated['email'] != null && updated['email'].toString().isNotEmpty) {
-                            _userEmail = updated['email'];
+                            _localUserEmail = updated['email'];
                           }
                         });
+                        try {
+                          if (updated['name'] != null && updated['name'].toString().isNotEmpty) {
+                            authProvider?.updateUserName(updated['name']);
+                          }
+                        } catch (_) {}
                       }
                     },
                   ),
@@ -158,13 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: cardWidth,
                     icon: Icons.notifications_rounded,
                     title: 'Notifikasi',
-<<<<<<< HEAD
                     onTap: () => Navigator.pushNamed(context, AppRouter.profileNotification),
-=======
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
-                    },
->>>>>>> dev/lanika
                   ),
                   _buildMenuCard(
                     width: cardWidth,
@@ -184,8 +205,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Bantuan',
                     onTap: () => Navigator.pushNamed(context, AppRouter.helpCenter),
                   ),
-                  // Kotak kosong (invisible) agar alignment Wrap tetap rapi di sebelah kiri untuk baris kedua
-                  SizedBox(width: cardWidth),
                 ],
               ),
               const SizedBox(height: 32),

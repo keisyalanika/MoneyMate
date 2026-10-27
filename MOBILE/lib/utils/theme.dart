@@ -27,6 +27,7 @@ class AppColors {
 
   // --- TAMBAHAN UNTUK HALAMAN LOGIN, LUPA SANDI & OTP ---
   static const Color errorBg = Color(0xFFFFEAEA); // Background banner error
+  static const Color errorBorder = Color(0xFFFFCDD2); // Border banner error
   static const Color errorText = Color(0xFFD32F2F); // Teks & border error
   static const Color successText = Color(0xFF388E3C); // Teks hijau format valid
   static const Color iconBg =

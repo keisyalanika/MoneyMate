@@ -53,9 +53,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 },
               )
             : null,
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Semua Transaksi',
               style: TextStyle(
@@ -86,6 +86,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -102,8 +103,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     border: Border.all(color: AppColors.inputBorder),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primaryBrown),
                       SizedBox(width: 6),
                       Text('Bulan Ini', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark)),
@@ -129,8 +130,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Icon(Icons.circle, size: 8, color: Colors.grey),
                           SizedBox(width: 8),
                           Text('Ringkasan Arus Kas', style: TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.bold)),
@@ -152,37 +153,37 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   ),
                   Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.arrow_downward, size: 12, color: Color(0xFFDC2626)),
                                 SizedBox(width: 4),
                                 Text('Total Keluar', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            const Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                            SizedBox(height: 4),
+                            Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                           ],
                         ),
                       ),
                       Container(width: 1, height: 30, color: AppColors.inputBorder),
                       const SizedBox(width: 16),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.arrow_upward, size: 12, color: AppColors.primaryBrown),
                                 SizedBox(width: 4),
                                 Text('Total Masuk', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            const Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                            SizedBox(height: 4),
+                            Text('Rp 0', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                           ],
                         ),
                       ),
@@ -211,7 +212,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
                     ],
                   ),
                   padding: const EdgeInsets.all(12),
@@ -222,7 +223,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Icon(Icons.circle, size: 10, color: AppColors.primaryBrown),
-                          Icon(Icons.receipt_long, size: 16, color: AppColors.accentOrange.withOpacity(0.8)),
+                          Icon(Icons.receipt_long, size: 16, color: AppColors.accentOrange.withValues(alpha: 0.8)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -297,6 +298,38 @@ class _TransactionScreenState extends State<TransactionScreen> {
   // 2. TAMPILAN JIKA ADA TRANSAKSI (FILLED STATE)
   // ==========================================
   Widget _buildFilledState(BuildContext context, Map<String, dynamic>? newTx) {
+    // Base data dummy + tambahan dari newTx
+    const int baseIncome = 8500000;
+    const int baseExpense = 3420000;
+    const int baseTxMasuk = 3;
+    const int baseTxKeluar = 21;
+
+    int newAmount = 0;
+    if (newTx != null) {
+      final raw = newTx['amount'].toString().replaceAll(RegExp(r'[^0-9]'), '');
+      newAmount = int.tryParse(raw) ?? 0;
+    }
+    final int totalIncome = newTx != null && !(newTx['isExpense'] as bool)
+        ? baseIncome + newAmount
+        : baseIncome;
+    final int totalExpense = newTx != null && (newTx['isExpense'] as bool)
+        ? baseExpense + newAmount
+        : baseExpense;
+    final int txMasuk = newTx != null && !(newTx['isExpense'] as bool)
+        ? baseTxMasuk + 1
+        : baseTxMasuk;
+    final int txKeluar = newTx != null && (newTx['isExpense'] as bool)
+        ? baseTxKeluar + 1
+        : baseTxKeluar;
+
+    // Net hari ini (3 transaksi dummy: -25.000 -22.000 -50.000 = -97.000)
+    int netHariIni = -97000;
+    if (newTx != null) {
+      netHariIni += (newTx['isExpense'] as bool) ? -newAmount : newAmount;
+    }
+    final String netHariIniStr = netHariIni < 0
+        ? '-Rp ${_formatAmount((-netHariIni).toString())}'
+        : '+Rp ${_formatAmount(netHariIni.toString())}';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -313,9 +346,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 },
               )
             : null,
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Semua Transaksi',
               style: TextStyle(
@@ -343,8 +376,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
               borderRadius: BorderRadius.circular(16),
               color: Colors.white,
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.download_outlined, size: 16, color: AppColors.textDark),
                 SizedBox(width: 4),
                 Text(
@@ -373,6 +406,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,17 +422,17 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 border: Border.all(color: AppColors.inputBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.textMuted, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
+                  Icon(Icons.search, color: AppColors.textMuted, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: 'Cari transaksi, toko, atau kategori...',
@@ -407,7 +441,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       ),
                     ),
                   ),
-                  const Icon(Icons.mic_none, color: AppColors.textMuted, size: 20),
+                  Icon(Icons.mic_none, color: AppColors.textMuted, size: 20),
                 ],
               ),
             ),
@@ -425,8 +459,8 @@ class _TransactionScreenState extends State<TransactionScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: const [
+                      const Row(
+                        children: [
                           Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primaryBrown),
                           SizedBox(width: 6),
                           Text(
@@ -485,16 +519,16 @@ class _TransactionScreenState extends State<TransactionScreen> {
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              const Text(
-                                '+Rp 8.500.000',
-                                style: TextStyle(
+                              Text(
+                                '+Rp ${_formatAmount(totalIncome.toString())}',
+                                style: const TextStyle(
                                   color: Color(0xFF16A34A),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text('3 transaksi masuk', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                              Text('$txMasuk transaksi masuk', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
                             ],
                           ),
                         ),
@@ -526,16 +560,16 @@ class _TransactionScreenState extends State<TransactionScreen> {
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              const Text(
-                                '-Rp 3.420.000',
-                                style: TextStyle(
+                              Text(
+                                '-Rp ${_formatAmount(totalExpense.toString())}',
+                                style: const TextStyle(
                                   color: Color(0xFFDC2626),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text('21 transaksi keluar', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                              Text('$txKeluar transaksi keluar', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
                             ],
                           ),
                         ),
@@ -547,7 +581,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ),
             const SizedBox(height: 24),
             // Hari Ini Group
-            _buildDateHeader('Hari Ini', '7 Sep 2026 • -Rp 97.000'),
+            _buildDateHeader('Hari Ini', '7 Sep 2026 • $netHariIniStr'),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
@@ -559,16 +593,18 @@ class _TransactionScreenState extends State<TransactionScreen> {
                 children: [
                   if (newTx != null) ...[
                     _buildTransactionItem(
-                      icon: newTx['isExpense'] ? Icons.local_offer_outlined : Icons.account_balance_wallet_outlined,
-                      iconBg: const Color(0xFFF5F0EB),
-                      iconColor: AppColors.primaryBrown,
+                      icon: _getCategoryIcon(newTx['category']),
+                      iconBg: newTx['isExpense'] ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
+                      iconColor: newTx['isExpense'] ? AppColors.primaryBrown : const Color(0xFF16A34A),
                       title: newTx['category'],
                       hasReceipt: false,
-                      subtitle1: newTx['note'] ?? 'Catatan Baru',
+                      subtitle1: (newTx['note'] != null && newTx['note'].toString().isNotEmpty)
+                          ? newTx['note'].toString()
+                          : newTx['category'],
                       subtitle2: 'Tunai',
-                      amount: '${newTx['isExpense'] ? '-' : '+'}Rp ${newTx['amount']}',
+                      amount: '${newTx['isExpense'] ? '-' : '+'}Rp ${_formatAmount(newTx['amount'].toString())}',
                       isExpense: newTx['isExpense'],
-                      time: DateFormat('HH:mm').format(DateTime.now()) + ' WIB',
+                      time: '${DateFormat('HH:mm').format(DateTime.now())} WIB',
                     ),
                     const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
                   ],
@@ -696,6 +732,48 @@ class _TransactionScreenState extends State<TransactionScreen> {
         ),
       ),
     );
+  }
+
+  /// Format angka menjadi format ribuan Indonesia, contoh: "50000" → "50.000"
+  String _formatAmount(String raw) {
+    final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleaned.isEmpty) return '0';
+    final number = int.tryParse(cleaned) ?? 0;
+    return NumberFormat('#,###', 'id_ID').format(number).replaceAll(',', '.');
+  }
+
+  /// Mengembalikan icon yang sesuai berdasarkan nama kategori
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'gaji':
+        return Icons.work_outline;
+      case 'bonus':
+        return Icons.card_giftcard_outlined;
+      case 'beasiswa':
+        return Icons.school_outlined;
+      case 'hadiah':
+        return Icons.redeem_outlined;
+      case 'hobi':
+        return Icons.sports_esports_outlined;
+      case 'investasi':
+        return Icons.show_chart;
+      case 'makanan & minuman':
+        return Icons.restaurant;
+      case 'transportasi':
+        return Icons.directions_car_outlined;
+      case 'belanja':
+        return Icons.shopping_bag_outlined;
+      case 'tagihan':
+        return Icons.receipt_outlined;
+      case 'kesehatan':
+        return Icons.medical_services_outlined;
+      case 'pendidikan':
+        return Icons.menu_book_outlined;
+      case 'hiburan':
+        return Icons.movie_creation_outlined;
+      default:
+        return Icons.account_balance_wallet_outlined;
+    }
   }
 
   Widget _buildDateHeader(String title, String subtitle) {

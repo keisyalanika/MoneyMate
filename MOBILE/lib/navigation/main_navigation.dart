@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import '../screens/dashboard_screen.dart';
-<<<<<<< HEAD
-import '../screens/transaction_kosong_screen.dart';
-import '../screens/laporan_screen.dart';
-import '../screens/profile_screen.dart';
-=======
 import '../screens/transaction_screen.dart';
 import '../screens/laporan_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/add_transaction_screen.dart';
->>>>>>> dev/lanika
 
 class MainNavigationWrapper extends StatefulWidget {
   const MainNavigationWrapper({super.key});
@@ -21,21 +15,12 @@ class MainNavigationWrapper extends StatefulWidget {
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   int _currentIndex = 0;
 
-<<<<<<< HEAD
-  final List<Widget> _pages = [
-    const DashboardScreen(),
-    const TransactionKosongScreen(),
-    const SizedBox(), // Placeholder untuk tombol tengah (+)
-    const LaporanScreen(),
-    const ProfileScreen(),
-=======
   final List<Widget> _pages = const [
     DashboardScreen(),
     TransactionScreen(),
     SizedBox(), // Placeholder untuk tombol tengah (+)
     LaporanScreen(),
     ProfileScreen(),
->>>>>>> dev/lanika
   ];
 
   void _goToAddTransaction(BuildContext context) async {

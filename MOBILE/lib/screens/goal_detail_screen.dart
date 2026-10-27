@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'add_goal_funds_screen.dart';
 
 class GoalDetailScreen extends StatelessWidget {
-  const GoalDetailScreen({Key? key}) : super(key: key);
+  const GoalDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,7 @@ class GoalDetailScreen extends StatelessWidget {
         leading: IconButton(
           icon: Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
@@ -22,9 +22,9 @@ class GoalDetailScreen extends StatelessWidget {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
+        title: const Column(
           children: [
-            const Text(
+            Text(
               'PENCAPAIAN TARGET',
               style: TextStyle(
                 color: Color(0xFF8C827A),
@@ -33,7 +33,7 @@ class GoalDetailScreen extends StatelessWidget {
                 letterSpacing: 1,
               ),
             ),
-            const Text(
+            Text(
               'Detail Goal',
               style: TextStyle(
                 color: Color(0xFF2C1A14),
@@ -48,7 +48,7 @@ class GoalDetailScreen extends StatelessWidget {
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
@@ -59,6 +59,7 @@ class GoalDetailScreen extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +73,7 @@ class GoalDetailScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -86,18 +87,18 @@ class GoalDetailScreen extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3EBE3), // Brown-ish light
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF3EBE3), // Brown-ish light
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.laptop_mac, color: Color(0xFF3E2723)),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Laptop Baru',
                               style: TextStyle(
                                 fontSize: 18,
@@ -105,7 +106,7 @@ class GoalDetailScreen extends StatelessWidget {
                                 color: Color(0xFF2C1A14),
                               ),
                             ),
-                            const Text(
+                            Text(
                               'Elektronik & Kerja',
                               style: TextStyle(
                                 fontSize: 12,
@@ -152,17 +153,17 @@ class GoalDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Target: Rp 15.000.000',
                         style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF8C827A),
                         ),
                       ),
-                      const Text(
+                      Text(
                         '75%',
                         style: TextStyle(
                           fontSize: 14,
@@ -175,11 +176,11 @@ class GoalDetailScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
+                    child: const LinearProgressIndicator(
                       value: 0.75,
                       minHeight: 12,
-                      backgroundColor: const Color(0xFFEFE8E1),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
+                      backgroundColor: Color(0xFFEFE8E1),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -277,14 +278,14 @@ class GoalDetailScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // History List Header
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.history, color: Color(0xFF2C1A14), size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
+                    Icon(Icons.history, color: Color(0xFF2C1A14), size: 20),
+                    SizedBox(width: 8),
+                    Text(
                       'Riwayat Setoran',
                       style: TextStyle(
                         fontSize: 16,
@@ -294,7 +295,7 @@ class GoalDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Text(
+                Text(
                   'Lihat Semua',
                   style: TextStyle(
                     fontSize: 12,
@@ -343,9 +344,9 @@ class GoalDetailScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const AddGoalFundsScreen()),
                   );
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
                     SizedBox(width: 8),
                     Text(
@@ -440,8 +441,8 @@ class GoalDetailScreen extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9), // Light green background for icon
+          decoration: const BoxDecoration(
+            color: Color(0xFFE8F5E9), // Light green background for icon
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: const Color(0xFF27AE60), size: 20),

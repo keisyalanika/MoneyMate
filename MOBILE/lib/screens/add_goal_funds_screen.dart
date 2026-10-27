@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'goal_funds_success_modal.dart';
 
 class AddGoalFundsScreen extends StatefulWidget {
-  const AddGoalFundsScreen({Key? key}) : super(key: key);
+  const AddGoalFundsScreen({super.key});
 
   @override
   State<AddGoalFundsScreen> createState() => _AddGoalFundsScreenState();
@@ -47,6 +47,7 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,8 +72,8 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                     color: const Color(0xFFF9EFEA),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.check_circle_outline, size: 12, color: Color(0xFFB35A43)),
                       SizedBox(width: 4),
                       Text('Goal Aktif', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
@@ -90,7 +91,7 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
                 ],
               ),
               child: Column(
@@ -107,10 +108,10 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                         child: const Icon(Icons.laptop_mac, color: Colors.white, size: 24),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text('Laptop Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
                             Text('Elektronik & Kerja Produktif', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
                           ],
@@ -122,17 +123,17 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                   const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
+                    child: const LinearProgressIndicator(
                       value: 0.75,
                       minHeight: 8,
-                      backgroundColor: const Color(0xFFEFE8E1),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
+                      backgroundColor: Color(0xFFEFE8E1),
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text('Terkumpul Rp 11.250.000', style: TextStyle(fontSize: 11, color: Color(0xFF5A4A42))),
                       Text('Target Rp 15.000.000', style: TextStyle(fontSize: 11, color: Color(0xFF5A4A42))),
                     ],
@@ -178,15 +179,15 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'NOMINAL TAMBAH DANA',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A), letterSpacing: 0.5),
                       ),
                       Row(
-                        children: const [
+                        children: [
                           Icon(Icons.auto_awesome, size: 14, color: Color(0xFFB35A43)),
                           SizedBox(width: 4),
                           Text('Bebas Biaya Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
@@ -206,8 +207,8 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                       ),
                       Container(
                         padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3EBE3),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF3EBE3),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.close, size: 16, color: Color(0xFF8C827A)),
@@ -234,9 +235,9 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                             color: const Color(0xFFF9EFEA),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Icon(Icons.flash_on, size: 14, color: Color(0xFFB35A43)),
                               SizedBox(width: 4),
                               Text('Lunasi Sisa', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
@@ -307,19 +308,19 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                       Expanded(
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4),
-                          child: Stack(
+                          child: const Stack(
                             children: [
                               LinearProgressIndicator(
                                 value: 0.833, // Target
                                 minHeight: 6,
-                                backgroundColor: const Color(0xFFDCD1C5),
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8A3A23)),
+                                backgroundColor: Color(0xFFDCD1C5),
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8A3A23)),
                               ),
                               LinearProgressIndicator(
                                 value: 0.75, // Current
                                 minHeight: 6,
                                 backgroundColor: Colors.transparent,
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
                               ),
                             ],
                           ),
@@ -344,9 +345,9 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text('SUMBER DANA TABUNGAN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A))),
                       Text('Ganti Rekening >', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
                     ],
@@ -427,10 +428,10 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                       children: [
                         const Icon(Icons.calendar_today, color: Color(0xFF8C827A), size: 20),
                         const SizedBox(width: 16),
-                        Expanded(
+                        const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text('Tanggal Setoran', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
                               SizedBox(height: 4),
                               Text('Hari ini, 7 September 2026', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
@@ -455,10 +456,10 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                       children: [
                         const Icon(Icons.sync, color: Color(0xFF8C827A), size: 20),
                         const SizedBox(width: 16),
-                        Expanded(
+                        const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
+                            children: [
                               Text('Jadikan Setoran Rutin Bulanan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
                               SizedBox(height: 4),
                               Text('Auto-debet setiap tanggal 25', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
@@ -472,7 +473,7 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                               isAutoDebit = val;
                             });
                           },
-                          activeColor: Colors.white,
+                          activeThumbColor: Colors.white,
                           activeTrackColor: const Color(0xFF4A3428),
                           inactiveTrackColor: const Color(0xFFEFE8E1),
                         ),
@@ -494,9 +495,9 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text('CATATAN SETORAN (OPSIONAL)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A))),
                       Text('47/100', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                     ],
@@ -533,9 +534,9 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                 onPressed: () {
                   showGoalFundsSuccessModal(context);
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
                     SizedBox(width: 8),
                     Text(
@@ -562,9 +563,9 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                   ),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.arrow_back, color: Color(0xFF8A3A23), size: 20),
                     SizedBox(width: 8),
                     Text(

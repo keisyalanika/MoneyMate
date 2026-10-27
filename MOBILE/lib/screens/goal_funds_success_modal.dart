@@ -12,9 +12,11 @@ void showGoalFundsSuccessModal(BuildContext context) {
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Handle bar indikator atas
             Container(
               width: 40,
@@ -102,9 +104,9 @@ void showGoalFundsSuccessModal(BuildContext context) {
                 color: const Color(0xFFF9EFEA),
                 borderRadius: BorderRadius.circular(30),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(
                     Icons.history,
                     size: 16,
@@ -181,7 +183,8 @@ void showGoalFundsSuccessModal(BuildContext context) {
             const SizedBox(height: 24),
           ],
         ),
-      );
-    },
-  );
+      ),
+    );
+  },
+);
 }

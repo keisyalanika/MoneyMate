@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 
-<<<<<<< HEAD
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
 
@@ -10,7 +9,7 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  // State pengaturan keamanan (siap dihubungkan ke backend / local storage)
+  // State pengaturan keamanan
   bool _twoFactorAuth = false;
   bool _hideBalanceByDefault = false;
 
@@ -159,7 +158,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Kata sandi berhasil diubah! (Siap disambungkan ke API backend)'),
+                        content: Text('Kata sandi berhasil diubah!'),
                         backgroundColor: AppColors.primaryBrown,
                       ),
                     );
@@ -175,17 +174,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   @override
-=======
-class SecurityScreen extends StatelessWidget {
-  const SecurityScreen({super.key});
-
-  @override
->>>>>>> dev/lanika
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-<<<<<<< HEAD
         title: const Text(
           'Keamanan Akun',
           style: TextStyle(
@@ -382,15 +374,6 @@ class SecurityScreen extends StatelessWidget {
             inactiveTrackColor: Colors.grey.shade300,
           ),
         ],
-=======
-        title: const Text('Keamanan', style: TextStyle(color: AppColors.primaryBrown)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.primaryBrown),
-      ),
-      body: const Center(
-        child: Text('Halaman Keamanan', style: TextStyle(color: AppColors.textDark)),
->>>>>>> dev/lanika
       ),
     );
   }

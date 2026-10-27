@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moneymate_mobile/main.dart';
+
+import 'package:provider/provider.dart';
+import 'package:moneymate_mobile/services/auth_provider.dart';
 
 Future<void> tapText(WidgetTester tester, String label) async {
   final finder = find.text(label);
@@ -20,13 +22,17 @@ void main() {
 
   testWidgets('flow: splash -> login -> lupa sandi -> OTP -> reset -> sukses -> login',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MoneyMateApp());
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ],
+        child: const MoneyMateApp(),
+      ),
+    );
 
     // Splash -> Login (setelah timer 2 detik)
     expect(find.text('MoneyMate'), findsOneWidget);
-<<<<<<< HEAD
-    await tester.pumpAndSettle(const Duration(seconds: 3));
-=======
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
     expect(find.text('Selamat datang kembali '), findsOneWidget);
@@ -51,6 +57,5 @@ void main() {
     await tapText(tester, 'Masuk Sekarang');
     expect(find.text('Selamat datang kembali '), findsOneWidget);
     expect(find.text('Kirim Kode Pemulihan'), findsNothing);
->>>>>>> dev/lanika
   });
 }

@@ -92,6 +92,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
           child: Form(
             key: _formKey,

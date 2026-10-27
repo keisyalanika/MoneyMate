@@ -26,9 +26,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Row(
               children: [
                 Icon(Icons.circle, size: 8, color: AppColors.primaryBrown),
@@ -103,7 +103,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Text('Total Tabungan Target', style: TextStyle(color: Colors.white, fontSize: 10)),
@@ -132,7 +132,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   const SizedBox(height: 8),
                   Stack(
                     children: [
-                      Container(height: 6, decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(3))),
+                      Container(height: 6, decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(3))),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           return Container(
@@ -151,16 +151,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFD54F).withOpacity(0.2),
+                            color: const Color(0xFFFFD54F).withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.bolt, color: Color(0xFFFFD54F), size: 16),
@@ -221,7 +221,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   progressColor: AppColors.secondary,
                 ),
               );
-            }).toList(),
+            }),
 
             _buildGoalItem(
               context: context,
@@ -326,7 +326,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           border: Border.all(color: const Color(0xFFF0E5D8)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -354,7 +354,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isHeaderOrange ? const Color(0xFFB45309) : Colors.white.withOpacity(0.2),
+                    color: isHeaderOrange ? const Color(0xFFB45309) : Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(statusText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -393,9 +393,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text('TERKUMPUL', style: TextStyle(color: AppColors.textMuted, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
                     Text('TARGET', style: TextStyle(color: AppColors.textMuted, fontSize: 10, letterSpacing: 1, fontWeight: FontWeight.bold)),
                   ],
@@ -466,8 +466,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         border: Border.all(color: const Color(0xFFF0E5D8)),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Row(
-                        children: const [
+                      child: const Row(
+                        children: [
                           Icon(Icons.add, color: AppColors.textDark, size: 14),
                           SizedBox(width: 4),
                           Text('Nabung', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 12)),

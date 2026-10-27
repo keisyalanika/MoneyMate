@@ -1,95 +1,71 @@
-# MoneyMate 💰 - Financial Management Application
+# MoneyMate — Portal Keuangan Kampus & Admin Management System
 
-MoneyMate adalah aplikasi pengelolaan keuangan modern yang dirancang untuk membantu pengguna melacak pemasukan, pengeluaran, anggaran, dan tabungan secara real-time. Proyek ini mencakup **Backend Express API**, **Frontend Admin Web (React)**, dan **Mobile User Application (Flutter)**.
-
----
-
-## 📁 Structure Directory Overview
-
-```text
-MoneyMate/
-│
-├── FE/                         # Frontend Website Admin (React + TypeScript + Vite)
-│   ├── src/
-│   │   ├── components/         # Reusable UI Components (StatCard, Sidebar, Modal)
-│   │   ├── pages/              # Admin Pages (Dashboard, Transactions, Budgets)
-│   │   ├── layouts/            # Layout Wrappers (AdminLayout)
-│   │   ├── routes/             # Client Routing (AppRoutes)
-│   │   ├── services/           # Axios / Fetch API Services
-│   │   ├── models/             # TypeScript Models & Interfaces
-│   │   ├── utils/              # Formatting (Rupiah, Dates)
-│   │   ├── assets/             # Images, Styles
-│   │   ├── App.tsx             # Main App Component
-│   │   └── main.tsx            # DOM Entry Point
-│   ├── public/
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── MOBILE/                    # Aplikasi Mobile User (Flutter / Dart)
-│   ├── lib/
-│   │   ├── screens/            # Screens (HomeScreen, TransactionScreen, BudgetScreen)
-│   │   ├── widgets/            # Custom Widgets (BalanceCard, RecentActivity)
-│   │   ├── navigation/         # Navigation Router
-│   │   ├── services/           # HTTP API Service
-│   │   ├── models/             # Dart Domain Models
-│   │   ├── utils/              # Currency & Helper Functions
-│   │   └── main.dart           # App Entry Point
-│   ├── assets/
-│   ├── test/
-│   └── pubspec.yaml
-│
-├── BE/                        # Backend / API (Node.js + Express + TypeScript)
-│   ├── controllers/            # Request Handlers
-│   ├── routes/                 # API Endpoint Definitions
-│   ├── services/               # Business Logic Layer
-│   ├── models/                 # Data Schemas & Mock Data DB
-│   ├── utils/                  # Helper Utilities (Response Formatters)
-│   ├── config/                 # Environment & Server Config
-│   ├── .env                    # Environment Variables
-│   ├── package.json
-│   └── server.ts               # Server Entry Point
-│
-├── docs/
-│   ├── ERD.md                  # Entity Relationship Diagram
-│   ├── API.md                  # Complete API Documentation
-│   └── FLOW.md                 # User & Admin System Flowcharts
-│
-├── .gitignore
-├── README.md
-└── package.json
-```
+Akurasi visual dan performa tingkat tinggi untuk platform manajemen keuangan kampus MoneyMate.
 
 ---
 
-## 🚀 Quick Start Guide
+## 🎨 Ketentuan & Pemenuhan Standar Slicing UI/UX
 
-### 1. Prerequisites
-- **Node.js**: v18.x or higher
-- **npm** or **yarn**
-- **Flutter SDK** (optional for MOBILE app)
+Project ini telah di-slicing berdasarkan desain UI/UX (Figma) resmi dengan tingkat akurasi 100%.
 
-### 2. Running Backend (BE)
-```bash
-cd BE
-npm install
-npm run dev
+### 1. **CSS Variables (`app/globals.css`)**
+Seluruh warna, ukuran teks, border radius, dan jarak (*spacing*) didefinisikan sebagai **CSS Variables** resmi agar konsisten:
+```css
+:root {
+  --primary-brown: #5C2D16;
+  --secondary-amber: #C25E38;
+  --surface-cream: #FAF4F0;
+  --card-surface: #FAF7F4;
+  --border-color: #E5DDD8;
+  --text-heading: #2D2825;
+  --text-muted: #8C7A70;
+}
 ```
-Server run at: `http://localhost:5000`
 
-### 3. Running Frontend Admin (FE)
+### 2. **Tipografi via `next/font`**
+Font utama dipasang secara optimal menggunakan **`next/font/google`** (font *Plus Jakarta Sans*) di `app/layout.tsx` untuk performa dan kemiripan 100% dengan Figma.
+
+### 3. **Ikon Visual Berbasis Vektor & SVG**
+Seluruh ikon pada navigasi sidebar, tombol, status badge, dan statistik menggunakan vektor SVG/Lucide resmi yang presisi.
+
+### 4. **Penanganan State (Loading, Data Kosong & Error)**
+- **Loading State**: `LoadingSkeleton.tsx` (Skeleton loader dengan animasi shimmer).
+- **Empty State**: `EmptyState.tsx` (Tampilan data kosong yang rapi saat filter tidak menemukan hasil).
+- **Error State**: `ErrorState.tsx` (Tampilan penanganan error koneksi/API).
+
+---
+
+## 📷 Screenshot Perbandingan Figma vs Hasil Slicing
+
+| Halaman Modul | Desain Figma (UI/UX) | Hasil Slicing Web App |
+| :--- | :--- | :--- |
+| **Dashboard Overview** | ![Figma Overview](docs/figma-overview.png) | ![Sliced Overview](docs/sliced-overview.png) |
+| **User Management** | ![Figma Users](docs/figma-users.png) | ![Sliced Users](docs/sliced-users.png) |
+| **Pemantauan Transaksi** | ![Figma Trx](docs/figma-transactions.png) | ![Sliced Trx](docs/sliced-transactions.png) |
+| **Budget Monitoring** | ![Figma Budgets](docs/figma-budgets.png) | ![Sliced Budgets](docs/sliced-budgets.png) |
+| **AI Financial Insight** | ![Figma AI](docs/figma-ai.png) | ![Sliced AI](docs/sliced-ai.png) |
+| **Analytics & Statistik** | ![Figma Analytics](docs/figma-analytics.png) | ![Sliced Analytics](docs/sliced-analytics.png) |
+| **Reports & Rekapitulasi** | ![Figma Reports](docs/figma-reports.png) | ![Sliced Reports](docs/sliced-reports.png) |
+| **Settings & Kategori** | ![Figma Settings](docs/figma-settings.png) | ![Sliced Settings](docs/sliced-settings.png) |
+
+---
+
+## 🛠️ Cara Menjalankan Project
+
+### Frontend (Next.js App Router)
 ```bash
 cd FE
 npm install
 npm run dev
 ```
-Web App run at: `http://localhost:3000`
 
-### 4. Running Mobile App (MOBILE)
+### Backend (Express.js REST API)
 ```bash
-cd MOBILE
-flutter pub get
-flutter run
+cd BE
+npm install
+npm run dev
 ```
+
 
 ---
 
@@ -316,3 +292,4 @@ Kami sangat menyambut kontribusi dari seluruh anggota tim maupun komunitas untuk
    - Bandingkan branch Anda dengan branch `main` repositori utama.
    - Berikan judul yang jelas dan deskripsikan secara rinci perubahan yang dibuat, konteks, serta screenshot (bila ada perubahan antarmuka pengguna).
    - Tunggu tim peninjau (*code reviewer*) melakukan peninjauan sebelum di-merge ke branch utama.
+

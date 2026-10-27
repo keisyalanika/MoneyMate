@@ -63,8 +63,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               color: AppColors.iconBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.check_circle_outline,
                     size: 14, color: AppColors.primaryBrown),
                 SizedBox(width: 4),
@@ -82,6 +82,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,8 +147,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       ),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Icon(Icons.edit_outlined,
                                 size: 12, color: AppColors.accentOrange),
                             SizedBox(width: 4),
@@ -184,11 +185,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       color: AppColors.inputBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Column(
+                    child: const Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Icon(
                               Icons.access_time,
                               size: 14,
@@ -212,8 +213,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        SizedBox(height: 4),
+                        Text(
                           'Kirim Ulang Kode',
                           style: TextStyle(
                             color: AppColors.textMuted,
@@ -244,9 +245,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, AppRouter.resetPassword);
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Text(
                       'Lanjutkan ke Sandi Baru',
                       style: TextStyle(
@@ -264,8 +265,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             const SizedBox(height: 20),
 
             // Footer Alternatif & Security Info
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Expanded(child: Divider(color: AppColors.inputBorder)),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
@@ -301,9 +302,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(
                         Icons.shield_outlined,
                         size: 12,
@@ -320,9 +321,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(
                         Icons.lock_outline,
                         size: 12,

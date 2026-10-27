@@ -6,10 +6,10 @@ class AdjustBalanceBottomSheet extends StatefulWidget {
   final bool initialIsAdd;
 
   const AdjustBalanceBottomSheet({
-    Key? key,
+    super.key,
     this.currentBalance = 2450000,
     this.initialIsAdd = true,
-  }) : super(key: key);
+  });
 
   static void show(BuildContext context, {bool isAdd = true}) {
     showModalBottomSheet(
@@ -63,6 +63,9 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
     final currentOptions = _isAdd ? _addOptions : _subtractOptions;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       decoration: const BoxDecoration(
         color: Color(0xFFFBF8F3), // Background krem lembut sesuai UI
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
@@ -73,9 +76,11 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
         top: 12,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Drag handle
           Container(
             width: 48,
@@ -95,7 +100,7 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Atur & Sesuaikan Saldo',
                       style: TextStyle(
                         fontSize: 20,
@@ -197,7 +202,7 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
                         color: const Color(0xFFFFF2EC),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Row(
+                      child: const Row(
                         children: [
                           Text(
                             'Ubah',
@@ -341,7 +346,7 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
                     const SizedBox(width: 8),
                     Text(
                       _formatCurrency(_selectedAmount),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 34,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
@@ -459,7 +464,7 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
                           ),
                           Text(
                             'Rp ${_formatCurrency(estimatedBalance)}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: AppColors.primary,
@@ -487,7 +492,7 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 elevation: 4,
-                shadowColor: AppColors.primary.withOpacity(0.3),
+                shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -518,9 +523,9 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
           const SizedBox(height: 12),
 
           // Footer Info Text
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               Icon(Icons.check_circle_outline,
                   size: 14, color: Color(0xFF00A86B)),
               SizedBox(width: 4),
@@ -531,6 +536,7 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
             ],
           ),
         ],
+        ),
       ),
     );
   }

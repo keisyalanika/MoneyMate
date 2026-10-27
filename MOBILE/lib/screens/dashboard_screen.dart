@@ -6,10 +6,11 @@ import 'transaction_screen.dart';
 import 'laporan_screen.dart';
 import 'ai_insight_screen.dart';
 import 'notification_screen.dart';
+import 'budget_screen.dart';
 
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,150 +27,23 @@ class DashboardScreen extends StatelessWidget {
               _buildHeader(context),
               const SizedBox(height: 18),
 
-<<<<<<< HEAD
-              // 2. Card Total Saldo
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBrown,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('TOTAL SALDO AKTIF',
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w600)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12)),
-                          child: const Text('Utama',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 10)),
-                        )
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Rp 2.450.000',
-                        style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white)),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Sisa Budget Bulan Ini',
-                                style: TextStyle(
-                                    fontSize: 10, color: Colors.white70)),
-                            Text('Rp 850.000',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white)),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20)),
-                          child: const Text('lihat rincian >',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 10)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-=======
               // 2. Card Total Saldo Aktif
               _buildSaldoCard(context),
->>>>>>> dev/lanika
               const SizedBox(height: 20),
 
               // 3. Quick Action Buttons (Catat, Struk, Budget, Goals)
               _buildQuickActions(context),
               const SizedBox(height: 20),
 
-<<<<<<< HEAD
-              // 4. Insight Keuangan Card
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.insightBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.insightBorder),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.stars_rounded,
-                                color: AppColors.accentOrange, size: 20),
-                            SizedBox(width: 6),
-                            Text('Insight Keuanganmu',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: AppColors.primaryBrown)),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                              color: AppColors.accentOrange.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6)),
-                          child: const Text('BARU',
-                              style: TextStyle(
-                                  color: AppColors.accentOrange,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                        'Pengeluaran Makananmu meningkat 20% minggu ini. Ada risiko budget habis sebelum akhir bulan.',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textDark,
-                            height: 1.4)),
-                    const SizedBox(height: 8),
-                    const Text('Lihat Solusi AI >',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.accentOrange)),
-                  ],
-                ),
-              ),
-=======
               // 4. Insight Keuanganmu (Banner AI)
               _buildInsightCard(context),
->>>>>>> dev/lanika
               const SizedBox(height: 16),
 
-              // 5. Pencapaian Goals
+              // 5. Card Anggaran & Budget
+              _buildBudgetCard(context),
+              const SizedBox(height: 16),
+
+              // 6. Pencapaian Goals
               _buildGoalsCard(context),
               const SizedBox(height: 16),
 
@@ -189,10 +63,10 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
+        const CircleAvatar(
           radius: 22,
           backgroundColor: AppColors.primary,
-          child: const Text(
+          child: Text(
             'K',
             style: TextStyle(
               color: Colors.white,
@@ -202,10 +76,10 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Halo,',
                 style: TextStyle(color: Colors.grey, fontSize: 13),
@@ -228,11 +102,11 @@ class DashboardScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.grey.shade300),
           ),
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.circle, color: Colors.green, size: 8),
-              const SizedBox(width: 6),
+              Icon(Icons.circle, color: Colors.green, size: 8),
+              SizedBox(width: 6),
               Text(
                 'MoneyMate',
                 style: TextStyle(
@@ -268,7 +142,7 @@ class DashboardScreen extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withOpacity(0.85)],
+          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.85)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -285,7 +159,7 @@ class DashboardScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 160,
                 fontWeight: FontWeight.bold,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -316,11 +190,11 @@ class DashboardScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Text(
                               'Lihat Rincian',
                               style: TextStyle(color: Colors.white, fontSize: 11),
@@ -350,8 +224,8 @@ class DashboardScreen extends StatelessWidget {
                         // Memanggil Bottom Sheet Penyesuaian Saldo
                         AdjustBalanceBottomSheet.show(context, isAdd: true);
                       },
-                      icon: Icon(Icons.add, size: 16, color: AppColors.primary),
-                      label: Text(
+                      icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
+                      label: const Text(
                         'Tambah',
                         style: TextStyle(
                           color: AppColors.primary,
@@ -377,23 +251,42 @@ class DashboardScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Sisa Budget Bulan Ini',
-                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const BudgetScreen()),
+                        );
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Sisa Budget Bulan Ini',
+                                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(Icons.chevron_right, color: Colors.white70, size: 14),
+                              ],
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Rp 850.000',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Rp 850.000',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -411,54 +304,76 @@ class DashboardScreen extends StatelessWidget {
       {'icon': Icons.emoji_events_outlined, 'label': 'Goals'},
     ];
 
-    return Wrap(
-      spacing: 20,
+    return Row(
       children: actions.map((item) {
-        return GestureDetector(
-          onTap: () {
-            if (item['label'] == 'Goals') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GoalsScreen()),
-              );
-            }
-          },
-          child: Column(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
+        final label = item['label'] as String;
+        final icon = item['icon'] as IconData;
+
+        void navigate() {
+          if (label == 'Goals') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const GoalsScreen()),
+            );
+          } else if (label == 'Budget') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BudgetScreen()),
+            );
+          }
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(right: 16),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: navigate,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          icon,
+                          color: AppColors.primary,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
-                child: Icon(
-                  item['icon'] as IconData,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
               ),
-              const SizedBox(height: 8),
-                Text(
-                  item['label'] as String,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
             ),
-          );
-        }).toList(),
-      );
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Widget _buildInsightCard(BuildContext context) {
@@ -486,7 +401,7 @@ class DashboardScreen extends StatelessWidget {
                     child: const Icon(Icons.add, color: Colors.white, size: 16),
                   ),
                   const SizedBox(width: 8),
-                  Text(
+                  const Text(
                     'Insight Keuanganmu',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -502,7 +417,7 @@ class DashboardScreen extends StatelessWidget {
                   color: const Color(0xFFFFECE0),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
+                child: const Text(
                   'BARU',
                   style: TextStyle(
                     color: AppColors.secondary,
@@ -515,17 +430,17 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           RichText(
-            text: TextSpan(
-              style: const TextStyle(
+            text: const TextSpan(
+              style: TextStyle(
                   color: Colors.black87, fontSize: 12, height: 1.4),
               children: [
-                const TextSpan(text: 'Pengeluaran Makananmu meningkat '),
+                TextSpan(text: 'Pengeluaran Makananmu meningkat '),
                 TextSpan(
                   text: '20%',
                   style: TextStyle(
                       color: AppColors.secondary, fontWeight: FontWeight.bold),
                 ),
-                const TextSpan(
+                TextSpan(
                     text:
                         ' minggu ini. Ada risiko budget habis sebelum akhir bulan.'),
               ],
@@ -536,7 +451,7 @@ class DashboardScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const AiInsightScreen()));
             },
-            child: Row(
+            child: const Row(
               children: [
                 Text(
                   'Lihat Solusi AI',
@@ -546,7 +461,7 @@ class DashboardScreen extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
-                const SizedBox(width: 4),
+                SizedBox(width: 4),
                 Icon(Icons.chevron_right, size: 16, color: AppColors.secondary),
               ],
             ),
@@ -574,15 +489,15 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
                     Icon(Icons.flag_outlined,
                         color: AppColors.secondary, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
+                    SizedBox(width: 8),
+                    Text(
                       'Pencapaian Goals',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -593,7 +508,7 @@ class DashboardScreen extends StatelessWidget {
                   ],
                 ),
                 Row(
-                  children: const [
+                  children: [
                     Text(
                       'Lihat Semua',
                       style: TextStyle(color: Colors.grey, fontSize: 11),
@@ -612,11 +527,11 @@ class DashboardScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      children: const [
+                      children: [
                         Text('🏖️ ', style: TextStyle(fontSize: 14)),
                         Text(
                           'Dana Liburan',
@@ -627,7 +542,7 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const Text(
+                    Text(
                       '55%',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
@@ -639,18 +554,18 @@ class DashboardScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
+                  child: const LinearProgressIndicator(
                     value: 0.55,
                     minHeight: 8,
-                    backgroundColor: const Color(0xFFEFE8DF),
+                    backgroundColor: Color(0xFFEFE8DF),
                     valueColor:
                         AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Rp 2.750.000 / Rp 5.000.000',
                       style: TextStyle(
@@ -673,6 +588,145 @@ class DashboardScreen extends StatelessWidget {
     ),
   );
 }
+
+  Widget _buildBudgetCard(BuildContext context) {
+    void goToBudget() {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const BudgetScreen()),
+      );
+    }
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: goToBudget,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF0E5D8)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.track_changes_outlined,
+                          color: AppColors.secondary, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Anggaran & Budget Bulan Ini',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: goToBudget,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Kelola',
+                            style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(width: 2),
+                          Icon(Icons.chevron_right, size: 16, color: AppColors.primary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Text('🍔 ', style: TextStyle(fontSize: 14)),
+                            Text(
+                              'Makanan & Minuman',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE5E0),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Over 5%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: Color(0xFFD32F2F),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: const LinearProgressIndicator(
+                        value: 1.0,
+                        minHeight: 8,
+                        backgroundColor: Color(0xFFEFE8DF),
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE53935)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Terpakai Rp 1.575.000 / Kuota Rp 1.500.000',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          '105%',
+                          style: TextStyle(fontSize: 11, color: Color(0xFFD32F2F), fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildRecentTransactionsCard(BuildContext context) {
     final transactions = [
@@ -736,8 +790,8 @@ class DashboardScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (context) => const TransactionScreen(showBackButton: true)),
                   );
                 },
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Text(
                       'Lihat Semua',
                       style: TextStyle(color: Colors.grey, fontSize: 11),

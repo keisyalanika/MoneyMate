@@ -46,8 +46,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               color: AppColors.iconBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.circle, size: 6, color: AppColors.primaryBrown),
                 SizedBox(width: 6),
                 Text(
@@ -64,6 +64,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           children: [
@@ -131,9 +132,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Email Terdaftar',
                         style: TextStyle(
@@ -217,9 +218,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       color: AppColors.inputBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Row(
+                    child: const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Icon(
                           Icons.lightbulb_outline,
                           size: 16,
@@ -259,9 +260,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 onPressed: () {
                   Navigator.pushNamed(context, AppRouter.otpVerification);
                 },
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Text(
                       'Kirim Kode Pemulihan',
                       style: TextStyle(

@@ -58,8 +58,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               color: AppColors.iconBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.circle, size: 6, color: AppColors.accentOrange),
                 SizedBox(width: 6),
                 Text(
@@ -77,6 +77,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         ],
       ),
       body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,9 +168,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
               child: Column(
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Kekuatan Sandi: Kuat 👍',
                         style: TextStyle(
@@ -218,9 +219,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             const SizedBox(height: 20),
 
             // Input Konfirmasi Kata Sandi Baru
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text(
                   'Konfirmasi Kata Sandi Baru',
                   style: TextStyle(
@@ -298,8 +299,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             const SizedBox(height: 10),
 
             // Encryption Info
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(
                   Icons.shield_outlined,
                   size: 14,
@@ -330,9 +331,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   elevation: 0,
                 ),
                 onPressed: () => _showSuccessBottomSheet(context),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Text(
                       'Simpan Kata Sandi Baru',
                       style: TextStyle(
