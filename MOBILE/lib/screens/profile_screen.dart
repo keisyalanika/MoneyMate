@@ -190,12 +190,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   _buildMenuCard(
                     width: cardWidth,
-                    icon: Icons.account_balance_rounded,
-                    title: 'Hubungkan\nBank',
-                    onTap: () => Navigator.pushNamed(context, AppRouter.connectBank),
-                  ),
-                  _buildMenuCard(
-                    width: cardWidth,
                     icon: Icons.security_rounded,
                     title: 'Keamanan',
                     onTap: () => Navigator.pushNamed(context, AppRouter.security),
@@ -268,27 +262,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(Icons.dark_mode_outlined, size: 18, color: AppColors.textMuted),
-                                SizedBox(width: 10),
-                                Text(
-                                  'Mode Gelap (Theme)',
-                                  style: TextStyle(fontSize: 13, color: AppColors.textDark),
-                                ),
-                              ],
-                            ),
-                            Switch(
-                              value: settings.isDarkMode,
-                              activeThumbColor: AppColors.primaryBrown,
-                              onChanged: (val) => settings.toggleDarkMode(val),
-                            ),
-                          ],
-                        ),
-                        const Divider(color: AppColors.inputBorder, height: 1),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

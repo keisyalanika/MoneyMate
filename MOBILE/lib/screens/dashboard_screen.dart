@@ -148,9 +148,12 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildSaldoCard(BuildContext context) {
     final finance = Provider.of<FinanceProvider>(context);
-    final String saldoDisplay = finance.totalBalance > 0
-        ? NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(finance.totalBalance)
-        : 'Rp 2.450.000';
+    // Saldo selalu dari backend (via FinanceProvider → OfflineFirstRepository → summaryService)
+    final String saldoDisplay = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(finance.totalBalance);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -336,50 +339,49 @@ class DashboardScreen extends StatelessWidget {
           }
         }
 
-        return Container(
-          margin: const EdgeInsets.only(right: 16),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: label == 'Budget' ? 8 : 0,
+              left: label == 'Goals' ? 8 : 0,
+            ),
+            child: Material(
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              onTap: navigate,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: navigate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                      child: Center(
-                        child: Icon(
-                          icon,
-                          color: AppColors.primary,
-                          size: 26,
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        icon,
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -257,6 +257,28 @@ class ApiService {
     ];
   }
 
+  /// Ambil ringkasan keuangan dari backend berdasarkan rentang tanggal.
+  /// Endpoint: GET /api/reports/export?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+  static Future<Map<String, dynamic>?> fetchFinancialReport({
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/reports/export').replace(queryParameters: {
+        if (startDate != null) 'start_date': startDate,
+        if (endDate != null) 'end_date': endDate,
+      });
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        return body['data'] as Map<String, dynamic>?;
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchFinancialReport: $e');
+    }
+    return null;
+  }
+
   // ================= SETTINGS =================
   static Future<Map<String, dynamic>> fetchUserSettings() async {
     try {

@@ -663,9 +663,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                         });
                       },
                       child: const Icon(Icons.clear, color: AppColors.textMuted, size: 18),
-                    )
-                  else
-                    const Icon(Icons.mic_none, color: AppColors.textMuted, size: 20),
+                    ),
                 ],
               ),
             ),

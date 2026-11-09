@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../services/api_service.dart';
 import 'add_goal_funds_screen.dart';
 import 'kelola_kategori_screen.dart';
 
@@ -10,11 +12,15 @@ class LaporanScreen extends StatefulWidget {
 }
 
 class _LaporanScreenState extends State<LaporanScreen> {
-  // 0: Bulan Ini (Sep 2026), 1: Bulan Lalu (Agu 2026), 2: Kuartal 3, 3: Tahun 2026
+  // 0: Bulan Ini, 1: Bulan Lalu, 2: Kuartal 3, 3: Tahun 2026
   int _selectedPeriodIndex = 0;
 
   // Pilihan format ekspor (0: PDF, 1: CSV)
   int _selectedExportFormat = 0;
+
+  // Data dari backend
+  Map<String, dynamic>? _reportData;
+  bool _isLoading = false;
 
   final List<String> _periods = [
     'Bulan Ini',
@@ -29,6 +35,66 @@ class _LaporanScreenState extends State<LaporanScreen> {
     'Kuartal 3 (Jul – Sep 2026)',
     'Tahun 2026',
   ];
+
+  /// Hitung rentang tanggal berdasarkan periode yang dipilih
+  Map<String, String> _getDateRange(int periodIndex) {
+    final now = DateTime.now();
+    switch (periodIndex) {
+      case 0: // Bulan Ini
+        final start = DateTime(now.year, now.month, 1);
+        final end = DateTime(now.year, now.month + 1, 0);
+        return {
+          'start': DateFormat('yyyy-MM-dd').format(start),
+          'end': DateFormat('yyyy-MM-dd').format(end),
+        };
+      case 1: // Bulan Lalu
+        final start = DateTime(now.year, now.month - 1, 1);
+        final end = DateTime(now.year, now.month, 0);
+        return {
+          'start': DateFormat('yyyy-MM-dd').format(start),
+          'end': DateFormat('yyyy-MM-dd').format(end),
+        };
+      case 2: // Kuartal 3 (Jul–Sep)
+        final year = now.year;
+        return {
+          'start': '$year-07-01',
+          'end': '$year-09-30',
+        };
+      case 3: // Tahun ini
+        return {
+          'start': '${now.year}-01-01',
+          'end': '${now.year}-12-31',
+        };
+      default:
+        return {};
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    setState(() => _isLoading = true);
+    final range = _getDateRange(_selectedPeriodIndex);
+    final data = await ApiService.fetchFinancialReport(
+      startDate: range['start'],
+      endDate: range['end'],
+    );
+    if (mounted) {
+      setState(() {
+        _reportData = data;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onPeriodChanged(int idx) {
+    setState(() => _selectedPeriodIndex = idx);
+    _fetchReport();
+  }
 
   void _showHelpDialog() {
     showDialog(
@@ -194,7 +260,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
+      body: RefreshIndicator(
+        onRefresh: _fetchReport,
+        color: const Color(0xFF8A3A23),
+        child: SafeArea(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
@@ -209,7 +278,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   children: List.generate(_periods.length, (idx) {
                     final isSel = idx == _selectedPeriodIndex;
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedPeriodIndex = idx),
+                      onTap: () => _onPeriodChanged(idx),
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -254,6 +323,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -262,68 +332,70 @@ class _LaporanScreenState extends State<LaporanScreen> {
   // WIDGET HELPER: NET SAVINGS CARD
   // ==============================================================
   Widget _buildNetSavingsCard() {
+    // Gunakan data backend jika tersedia, fallback ke label default
+    final cashFlow = _reportData?['cash_flow'] as Map<String, dynamic>?;
+    final double totalIncome = cashFlow != null
+        ? (cashFlow['total_income'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final double totalExpense = cashFlow != null
+        ? (cashFlow['total_expense'] as num?)?.toDouble() ?? 0.0
+        : 0.0;
+    final double netSavings = totalIncome - totalExpense;
+    final int savingsRate = cashFlow != null
+        ? (cashFlow['savings_rate'] as num?)?.toInt() ?? 0
+        : 0;
+
+    final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    final bool hasData = _reportData != null;
+
     String title;
     String badgeText;
     bool isBadgeTarget = false;
-    String amount;
     String rateLabel;
-    String rateVal;
-    double progressRatio;
-    String incomeVal;
-    String incomeDiff;
-    String expenseVal;
-    String expenseDiff;
 
     if (_selectedPeriodIndex == 0) {
-      // Bulan Ini
       title = 'NET SAVINGS (TABUNGAN BERSIH)';
-      badgeText = 'Sangat Sehat';
-      amount = 'Rp 5.080.000';
+      badgeText = savingsRate >= 50 ? 'Sangat Sehat' : (savingsRate >= 20 ? 'Cukup Sehat' : 'Perlu Perhatian');
       rateLabel = 'Tingkat Tabungan (Savings Rate)';
-      rateVal = '59.7%';
-      progressRatio = 0.597;
-      incomeVal = 'Rp 8.500.000';
-      incomeDiff = '↗ +12% bln lalu';
-      expenseVal = 'Rp 3.420.000';
-      expenseDiff = '↘ -8% hemat';
     } else if (_selectedPeriodIndex == 1) {
-      // Bulan Lalu
       title = 'NET SAVINGS (TABUNGAN BERSIH)';
-      badgeText = 'Sangat Sehat';
-      amount = 'Rp 4.650.000';
+      badgeText = savingsRate >= 50 ? 'Sangat Sehat' : (savingsRate >= 20 ? 'Cukup Sehat' : 'Perlu Perhatian');
       rateLabel = 'Tingkat Tabungan (Savings Rate)';
-      rateVal = '58.1%';
-      progressRatio = 0.581;
-      incomeVal = 'Rp 8.000.000';
-      incomeDiff = '↗ +8.5% bln lalu';
-      expenseVal = 'Rp 3.350.000';
-      expenseDiff = '↘ -12% hemat';
     } else if (_selectedPeriodIndex == 2) {
-      // Kuartal 3
       title = 'AKUMULASI TABUNGAN BERSIH\n(Q3)';
       badgeText = 'Target\nTercapai';
       isBadgeTarget = true;
-      amount = 'Rp 14.850.000';
       rateLabel = 'Tingkat Tabungan Rata-rata';
-      rateVal = '58.7%';
-      progressRatio = 0.587;
-      incomeVal = 'Rp 25.3jt';
-      incomeDiff = '↗ +14% vs Q2';
-      expenseVal = 'Rp 10.45jt';
-      expenseDiff = '— Stabil';
     } else {
-      // Tahun 2026
-      title = 'AKUMULASI TABUNGAN BERSIH\n(2026)';
+      title = 'AKUMULASI TABUNGAN BERSIH\n(${DateTime.now().year})';
       badgeText = 'Sangat\nPrima';
       isBadgeTarget = true;
-      amount = 'Rp 48.200.000';
       rateLabel = 'Tingkat Tabungan Tahunan';
-      rateVal = '61.4%';
-      progressRatio = 0.614;
-      incomeVal = 'Rp 78.5jt';
-      incomeDiff = '↗ +18% vs 2025';
-      expenseVal = 'Rp 30.3jt';
-      expenseDiff = '↘ Efisien';
+    }
+
+    final String amountDisplay = hasData ? formatter.format(netSavings) : '– –';
+    final String rateVal = hasData ? '$savingsRate%' : '– –';
+    final double progressRatio = hasData && totalIncome > 0
+        ? (netSavings / totalIncome).clamp(0.0, 1.0)
+        : 0.0;
+    final String incomeVal = hasData ? formatter.format(totalIncome) : '– –';
+    final String expenseVal = hasData ? formatter.format(totalExpense) : '– –';
+
+    if (_isLoading) {
+      return Container(
+        width: double.infinity,
+        height: 180,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF38180E), Color(0xFF260F08)],
+          ),
+        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
     }
 
     return Container(
@@ -402,7 +474,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
 
           // Total Net Amount
           Text(
-            amount,
+            amountDisplay,
             style: const TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.bold,
@@ -477,11 +549,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        incomeDiff,
-                        style: const TextStyle(fontSize: 10, color: Color(0xFF81C784)),
-                      ),
                     ],
                   ),
                 ),
@@ -517,11 +584,6 @@ class _LaporanScreenState extends State<LaporanScreen> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        expenseDiff,
-                        style: const TextStyle(fontSize: 10, color: Color(0xFFE28B6E)),
                       ),
                     ],
                   ),
@@ -859,166 +921,225 @@ class _LaporanScreenState extends State<LaporanScreen> {
   // ==============================================================
   Widget _buildCategoryCard() {
     final isQuarter = _selectedPeriodIndex == 2;
-    final isAugust = _selectedPeriodIndex == 1;
 
-    final categories = isQuarter
-        ? [
-            {
-              'icon': Icons.restaurant_outlined,
-              'title': 'Makanan & Minuman',
-              'subtitle': 'Kebutuhan harian & kuliner',
-              'amount': 'Rp 4.250.000',
-              'pct': '40.7%',
-              'ratio': 0.407,
-              'barColor': const Color(0xFF582312),
-              'iconBg': const Color(0xFFFBECE5),
-            },
-            {
-              'icon': Icons.shopping_cart_outlined,
-              'title': 'Belanja Supermarket',
-              'subtitle': 'Bahan pokok & rumah',
-              'amount': 'Rp 2.580.000',
-              'pct': '24.7%',
-              'ratio': 0.247,
-              'barColor': const Color(0xFF8A3A23),
-              'iconBg': const Color(0xFFFBF0EA),
-            },
-            {
-              'icon': Icons.movie_outlined,
-              'title': 'Hiburan & Langganan',
-              'subtitle': 'Streaming & hobi',
-              'amount': 'Rp 1.400.000',
-              'pct': '13.4%',
-              'ratio': 0.134,
-              'barColor': const Color(0xFFB35A43),
-              'iconBg': const Color(0xFFFDF4F0),
-            },
-            {
-              'icon': Icons.directions_car_outlined,
-              'title': 'Transportasi & Bensin',
-              'subtitle': 'Bensin & e-toll',
-              'amount': 'Rp 1.180.000',
-              'pct': '11.3%',
-              'ratio': 0.113,
-              'barColor': const Color(0xFFE28B6E),
-              'iconBg': const Color(0xFFFDF0EA),
-            },
-            {
-              'icon': Icons.receipt_long_outlined,
-              'title': 'Tagihan & Utilitas',
-              'subtitle': 'Listrik, air & Wi-Fi',
-              'amount': 'Rp 1.040.000',
-              'pct': '9.9%',
-              'ratio': 0.099,
-              'barColor': const Color(0xFF8C827A),
-              'iconBg': const Color(0xFFF5F3F0),
-            },
-          ]
-        : (isAugust
-            ? [
-                {
-                  'icon': Icons.restaurant_outlined,
-                  'title': 'Makanan & Minuman',
-                  'subtitle': 'Kebutuhan harian & kuliner',
-                  'amount': 'Rp 1.350.000',
-                  'pct': '40.3%',
-                  'ratio': 0.403,
-                  'barColor': const Color(0xFF582312),
-                  'iconBg': const Color(0xFFFBECE5),
-                },
-                {
-                  'icon': Icons.shopping_cart_outlined,
-                  'title': 'Belanja Supermarket',
-                  'subtitle': 'Bahan pokok & rumah',
-                  'amount': 'Rp 780.000',
-                  'pct': '23.3%',
-                  'ratio': 0.233,
-                  'barColor': const Color(0xFF8A3A23),
-                  'iconBg': const Color(0xFFFBF0EA),
-                },
-                {
-                  'icon': Icons.movie_outlined,
-                  'title': 'Hiburan & Langganan',
-                  'subtitle': 'Streaming & hobi',
-                  'amount': 'Rp 450.000',
-                  'pct': '13.4%',
-                  'ratio': 0.134,
-                  'barColor': const Color(0xFFB35A43),
-                  'iconBg': const Color(0xFFFDF4F0),
-                },
-                {
-                  'icon': Icons.directions_car_outlined,
-                  'title': 'Transportasi & Bensin',
-                  'subtitle': 'Bensin & e-toll',
-                  'amount': 'Rp 420.000',
-                  'pct': '12.5%',
-                  'ratio': 0.125,
-                  'barColor': const Color(0xFFE28B6E),
-                  'iconBg': const Color(0xFFFDF0EA),
-                },
-                {
-                  'icon': Icons.bolt_outlined,
-                  'title': 'Tagihan & Utilitas',
-                  'subtitle': 'Listrik, air & Wi-Fi',
-                  'amount': 'Rp 350.000',
-                  'pct': '10.5%',
-                  'ratio': 0.105,
-                  'barColor': const Color(0xFF8C827A),
-                  'iconBg': const Color(0xFFF5F3F0),
-                },
-              ]
-            : [
-                {
-                  'icon': Icons.restaurant_outlined,
-                  'title': 'Makanan & Minuman',
-                  'subtitle': 'Kebutuhan harian & kuliner',
-                  'amount': 'Rp 1.420.000',
-                  'pct': '41.5%',
-                  'ratio': 0.415,
-                  'barColor': const Color(0xFF582312),
-                  'iconBg': const Color(0xFFFBECE5),
-                },
-                {
-                  'icon': Icons.shopping_cart_outlined,
-                  'title': 'Belanja Supermarket',
-                  'subtitle': 'Bahan pokok & rumah',
-                  'amount': 'Rp 850.000',
-                  'pct': '24.8%',
-                  'ratio': 0.248,
-                  'barColor': const Color(0xFF8A3A23),
-                  'iconBg': const Color(0xFFFBF0EA),
-                },
-                {
-                  'icon': Icons.movie_outlined,
-                  'title': 'Hiburan & Langganan',
-                  'subtitle': 'Streaming & hobi',
-                  'amount': 'Rp 450.000',
-                  'pct': '13.1%',
-                  'ratio': 0.131,
-                  'barColor': const Color(0xFFB35A43),
-                  'iconBg': const Color(0xFFFDF4F0),
-                },
-                {
-                  'icon': Icons.directions_car_outlined,
-                  'title': 'Transportasi & Bensin',
-                  'subtitle': 'Bensin & e-toll',
-                  'amount': 'Rp 380.000',
-                  'pct': '11.1%',
-                  'ratio': 0.111,
-                  'barColor': const Color(0xFFE28B6E),
-                  'iconBg': const Color(0xFFFDF0EA),
-                },
-                {
-                  'icon': Icons.receipt_long_outlined,
-                  'title': 'Tagihan & Utilitas',
-                  'subtitle': 'Listrik, air & Wi-Fi',
-                  'amount': 'Rp 320.000',
-                  'pct': '9.5%',
-                  'ratio': 0.095,
-                  'barColor': const Color(0xFF8C827A),
-                  'iconBg': const Color(0xFFF5F3F0),
-                },
-              ]);
+    // Gunakan data backend jika tersedia
+    final backendBreakdown = _reportData?['category_breakdown'] as List<dynamic>?;
+    final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    // Daftar warna bar berdasarkan urutan
+    final barColors = [
+      const Color(0xFF582312),
+      const Color(0xFF8A3A23),
+      const Color(0xFFB35A43),
+      const Color(0xFFE28B6E),
+      const Color(0xFF8C827A),
+    ];
+    final iconBgColors = [
+      const Color(0xFFFBECE5),
+      const Color(0xFFFBF0EA),
+      const Color(0xFFFDF4F0),
+      const Color(0xFFFDF0EA),
+      const Color(0xFFF5F3F0),
+    ];
+    final iconList = [
+      Icons.restaurant_outlined,
+      Icons.shopping_cart_outlined,
+      Icons.movie_outlined,
+      Icons.directions_car_outlined,
+      Icons.receipt_long_outlined,
+    ];
+
+    // Hitung total untuk rasio
+    double totalExpenseBackend = 0;
+    if (backendBreakdown != null) {
+      for (final c in backendBreakdown) {
+        totalExpenseBackend += (c['amount'] as num?)?.toDouble() ?? 0;
+      }
+    }
+
+    final List<Map<String, dynamic>> categories;
+
+    if (backendBreakdown != null && backendBreakdown.isNotEmpty) {
+      // Data dari backend
+      final top5 = backendBreakdown.take(5).toList();
+      categories = List.generate(top5.length, (i) {
+        final c = top5[i] as Map<String, dynamic>;
+        final double amt = (c['amount'] as num?)?.toDouble() ?? 0;
+        final double ratio = totalExpenseBackend > 0 ? (amt / totalExpenseBackend).clamp(0.0, 1.0) : 0.0;
+        final int pctInt = (ratio * 100).round();
+        return {
+          'icon': iconList[i % iconList.length],
+          'title': c['name'] as String? ?? 'Lainnya',
+          'subtitle': '${c['count'] ?? 0} transaksi',
+          'amount': formatter.format(amt),
+          'pct': '$pctInt%',
+          'ratio': ratio,
+          'barColor': barColors[i % barColors.length],
+          'iconBg': iconBgColors[i % iconBgColors.length],
+        };
+      });
+    } else {
+      // Fallback dummy saat backend belum ada data
+      final isAugust = _selectedPeriodIndex == 1;
+      categories = isQuarter
+          ? [
+              {
+                'icon': Icons.restaurant_outlined,
+                'title': 'Makanan & Minuman',
+                'subtitle': 'Kebutuhan harian & kuliner',
+                'amount': 'Rp 4.250.000',
+                'pct': '40.7%',
+                'ratio': 0.407,
+                'barColor': const Color(0xFF582312),
+                'iconBg': const Color(0xFFFBECE5),
+              },
+              {
+                'icon': Icons.shopping_cart_outlined,
+                'title': 'Belanja Supermarket',
+                'subtitle': 'Bahan pokok & rumah',
+                'amount': 'Rp 2.580.000',
+                'pct': '24.7%',
+                'ratio': 0.247,
+                'barColor': const Color(0xFF8A3A23),
+                'iconBg': const Color(0xFFFBF0EA),
+              },
+              {
+                'icon': Icons.movie_outlined,
+                'title': 'Hiburan & Langganan',
+                'subtitle': 'Streaming & hobi',
+                'amount': 'Rp 1.400.000',
+                'pct': '13.4%',
+                'ratio': 0.134,
+                'barColor': const Color(0xFFB35A43),
+                'iconBg': const Color(0xFFFDF4F0),
+              },
+              {
+                'icon': Icons.directions_car_outlined,
+                'title': 'Transportasi & Bensin',
+                'subtitle': 'Bensin & e-toll',
+                'amount': 'Rp 1.180.000',
+                'pct': '11.3%',
+                'ratio': 0.113,
+                'barColor': const Color(0xFFE28B6E),
+                'iconBg': const Color(0xFFFDF0EA),
+              },
+              {
+                'icon': Icons.receipt_long_outlined,
+                'title': 'Tagihan & Utilitas',
+                'subtitle': 'Listrik, air & Wi-Fi',
+                'amount': 'Rp 1.040.000',
+                'pct': '9.9%',
+                'ratio': 0.099,
+                'barColor': const Color(0xFF8C827A),
+                'iconBg': const Color(0xFFF5F3F0),
+              },
+            ]
+          : (isAugust
+              ? [
+                  {
+                    'icon': Icons.restaurant_outlined,
+                    'title': 'Makanan & Minuman',
+                    'subtitle': 'Kebutuhan harian & kuliner',
+                    'amount': 'Rp 1.350.000',
+                    'pct': '40.3%',
+                    'ratio': 0.403,
+                    'barColor': const Color(0xFF582312),
+                    'iconBg': const Color(0xFFFBECE5),
+                  },
+                  {
+                    'icon': Icons.shopping_cart_outlined,
+                    'title': 'Belanja Supermarket',
+                    'subtitle': 'Bahan pokok & rumah',
+                    'amount': 'Rp 780.000',
+                    'pct': '23.3%',
+                    'ratio': 0.233,
+                    'barColor': const Color(0xFF8A3A23),
+                    'iconBg': const Color(0xFFFBF0EA),
+                  },
+                  {
+                    'icon': Icons.movie_outlined,
+                    'title': 'Hiburan & Langganan',
+                    'subtitle': 'Streaming & hobi',
+                    'amount': 'Rp 450.000',
+                    'pct': '13.4%',
+                    'ratio': 0.134,
+                    'barColor': const Color(0xFFB35A43),
+                    'iconBg': const Color(0xFFFDF4F0),
+                  },
+                  {
+                    'icon': Icons.directions_car_outlined,
+                    'title': 'Transportasi & Bensin',
+                    'subtitle': 'Bensin & e-toll',
+                    'amount': 'Rp 420.000',
+                    'pct': '12.5%',
+                    'ratio': 0.125,
+                    'barColor': const Color(0xFFE28B6E),
+                    'iconBg': const Color(0xFFFDF0EA),
+                  },
+                  {
+                    'icon': Icons.bolt_outlined,
+                    'title': 'Tagihan & Utilitas',
+                    'subtitle': 'Listrik, air & Wi-Fi',
+                    'amount': 'Rp 350.000',
+                    'pct': '10.5%',
+                    'ratio': 0.105,
+                    'barColor': const Color(0xFF8C827A),
+                    'iconBg': const Color(0xFFF5F3F0),
+                  },
+                ]
+              : [
+                  {
+                    'icon': Icons.restaurant_outlined,
+                    'title': 'Makanan & Minuman',
+                    'subtitle': 'Kebutuhan harian & kuliner',
+                    'amount': 'Rp 1.420.000',
+                    'pct': '41.5%',
+                    'ratio': 0.415,
+                    'barColor': const Color(0xFF582312),
+                    'iconBg': const Color(0xFFFBECE5),
+                  },
+                  {
+                    'icon': Icons.shopping_cart_outlined,
+                    'title': 'Belanja Supermarket',
+                    'subtitle': 'Bahan pokok & rumah',
+                    'amount': 'Rp 850.000',
+                    'pct': '24.8%',
+                    'ratio': 0.248,
+                    'barColor': const Color(0xFF8A3A23),
+                    'iconBg': const Color(0xFFFBF0EA),
+                  },
+                  {
+                    'icon': Icons.movie_outlined,
+                    'title': 'Hiburan & Langganan',
+                    'subtitle': 'Streaming & hobi',
+                    'amount': 'Rp 450.000',
+                    'pct': '13.1%',
+                    'ratio': 0.131,
+                    'barColor': const Color(0xFFB35A43),
+                    'iconBg': const Color(0xFFFDF4F0),
+                  },
+                  {
+                    'icon': Icons.directions_car_outlined,
+                    'title': 'Transportasi & Bensin',
+                    'subtitle': 'Bensin & e-toll',
+                    'amount': 'Rp 380.000',
+                    'pct': '11.1%',
+                    'ratio': 0.111,
+                    'barColor': const Color(0xFFE28B6E),
+                    'iconBg': const Color(0xFFFDF0EA),
+                  },
+                  {
+                    'icon': Icons.receipt_long_outlined,
+                    'title': 'Tagihan & Utilitas',
+                    'subtitle': 'Listrik, air & Wi-Fi',
+                    'amount': 'Rp 320.000',
+                    'pct': '9.5%',
+                    'ratio': 0.095,
+                    'barColor': const Color(0xFF8C827A),
+                    'iconBg': const Color(0xFFF5F3F0),
+                  },
+                ]);
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1037,7 +1158,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Judul & Badge Total 5 Pos (Bisa diklik untuk buka Kelola Kategori)
+          // Header Judul & Badge Total Pos (Bisa diklik untuk buka Kelola Kategori)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1062,19 +1183,19 @@ class _LaporanScreenState extends State<LaporanScreen> {
                     color: const Color(0xFFF5ECE4),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Total 5 Pos',
-                        style: TextStyle(
+                        'Total ${categories.length} Pos',
+                        style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF5A4A42),
                         ),
                       ),
-                      SizedBox(width: 2),
-                      Icon(Icons.chevron_right, size: 14, color: Color(0xFF5A4A42)),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.chevron_right, size: 14, color: Color(0xFF5A4A42)),
                     ],
                   ),
                 ),
@@ -1083,7 +1204,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
           ),
           const SizedBox(height: 2),
           Text(
-            isQuarter ? '5 Alokasi Terbesar Kuartal 3' : '5 Alokasi Terbesar Bulan Ini',
+            isQuarter ? '${categories.length} Alokasi Terbesar Kuartal 3' : '${categories.length} Alokasi Terbesar Bulan Ini',
             style: const TextStyle(fontSize: 11, color: Color(0xFF8C827A)),
           ),
           const SizedBox(height: 18),
