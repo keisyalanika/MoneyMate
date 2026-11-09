@@ -165,12 +165,16 @@ function executeLocalQuery(sql: string, params: any[] = []): any {
       let filtered = [...table];
       let pIdx = 0;
       if (upper.includes('USER_ID = ?')) {
-        filtered = filtered.filter(r => Number(r.user_id) === Number(params[pIdx++]));
+        const targetUserId = params[pIdx++];
+        filtered = filtered.filter(r => Number(r.user_id) === Number(targetUserId));
       }
-      if (upper.includes("TYPE = 'INCOME'") || (upper.includes('TYPE = ?') && params.includes('income'))) {
+      if (upper.includes("TYPE = 'INCOME'")) {
         filtered = filtered.filter(r => String(r.type).toLowerCase() === 'income');
-      } else if (upper.includes("TYPE = 'EXPENSE'") || (upper.includes('TYPE = ?') && params.includes('expense'))) {
+      } else if (upper.includes("TYPE = 'EXPENSE'")) {
         filtered = filtered.filter(r => String(r.type).toLowerCase() === 'expense');
+      } else if (upper.includes('TYPE = ?')) {
+        const targetType = String(params[pIdx++] || '').toLowerCase();
+        filtered = filtered.filter(r => String(r.type).toLowerCase() === targetType);
       }
 
       const sum = filtered.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);

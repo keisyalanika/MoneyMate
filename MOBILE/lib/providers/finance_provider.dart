@@ -64,6 +64,7 @@ class FinanceProvider with ChangeNotifier {
     // 1. Reactive Transactions Stream
     _txSub = _repository.watchTransactions().listen((data) {
       _transactions = data;
+      _calculateBalanceFromTransactions();
       notifyListeners();
     });
 
@@ -81,12 +82,36 @@ class FinanceProvider with ChangeNotifier {
 
     // 4. Reactive Wallet Summary Stream
     _summarySub = _repository.watchWalletSummary().listen((summary) {
-      _totalBalance = (summary['totalBalance'] as num?)?.toDouble() ?? 0.0;
-      _totalIncome = (summary['totalIncome'] as num?)?.toDouble() ?? 0.0;
-      _totalExpense = (summary['totalExpense'] as num?)?.toDouble() ?? 0.0;
-      _lastFetchedMillis = (summary['lastFetched'] as num?)?.toInt() ?? 0;
+      final summaryBal = (summary['totalBalance'] as num?)?.toDouble();
+      final summaryInc = (summary['totalIncome'] as num?)?.toDouble();
+      final summaryExp = (summary['totalExpense'] as num?)?.toDouble();
+      final lastFetched = (summary['lastFetched'] as num?)?.toInt() ?? 0;
+
+      if (summaryBal != null && lastFetched > 0) {
+        _totalBalance = summaryBal;
+        _totalIncome = summaryInc ?? _totalIncome;
+        _totalExpense = summaryExp ?? _totalExpense;
+        _lastFetchedMillis = lastFetched;
+      } else if (_transactions.isNotEmpty) {
+        _calculateBalanceFromTransactions();
+      }
       notifyListeners();
     });
+  }
+
+  void _calculateBalanceFromTransactions() {
+    double inc = 0.0;
+    double exp = 0.0;
+    for (final tx in _transactions) {
+      if (tx.type.toUpperCase() == 'INCOME') {
+        inc += tx.amount;
+      } else {
+        exp += tx.amount;
+      }
+    }
+    _totalIncome = inc;
+    _totalExpense = exp;
+    _totalBalance = inc - exp;
   }
 
   /// Sinkronisasi backend -> Drift database lokal
@@ -98,25 +123,13 @@ class FinanceProvider with ChangeNotifier {
 
     // Pastikan nilai saldo sinkron dari database Drift atau API
     final summary = await _repository.db.getWalletSummary();
-    if (summary != null) {
+    if (summary != null && summary.lastFetched > 0) {
       _totalBalance = summary.totalBalance;
       _totalIncome = summary.totalIncome;
       _totalExpense = summary.totalExpense;
       _lastFetchedMillis = summary.lastFetched;
     } else {
-      final txs = await _repository.db.getAllTransactions();
-      double inc = 0.0;
-      double exp = 0.0;
-      for (final tx in txs) {
-        if (tx.type.toUpperCase() == 'INCOME') {
-          inc += tx.amount;
-        } else {
-          exp += tx.amount;
-        }
-      }
-      _totalIncome = inc;
-      _totalExpense = exp;
-      _totalBalance = inc - exp;
+      _calculateBalanceFromTransactions();
     }
 
     _isLoading = false;

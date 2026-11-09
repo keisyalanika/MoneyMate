@@ -50,38 +50,17 @@ class ApiService {
       final response = await http.get(Uri.parse('$baseUrl/transactions'), headers: headers);
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
-        final List<dynamic> list = body['data'];
-        return list.map((e) => TransactionModel.fromJson(e)).toList();
+        if (body['data'] != null && body['data'] is List) {
+          final List<dynamic> list = body['data'];
+          return list.map((e) => TransactionModel.fromJson(e)).toList();
+        }
       }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('API Error fetchTransactions: $e');
       }
     }
-    return [
-      TransactionModel(
-        id: 'tx-001',
-        title: 'Gaji Bulanan Software Engineer',
-        amount: 15000000,
-        type: 'INCOME',
-        categoryId: 'cat-inc-1',
-        categoryName: 'Gaji',
-        categoryIcon: 'wallet',
-        date: DateTime.now().toIso8601String(),
-        notes: 'Transfer Gaji Pokok',
-      ),
-      TransactionModel(
-        id: 'tx-002',
-        title: 'Makan Siang Resto SE',
-        amount: 125000,
-        type: 'EXPENSE',
-        categoryId: 'cat-exp-1',
-        categoryName: 'Makanan & Minuman',
-        categoryIcon: 'utensils',
-        date: DateTime.now().toIso8601String(),
-        notes: 'Makan bersama tim',
-      ),
-    ];
+    return [];
   }
 
   static Future<bool> addTransaction(Map<String, dynamic> payload) async {
@@ -344,7 +323,7 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) debugPrint('API Error fetchWallets: $e');
     }
-    return {'data': [], 'totalBalance': 2450000};
+    return {'data': [], 'totalBalance': 0};
   }
 
   static Future<bool> setupInitialBalance(double amount, [String? walletName]) async {

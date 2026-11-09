@@ -253,22 +253,24 @@ class OfflineFirstRepository {
 
     await _db.insertOrUpdateTransaction(companion);
 
-    // 2. Perbarui ringkasan saldo lokal di Drift secara atomik
-    final currentSummary = await _db.getWalletSummary();
-    final double prevBalance = currentSummary?.totalBalance ?? 0.0;
-    final double prevIncome = currentSummary?.totalIncome ?? 0.0;
-    final double prevExpense = currentSummary?.totalExpense ?? 0.0;
-
-    final double newBalance = isInc ? prevBalance + amount : prevBalance - amount;
-    final double newIncome = isInc ? prevIncome + amount : prevIncome;
-    final double newExpense = !isInc ? prevExpense + amount : prevExpense;
+    // 2. Perbarui ringkasan saldo lokal di Drift secara atomik berdasarkan total transaksi riil
+    final allTxs = await _db.getAllTransactions();
+    double calcInc = 0.0;
+    double calcExp = 0.0;
+    for (final tx in allTxs) {
+      if (tx.type.toUpperCase() == 'INCOME') {
+        calcInc += tx.amount;
+      } else {
+        calcExp += tx.amount;
+      }
+    }
 
     await _db.updateWalletSummaryAtomic(
       LocalWalletSummaryCompanion(
         id: const Value('main_wallet'),
-        totalBalance: Value(newBalance),
-        totalIncome: Value(newIncome),
-        totalExpense: Value(newExpense),
+        totalBalance: Value(calcInc - calcExp),
+        totalIncome: Value(calcInc),
+        totalExpense: Value(calcExp),
         lastFetched: Value(nowUtcMillis),
         updatedAt: Value(nowUtcMillis),
       ),
@@ -308,6 +310,29 @@ class OfflineFirstRepository {
         await ApiService.deleteTransaction(numericId);
       } catch (_) {}
     }
+
+    final allTxs = await _db.getAllTransactions();
+    double calcInc = 0.0;
+    double calcExp = 0.0;
+    for (final tx in allTxs) {
+      if (tx.type.toUpperCase() == 'INCOME') {
+        calcInc += tx.amount;
+      } else {
+        calcExp += tx.amount;
+      }
+    }
+    final nowUtcMillis = DateTime.now().toUtc().millisecondsSinceEpoch;
+    await _db.updateWalletSummaryAtomic(
+      LocalWalletSummaryCompanion(
+        id: const Value('main_wallet'),
+        totalBalance: Value(calcInc - calcExp),
+        totalIncome: Value(calcInc),
+        totalExpense: Value(calcExp),
+        lastFetched: Value(nowUtcMillis),
+        updatedAt: Value(nowUtcMillis),
+      ),
+    );
+
     await syncSummary();
     return true;
   }
