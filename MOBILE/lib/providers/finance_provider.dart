@@ -96,6 +96,29 @@ class FinanceProvider with ChangeNotifier {
 
     await _repository.syncAll();
 
+    // Pastikan nilai saldo sinkron dari database Drift atau API
+    final summary = await _repository.db.getWalletSummary();
+    if (summary != null) {
+      _totalBalance = summary.totalBalance;
+      _totalIncome = summary.totalIncome;
+      _totalExpense = summary.totalExpense;
+      _lastFetchedMillis = summary.lastFetched;
+    } else {
+      final txs = await _repository.db.getAllTransactions();
+      double inc = 0.0;
+      double exp = 0.0;
+      for (final tx in txs) {
+        if (tx.type.toUpperCase() == 'INCOME') {
+          inc += tx.amount;
+        } else {
+          exp += tx.amount;
+        }
+      }
+      _totalIncome = inc;
+      _totalExpense = exp;
+      _totalBalance = inc - exp;
+    }
+
     _isLoading = false;
     notifyListeners();
   }
@@ -111,6 +134,17 @@ class FinanceProvider with ChangeNotifier {
     required String date,
     String? notes,
   }) async {
+    final bool isInc = type.toUpperCase() == 'INCOME';
+
+    // Update optimistik state langsung agar UI dashboard terupdate seketika
+    _totalBalance = isInc ? _totalBalance + amount : _totalBalance - amount;
+    if (isInc) {
+      _totalIncome += amount;
+    } else {
+      _totalExpense += amount;
+    }
+    notifyListeners();
+
     final success = await _repository.createTransaction(
       title: title,
       amount: amount,
@@ -121,6 +155,36 @@ class FinanceProvider with ChangeNotifier {
       date: date,
       notes: notes,
     );
+
+    // Refresh dari backend untuk memastikan konsistensi mutlak
+    await refreshFromBackend();
+    return success;
+  }
+
+  /// Penyesuaian saldo langsung (Pemasukan / Pengurangan saldo)
+  Future<bool> adjustBalance({
+    required bool isAdd,
+    required double amount,
+    String? note,
+  }) async {
+    final type = isAdd ? 'INCOME' : 'EXPENSE';
+    final title = note ?? (isAdd ? 'Tambah Saldo' : 'Pengurangan Saldo');
+    return await addTransaction(
+      title: title,
+      amount: amount,
+      type: type,
+      categoryId: isAdd ? '1' : '7',
+      categoryName: isAdd ? 'Gaji' : 'Makanan & Minuman',
+      categoryIcon: isAdd ? 'wallet' : 'shopping_bag',
+      date: DateTime.now().toIso8601String().split('T').first,
+      notes: note,
+    );
+  }
+
+  /// Hapus transaksi dan refresh saldo
+  Future<bool> deleteTransaction(String id) async {
+    final success = await _repository.deleteTransaction(id);
+    await refreshFromBackend();
     return success;
   }
 

@@ -183,6 +183,9 @@ class OfflineFirstRepository {
   Future<void> syncSummary() async {
     try {
       final summary = await ApiService.fetchSummary();
+      if (summary.isEmpty || (summary['totalBalance'] == null && summary['balance'] == null)) {
+        return;
+      }
       final nowUtcMillis = DateTime.now().toUtc().millisecondsSinceEpoch;
 
       final balance = ((summary['totalBalance'] ?? summary['balance'] ?? 0) as num).toDouble();
@@ -231,13 +234,14 @@ class OfflineFirstRepository {
   }) async {
     final nowUtcMillis = DateTime.now().toUtc().millisecondsSinceEpoch;
     final generatedId = 'tx_local_$nowUtcMillis';
+    final bool isInc = type.toUpperCase() == 'INCOME';
 
     // 1. Simpan ke database lokal Drift terlebih dahulu (Optimistic Local Persistence)
     final companion = LocalTransactionsCompanion(
       id: Value(generatedId),
       title: Value(title),
       amount: Value(amount),
-      type: Value(type),
+      type: Value(isInc ? 'INCOME' : 'EXPENSE'),
       categoryId: Value(categoryId),
       categoryName: Value(categoryName),
       categoryIcon: Value(categoryIcon),
@@ -255,9 +259,9 @@ class OfflineFirstRepository {
     final double prevIncome = currentSummary?.totalIncome ?? 0.0;
     final double prevExpense = currentSummary?.totalExpense ?? 0.0;
 
-    final double newBalance = type == 'INCOME' ? prevBalance + amount : prevBalance - amount;
-    final double newIncome = type == 'INCOME' ? prevIncome + amount : prevIncome;
-    final double newExpense = type == 'EXPENSE' ? prevExpense + amount : prevExpense;
+    final double newBalance = isInc ? prevBalance + amount : prevBalance - amount;
+    final double newIncome = isInc ? prevIncome + amount : prevIncome;
+    final double newExpense = !isInc ? prevExpense + amount : prevExpense;
 
     await _db.updateWalletSummaryAtomic(
       LocalWalletSummaryCompanion(
@@ -270,20 +274,41 @@ class OfflineFirstRepository {
       ),
     );
 
-    // 3. Kirim ke remote API di background
+    // 3. Kirim ke remote API di backend
     try {
       final success = await ApiService.addTransaction({
         'title': title,
         'amount': amount,
-        'type': type,
+        'type': isInc ? 'income' : 'expense',
+        'category_id': int.tryParse(categoryId) ?? (isInc ? 1 : 7),
         'categoryId': categoryId,
         'date': date,
-        'notes': notes,
+        'note': notes ?? title,
+        'notes': notes ?? title,
       });
+
+      // 4. Setelah berhasil dikirim ke backend, refetch ringkasan saldo dari backend
+      // untuk memastikan sinkronisasi 100% dengan perhitungan backend
+      if (success) {
+        await syncSummary();
+      }
       return success;
     } catch (e) {
       debugPrint('[OfflineFirstRepository] Transaksi disimpan lokal offline, sinkron server menyusul: $e');
       return true;
     }
+  }
+
+  /// Hapus transaksi dari lokal dan backend
+  Future<bool> deleteTransaction(String id) async {
+    await _db.deleteTransactionById(id);
+    final numericId = int.tryParse(id);
+    if (numericId != null) {
+      try {
+        await ApiService.deleteTransaction(numericId);
+      } catch (_) {}
+    }
+    await syncSummary();
+    return true;
   }
 }

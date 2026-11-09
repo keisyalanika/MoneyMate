@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/transaction_model.dart';
@@ -6,9 +7,17 @@ import '../models/category_model.dart';
 import '../models/budget_model.dart';
 
 class ApiService {
-  // Use 10.0.2.2:5001 for Android Emulator, localhost:5001 for iOS / Desktop / Web
-  // (Port 5001 is used by default because macOS AirPlay Receiver occupies port 5000)
-  static const String baseUrl = 'http://10.0.2.2:5001/api';
+  // Gunakan 10.0.2.2:5001 untuk Android Emulator, localhost:5001 untuk macOS / iOS / Desktop / Web
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:5001/api';
+    try {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:5001/api';
+      }
+    } catch (_) {}
+    return 'http://localhost:5001/api';
+  }
+
   static String? token;
 
   static Map<String, String> get headers {
@@ -24,18 +33,16 @@ class ApiService {
       final response = await http.get(Uri.parse('$baseUrl/summary'), headers: headers);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['data'];
+        if (data['data'] != null && data['data'] is Map) {
+          return Map<String, dynamic>.from(data['data']);
+        }
       }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('API Error fetchSummary: $e');
       }
     }
-    return {
-      'totalBalance': 12500000,
-      'totalIncome': 18000000,
-      'totalExpense': 5500000,
-    };
+    return {};
   }
 
   static Future<List<TransactionModel>> fetchTransactions() async {
@@ -84,10 +91,25 @@ class ApiService {
         headers: headers,
         body: json.encode(payload),
       );
-      return response.statusCode == 201;
+      return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('API Error addTransaction: $e');
+      }
+      return false;
+    }
+  }
+
+  static Future<bool> deleteTransaction(dynamic id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/transactions/$id'),
+        headers: headers,
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('API Error deleteTransaction: $e');
       }
       return false;
     }

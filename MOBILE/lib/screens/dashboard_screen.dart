@@ -18,13 +18,17 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final finance = Provider.of<FinanceProvider>(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: () => finance.refreshFromBackend(),
+          color: AppColors.primary,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header (Profil & Tagline MoneyMate)
@@ -57,6 +61,7 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
       // bottomNavigationBar dihapus dari sini agar navigation bar tidak double
     );
@@ -238,7 +243,11 @@ class DashboardScreen extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: () {
                         // Memanggil Bottom Sheet Penyesuaian Saldo
-                        AdjustBalanceBottomSheet.show(context, isAdd: true);
+                        AdjustBalanceBottomSheet.show(
+                          context,
+                          currentBalance: finance.totalBalance,
+                          isAdd: true,
+                        );
                       },
                       icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
                       label: const Text(

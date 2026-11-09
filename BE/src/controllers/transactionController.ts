@@ -40,14 +40,32 @@ export const getTransaction = async (req: Request, res: Response) => {
 // ---- CREATE transaction ----
 export const addTransaction = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, amount, category_id, wallet_id, income_source_id, date, note, receipt_image_url } = req.body;
-    if (!amount || !category_id || !date) {
-      return res.status(400).json({ success: false, message: 'amount, category_id, and date are required' });
+    const rawType = req.body.type ? String(req.body.type).toLowerCase() : 'expense';
+    const type = rawType === 'income' ? 'income' : 'expense';
+    const amount = Number(req.body.amount);
+
+    if (!amount || isNaN(amount)) {
+      return res.status(400).json({ success: false, message: 'amount is required and must be a number' });
     }
+
+    let category_id = req.body.category_id !== undefined
+        ? Number(req.body.category_id)
+        : (req.body.categoryId !== undefined ? Number(req.body.categoryId) : NaN);
+
+    if (isNaN(category_id) || category_id <= 0) {
+      category_id = type === 'income' ? 1 : 7;
+    }
+
+    const date = req.body.date || new Date().toISOString().slice(0, 10);
+    const note = req.body.note || req.body.notes || req.body.title || null;
+    const wallet_id = req.body.wallet_id ? Number(req.body.wallet_id) : undefined;
+    const income_source_id = req.body.income_source_id ? Number(req.body.income_source_id) : undefined;
+    const receipt_image_url = req.body.receipt_image_url || null;
+
     const created = await txService.createTransaction({
       user_id: req.user!.id,
-      wallet_id: wallet_id ? Number(wallet_id) : undefined,
-      type: type || 'expense',
+      wallet_id,
+      type,
       amount,
       category_id,
       income_source_id,

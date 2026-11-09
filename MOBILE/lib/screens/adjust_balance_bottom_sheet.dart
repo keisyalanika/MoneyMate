@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/finance_provider.dart';
 import '../utils/theme.dart'; // Memanggil palet warna dari utils/theme.dart
 
 class AdjustBalanceBottomSheet extends StatefulWidget {
@@ -7,16 +9,20 @@ class AdjustBalanceBottomSheet extends StatefulWidget {
 
   const AdjustBalanceBottomSheet({
     super.key,
-    this.currentBalance = 2450000,
+    this.currentBalance = 0,
     this.initialIsAdd = true,
   });
 
-  static void show(BuildContext context, {bool isAdd = true}) {
+  static void show(BuildContext context, {double? currentBalance, bool isAdd = true}) {
+    final curBal = currentBalance ?? Provider.of<FinanceProvider>(context, listen: false).totalBalance;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AdjustBalanceBottomSheet(initialIsAdd: isAdd),
+      builder: (context) => AdjustBalanceBottomSheet(
+        currentBalance: curBal,
+        initialIsAdd: isAdd,
+      ),
     );
   }
 
@@ -485,9 +491,27 @@ class _AdjustBalanceBottomSheetState extends State<AdjustBalanceBottomSheet> {
             width: double.infinity,
             height: 52,
             child: ElevatedButton(
-              onPressed: () {
-                // Logika Simpan
-                Navigator.pop(context);
+              onPressed: () async {
+                final finance = Provider.of<FinanceProvider>(context, listen: false);
+                await finance.adjustBalance(
+                  isAdd: _isAdd,
+                  amount: _selectedAmount.toDouble(),
+                  note: _isAdd ? 'Penyesuaian Tambah Saldo' : 'Penyesuaian Pengurangan Saldo',
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        _isAdd
+                            ? 'Saldo berhasil ditambah Rp ${_formatCurrency(_selectedAmount)}'
+                            : 'Saldo berhasil dikurangi Rp ${_formatCurrency(_selectedAmount)}',
+                      ),
+                      backgroundColor: _isAdd ? const Color(0xFF00A86B) : AppColors.primary,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
