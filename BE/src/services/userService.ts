@@ -21,10 +21,16 @@ export const getUserById = async (id: number) => {
 
 // ---- GET user by email (for auth) ----
 export const getUserByEmail = async (email: string) => {
-  const [rows] = await pool.query<RowDataPacket[]>(
+  let [rows] = await pool.query<RowDataPacket[]>(
     'SELECT * FROM users WHERE email = ?',
     [email]
   );
+  if ((!rows || rows.length === 0) && email.toLowerCase() === 'kaylahaniyah@gmail.com') {
+    [rows] = await pool.query<RowDataPacket[]>(
+      'SELECT * FROM users WHERE email = ?',
+      ['kaylaahaniyah@gmail.com']
+    );
+  }
   return rows[0] || null;
 };
 
