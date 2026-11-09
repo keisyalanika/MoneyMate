@@ -38,11 +38,24 @@ export const getUserByEmail = async (email: string) => {
 export const createUser = async (data: { name: string; email: string; password: string; phone?: string }) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(data.password, salt);
+  const normalizedEmail = data.email.trim().toLowerCase();
   const [result] = await pool.query<ResultSetHeader>(
-    'INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
-    [data.name, data.email, hashedPassword, data.phone || null, 'student']
+    'INSERT INTO users (name, email, password, phone, role, is_active) VALUES (?, ?, ?, ?, ?, ?)',
+    [data.name.trim(), normalizedEmail, hashedPassword, data.phone || null, 'student', 1]
   );
-  return { id: result.insertId, name: data.name, email: data.email, role: 'student' };
+  const userId = result.insertId;
+
+  // Otomatis buatkan dompet utama default untuk pengguna baru
+  try {
+    await pool.query(
+      'INSERT INTO wallets (user_id, name, type, balance, color, is_default) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, 'Dompet Utama', 'cash', 0, '#5E2B16', 1]
+    );
+  } catch (e) {
+    console.warn('Could not create default wallet for new user:', e);
+  }
+
+  return { id: userId, name: data.name.trim(), email: normalizedEmail, role: 'student', is_active: 1 };
 };
 
 // ---- UPDATE user profile ----

@@ -42,12 +42,28 @@ function executeLocalQuery(sql: string, params: any[] = []): any {
     if (tableMatch) {
       const tableName = tableMatch[1].toLowerCase() as keyof typeof store;
       const columns = tableMatch[2].split(',').map(c => c.trim().replace(/[`"']/g, ''));
+      const rawValues = tableMatch[3].split(',').map(v => v.trim());
       const table = localStore.getTable(tableName);
 
       const newRow: any = {};
+      let paramIdx = 0;
       columns.forEach((col, idx) => {
-        newRow[col] = params[idx] !== undefined ? params[idx] : null;
+        const valToken = rawValues[idx] || '?';
+        if (valToken === '?') {
+          newRow[col] = params[paramIdx++] !== undefined ? params[paramIdx - 1] : null;
+        } else {
+          const cleanVal = valToken.replace(/['"]/g, '');
+          newRow[col] = !isNaN(Number(cleanVal)) ? Number(cleanVal) : cleanVal;
+        }
       });
+
+      // Default attributes for specific tables
+      if (tableName === 'users' && (newRow.is_active === undefined || newRow.is_active === null)) {
+        newRow.is_active = 1;
+      }
+      if (tableName === 'wallets' && (newRow.is_default === undefined || newRow.is_default === null)) {
+        newRow.is_default = 1;
+      }
 
       // Assign id
       const maxId = table.reduce((max, r) => Math.max(max, Number(r.id) || 0), 0);

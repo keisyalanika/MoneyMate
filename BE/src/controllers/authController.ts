@@ -61,20 +61,38 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, phone } = req.body;
     if (!name || !email || !password) {
-      res.status(400).json({ message: 'Name, email, and password are required' });
+      res.status(400).json({ message: 'Nama, email, dan kata sandi wajib diisi' });
       return;
     }
+
+    if (String(password).length < 6) {
+      res.status(400).json({ message: 'Kata sandi minimal 6 karakter' });
+      return;
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
 
     // Check duplicate email
-    const existing = await userService.getUserByEmail(email);
+    const existing = await userService.getUserByEmail(normalizedEmail);
     if (existing) {
-      res.status(409).json({ message: 'Email already registered' });
+      res.status(409).json({ message: 'Email sudah terdaftar. Silakan gunakan email lain atau langsung masuk.' });
       return;
     }
 
-    const user = await userService.createUser({ name, email, password, phone });
+    const user = await userService.createUser({
+      name: String(name).trim(),
+      email: normalizedEmail,
+      password,
+      phone,
+    });
+
     res.status(201).json({
-      ...user,
+      success: true,
+      message: 'Pendaftaran berhasil! Akun Anda siap digunakan.',
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
       token: generateToken(String(user.id), user.role),
     });
   } catch (error) {

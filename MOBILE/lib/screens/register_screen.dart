@@ -77,8 +77,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           duration: const Duration(seconds: 3),
         ),
       );
-      // Kembali ke halaman login agar pengguna login dengan akun barunya
-      Navigator.pushReplacementNamed(context, AppRouter.login);
+      // Kembali ke halaman login agar pengguna login dengan akun barunya (dengan email otomatis terisi)
+      Navigator.pushReplacementNamed(
+        context,
+        AppRouter.login,
+        arguments: _emailController.text.trim(),
+      );
     } else {
       setState(() {
         _errorMessage = result['message'] ?? 'Pendaftaran gagal.';
