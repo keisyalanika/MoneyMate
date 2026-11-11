@@ -23,11 +23,18 @@ export const getUserSummary = async (user_id: number) => {
     'SELECT COUNT(*) AS total FROM transactions WHERE user_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)',
     [user_id]
   );
+  const [wallets] = await pool.query<RowDataPacket[]>(
+    'SELECT SUM(balance) as wallet_total FROM wallets WHERE user_id = ?',
+    [user_id]
+  );
+  const walletBalance = wallets[0]?.wallet_total !== null && wallets[0]?.wallet_total !== undefined
+    ? Number(wallets[0].wallet_total)
+    : (Number(income[0].total) - Number(expense[0].total));
 
   return {
     totalIncome: Number(income[0].total),
     totalExpense: Number(expense[0].total),
-    totalBalance: Number(income[0].total) - Number(expense[0].total),
+    totalBalance: walletBalance,
     activeBudgetsCount: Number(budgets[0].total),
     activeGoalsCount: Number(goals[0].total),
     recentTransactionsCount: Number(recentTx[0].total),

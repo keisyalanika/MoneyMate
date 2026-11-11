@@ -224,8 +224,8 @@ export const AiInsightPage: React.FC<AiInsightPageProps> = ({ onTriggerPdfToast 
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#5C2D16] text-white flex items-center justify-center text-xl shrink-0 shadow-md">
-            ⚛
+          <div className="w-10 h-10 rounded-2xl bg-[#5C2D16] text-white flex items-center justify-center shrink-0 shadow-md">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-[#2D2825] tracking-tight">AI Financial Intelligence</h1>

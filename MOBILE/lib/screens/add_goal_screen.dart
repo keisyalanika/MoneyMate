@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../utils/theme.dart';
+import '../utils/currency_formatter.dart';
 import '../services/api_service.dart';
+import '../services/draft_goal_service.dart';
+import 'goal_draft_success_modal.dart';
 
 class AddGoalScreen extends StatefulWidget {
-  const AddGoalScreen({super.key});
+  final Map<String, dynamic>? initialDraft;
+  const AddGoalScreen({super.key, this.initialDraft});
 
   @override
   State<AddGoalScreen> createState() => _AddGoalScreenState();
@@ -16,6 +21,55 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   
   bool _autoReminder = true;
   IconData _selectedIcon = Icons.laptop_mac;
+  DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 120));
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialDraft != null) {
+      final draft = widget.initialDraft!;
+      _nameController.text = draft['title']?.toString() ?? '';
+      if (draft['target_amount'] != null) {
+        final double amt = double.tryParse('${draft['target_amount']}') ?? 0.0;
+        if (amt > 0) {
+          _amountController.text = CurrencyFormatter.formatDots(amt);
+        }
+      }
+      if (draft['initial_deposit'] != null) {
+        final double initAmt = double.tryParse('${draft['initial_deposit']}') ?? 0.0;
+        if (initAmt > 0) {
+          _initialDepositController.text = CurrencyFormatter.formatDots(initAmt);
+        }
+      }
+      if (draft['icon'] != null) {
+        _selectedIcon = _getIconFromKey(draft['icon']);
+      }
+      if (draft['deadline'] != null && draft['deadline'].toString().isNotEmpty) {
+        try {
+          _selectedDeadline = DateTime.parse(draft['deadline'].toString());
+        } catch (_) {}
+      }
+    }
+  }
+
+  IconData _getIconFromKey(dynamic key) {
+    switch (key?.toString().toLowerCase()) {
+      case 'laptop':
+        return Icons.laptop_mac;
+      case 'flight':
+        return Icons.flight_takeoff;
+      case 'car':
+        return Icons.directions_car;
+      case 'home':
+        return Icons.home;
+      case 'savings':
+        return Icons.savings;
+      case 'diamond':
+        return Icons.diamond;
+      default:
+        return Icons.laptop_mac;
+    }
+  }
 
   @override
   void dispose() {
@@ -23,6 +77,87 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     _amountController.dispose();
     _initialDepositController.dispose();
     super.dispose();
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return months[month - 1];
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day} ${_getMonthName(date.month)} ${date.year}';
+  }
+
+  String _getRemainingBadgeText(DateTime deadline) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(deadline.year, deadline.month, deadline.day);
+    final diffDays = target.difference(today).inDays;
+
+    if (diffDays <= 0) {
+      return 'Hari Ini';
+    } else if (diffDays < 30) {
+      return 'Sisa $diffDays Hari';
+    } else {
+      final months = (diffDays / 30).round();
+      if (months <= 1) {
+        return 'Sisa 1 Bulan';
+      }
+      return 'Sisa $months Bulan';
+    }
+  }
+
+  String _getIconName(IconData icon) {
+    if (icon == Icons.laptop_mac) return 'laptop';
+    if (icon == Icons.flight_takeoff) return 'flight';
+    if (icon == Icons.directions_car) return 'car';
+    if (icon == Icons.home) return 'home';
+    if (icon == Icons.savings) return 'savings';
+    if (icon == Icons.diamond) return 'diamond';
+    return 'flag';
+  }
+
+  Future<void> _selectDeadline() async {
+    final now = DateTime.now();
+    final initialDate = _selectedDeadline.isAfter(now)
+        ? _selectedDeadline
+        : now.add(const Duration(days: 1));
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(2101),
+      helpText: 'PILIH TARGET WAKTU SELESAI',
+      cancelText: 'BATAL',
+      confirmText: 'PILIH',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryBrown,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textDark,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryBrown,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDeadline = picked;
+      });
+    }
   }
 
   @override
@@ -173,28 +308,13 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             _buildSection(
               title: 'Target Nominal',
               trailing: const Text('Tercapai Lebih Cepat', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTextField(
-                    controller: _amountController,
-                    hint: '15.000.000',
-                    prefixText: 'Rp ',
-                    isNumber: true,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildQuickAmount('+Rp 1 Jt'),
-                      _buildQuickAmount('+Rp 5 Jt'),
-                      _buildQuickAmount('+Rp 10 Jt'),
-                    ],
-                  ),
-                ],
+              child: _buildTextField(
+                controller: _amountController,
+                hint: '15.000.000',
+                prefixText: 'Rp ',
+                isNumber: true,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
 
@@ -206,26 +326,36 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   color: const Color(0xFFFFECE0),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('Sisa 4 Bulan', style: TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F0EB),
-                  borderRadius: BorderRadius.circular(16),
+                child: Text(
+                  _getRemainingBadgeText(_selectedDeadline),
+                  style: const TextStyle(color: AppColors.secondary, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today_outlined, color: AppColors.textMuted, size: 18),
-                        SizedBox(width: 12),
-                        Text('31 Desember 2026', style: TextStyle(color: AppColors.textDark, fontSize: 14)),
-                      ],
-                    ),
-                    Icon(Icons.edit_calendar, color: AppColors.textMuted, size: 18),
-                  ],
+              ),
+              child: InkWell(
+                onTap: _selectDeadline,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F0EB),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today_outlined, color: AppColors.textMuted, size: 18),
+                          const SizedBox(width: 12),
+                          Text(
+                            _formatDate(_selectedDeadline),
+                            style: const TextStyle(color: AppColors.textDark, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const Icon(Icons.edit_calendar, color: AppColors.primaryBrown, size: 18),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -256,24 +386,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 hint: '1.500.000',
                 prefixText: 'Rp ',
                 isNumber: true,
-              ),
-            ),
-
-            _buildSection(
-              title: 'Rekening Sumber / Penampung',
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F0EB),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Expanded(child: Text('BCA Prioritas (Saldo Rp 42.800.000)', style: TextStyle(color: AppColors.textDark, fontSize: 14))),
-                    Icon(Icons.account_balance, color: AppColors.textMuted, size: 18),
-                  ],
-                ),
               ),
             ),
 
@@ -405,26 +517,40 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               height: 54,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final String title = _nameController.text.trim();
+                  final String rawTitle = _nameController.text.trim();
                   final String amountStr = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                  final double targetAmount = double.tryParse(amountStr) ?? 0.0;
+                  final double parsedAmount = double.tryParse(amountStr) ?? 0.0;
                   final String initialStr = _initialDepositController.text.replaceAll(RegExp(r'[^0-9]'), '');
                   final double initialAmount = double.tryParse(initialStr) ?? 0.0;
 
-                  if (title.isEmpty || targetAmount <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Harap masukkan nama impian dan target nominal valid')),
-                    );
-                    return;
-                  }
+                  // Gunakan input user, atau nilai default placeholder jika tidak diisi manual
+                  final String finalTitle = rawTitle.isNotEmpty ? rawTitle : 'MacBook Pro M3 Max';
+                  final double finalTarget = parsedAmount > 0 ? parsedAmount : 15000000.0;
+
+                  final String deadlineStr =
+                      '${_selectedDeadline.year}-${_selectedDeadline.month.toString().padLeft(2, '0')}-${_selectedDeadline.day.toString().padLeft(2, '0')}';
 
                   await ApiService.addGoal({
-                    'title': title,
-                    'target_amount': targetAmount,
-                    'icon': 'flag',
+                    'title': finalTitle,
+                    'target_amount': finalTarget,
+                    'current_amount': initialAmount,
+                    'initial_deposit': initialAmount,
+                    'icon': _getIconName(_selectedIcon),
+                    'deadline': deadlineStr,
                   });
 
+                  if (widget.initialDraft != null && widget.initialDraft!['id'] != null) {
+                    await DraftGoalService.deleteDraftGoal(widget.initialDraft!['id']);
+                  }
+
                   if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Target "$finalTitle" berhasil disimpan!'),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                     Navigator.pop(context, true);
                   }
                 },
@@ -447,7 +573,37 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               width: double.infinity,
               height: 54,
               child: TextButton.icon(
-                onPressed: () {},
+                onPressed: () async {
+                  final String title = _nameController.text.trim();
+                  final String amountStr = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                  final double targetAmount = double.tryParse(amountStr) ?? 0.0;
+                  final String initialStr = _initialDepositController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                  final double initialAmount = double.tryParse(initialStr) ?? 0.0;
+
+                  final String deadlineStr =
+                      '${_selectedDeadline.year}-${_selectedDeadline.month.toString().padLeft(2, '0')}-${_selectedDeadline.day.toString().padLeft(2, '0')}';
+
+                  final Map<String, dynamic> draftData = {
+                    'id': widget.initialDraft?['id'] ?? 'draft_${DateTime.now().millisecondsSinceEpoch}',
+                    'title': title.isEmpty ? 'Draft Target Impian' : title,
+                    'target_amount': targetAmount,
+                    'initial_deposit': initialAmount,
+                    'icon': _getIconName(_selectedIcon),
+                    'deadline': deadlineStr,
+                  };
+
+                  await DraftGoalService.saveDraftGoal(draftData);
+
+                  if (!context.mounted) return;
+
+                  showGoalDraftSuccessModal(
+                    context: context,
+                    draft: draftData,
+                    onViewGoals: () {
+                      Navigator.pop(context, true);
+                    },
+                  );
+                },
                 icon: const Icon(Icons.bookmark_border, color: AppColors.textDark),
                 label: const Text(
                   'Simpan sebagai Draf',
@@ -551,6 +707,12 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             child: TextField(
               controller: controller,
               keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+              inputFormatters: isNumber
+                  ? [
+                      FilteringTextInputFormatter.digitsOnly,
+                      ThousandsSeparatorInputFormatter(),
+                    ]
+                  : null,
               style: TextStyle(
                 fontSize: fontSize ?? 16,
                 fontWeight: fontWeight ?? FontWeight.normal,
@@ -570,24 +732,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickAmount(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F0EB),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.textDark,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
       ),
     );
   }

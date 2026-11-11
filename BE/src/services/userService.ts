@@ -5,7 +5,10 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 // ---- GET all users (admin) ----
 export const getAllUsers = async () => {
   const [rows] = await pool.query<RowDataPacket[]>(
-    'SELECT id, name, email, phone, avatar_url, role, is_active, created_at, updated_at FROM users ORDER BY created_at DESC'
+    `SELECT u.id, u.name, u.email, u.phone, u.avatar_url, u.role, u.is_active, u.created_at, u.updated_at,
+            COALESCE((SELECT SUM(balance) FROM wallets WHERE user_id = u.id), 0) AS saldo
+     FROM users u
+     ORDER BY u.created_at DESC`
   );
   return rows;
 };

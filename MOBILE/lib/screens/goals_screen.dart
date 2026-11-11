@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
 import '../services/api_service.dart';
+import '../services/draft_goal_service.dart';
 import 'add_goal_screen.dart';
 import 'goal_detail_screen.dart';
 import 'notification_screen.dart';
@@ -14,8 +15,9 @@ class GoalsScreen extends StatefulWidget {
 
 class _GoalsScreenState extends State<GoalsScreen> {
   List<Map<String, dynamic>> _goals = [];
+  List<Map<String, dynamic>> _draftGoals = [];
   bool _isLoading = true;
-  int _selectedFilterIndex = 0; // 0: Semua, 1: Berjalan, 2: Tercapai
+  int _selectedFilterIndex = 0; // 0: Semua, 1: Berjalan, 2: Tercapai, 3: Draf
   bool _showTutorial = true; // Tutorial banner untuk V2 Usability
 
   @override
@@ -27,11 +29,55 @@ class _GoalsScreenState extends State<GoalsScreen> {
   Future<void> _loadGoals() async {
     setState(() => _isLoading = true);
     final data = await ApiService.fetchGoals();
+    final drafts = await DraftGoalService.getDraftGoals();
     if (mounted) {
       setState(() {
         _goals = data;
+        _draftGoals = drafts;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _openDraft(Map<String, dynamic> draft) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddGoalScreen(initialDraft: draft),
+      ),
+    );
+    if (result == true) {
+      _loadGoals();
+    }
+  }
+
+  Future<void> _deleteDraft(String draftId, String title) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Hapus Draf Goal?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Text('Draf impian "$title" akan dihapus secara permanen.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            child: const Text('Hapus', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await DraftGoalService.deleteDraftGoal(draftId);
+      _loadGoals();
     }
   }
 
@@ -48,6 +94,39 @@ class _GoalsScreenState extends State<GoalsScreen> {
       }
     }
     return 'Rp ${sb.toString().split('').reversed.join('')}';
+  }
+
+  IconData _getGoalIcon(dynamic iconName) {
+    switch (iconName?.toString().toLowerCase()) {
+      case 'laptop':
+        return Icons.laptop_mac;
+      case 'flight':
+        return Icons.flight_takeoff;
+      case 'car':
+        return Icons.directions_car;
+      case 'home':
+        return Icons.home;
+      case 'savings':
+        return Icons.savings;
+      case 'diamond':
+        return Icons.diamond;
+      default:
+        return Icons.flag;
+    }
+  }
+
+  String _formatDeadlineDisplay(dynamic deadline) {
+    if (deadline == null) return '';
+    try {
+      final dt = DateTime.parse(deadline.toString());
+      const months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      return deadline.toString().split('T').first;
+    }
   }
 
   @override
@@ -285,7 +364,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _buildFilterChip('Semua (${_goals.length})', _selectedFilterIndex == 0, () {
+                          _buildFilterChip('Semua (${_goals.length + _draftGoals.length})', _selectedFilterIndex == 0, () {
                             setState(() => _selectedFilterIndex = 0);
                           }),
                           const SizedBox(width: 8),
@@ -296,6 +375,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                           _buildFilterChip('Tercapai ($completedCount)', _selectedFilterIndex == 2, () {
                             setState(() => _selectedFilterIndex = 2);
                           }),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Draf (${_draftGoals.length})', _selectedFilterIndex == 3, () {
+                            setState(() => _selectedFilterIndex = 3);
+                          }),
                         ],
                       ),
                     ),
@@ -303,6 +386,47 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
                     // Goals List or Empty State
                     Builder(builder: (context) {
+                      // Jika filter khusus Draf (Index 3)
+                      if (_selectedFilterIndex == 3) {
+                        if (_draftGoals.isEmpty) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: const Color(0xFFF0E5D8)),
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFFEF3C7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.bookmark_outline, color: Color(0xFFD97706), size: 36),
+                                ),
+                                const SizedBox(height: 14),
+                                const Text(
+                                  'Belum Ada Draf Target',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Simpan impianmu sebagai draf saat mengisi form agar perencanaannya tersimpan dan dapat dilanjutkan kapan saja.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.4),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return Column(
+                          children: _draftGoals.map((d) => _buildDraftGoalItem(context: context, draft: d)).toList(),
+                        );
+                      }
+
                       final filteredGoals = _goals.where((g) {
                         final bool isDone = g['is_completed'] == 1 || g['is_completed'] == true;
                         if (_selectedFilterIndex == 1) return !isDone;
@@ -310,7 +434,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         return true;
                       }).toList();
 
-                      if (filteredGoals.isEmpty) {
+                      final bool isAllTab = _selectedFilterIndex == 0;
+                      final bool isEmpty = filteredGoals.isEmpty && (!isAllTab || _draftGoals.isEmpty);
+
+                      if (isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(32),
                           decoration: BoxDecoration(
@@ -345,33 +472,38 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       }
 
                       return Column(
-                        children: filteredGoals.map((g) {
-                          final double collected = double.tryParse('${g['current_amount'] ?? 0}') ?? 0.0;
-                          final double target = double.tryParse('${g['target_amount'] ?? 0}') ?? 1.0;
-                          final double pct = target > 0 ? (collected / target).clamp(0.0, 1.0) : 0.0;
-                          final double shortage = (target - collected).clamp(0.0, double.infinity);
-                          final bool isDone = g['is_completed'] == 1 || g['is_completed'] == true;
+                        children: [
+                          if (isAllTab && _draftGoals.isNotEmpty) ...[
+                            ..._draftGoals.map((d) => _buildDraftGoalItem(context: context, draft: d)),
+                          ],
+                          ...filteredGoals.map((g) {
+                            final double collected = double.tryParse('${g['current_amount'] ?? 0}') ?? 0.0;
+                            final double target = double.tryParse('${g['target_amount'] ?? 0}') ?? 1.0;
+                            final double pct = target > 0 ? (collected / target).clamp(0.0, 1.0) : 0.0;
+                            final double shortage = (target - collected).clamp(0.0, double.infinity);
+                            final bool isDone = g['is_completed'] == 1 || g['is_completed'] == true;
 
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _buildGoalItem(
-                              context: context,
-                              category: isDone ? 'SELESAI' : 'TARGET FINANSIAL',
-                              statusText: isDone ? 'Tercapai' : 'On Track',
-                              statusColor: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                              title: g['title'] ?? 'Goal',
-                              subtitle: g['deadline'] != null ? 'Batas Waktu: ${g['deadline']}' : 'Target Tabungan Pribadi',
-                              icon: Icons.flag,
-                              collected: _formatRp(collected),
-                              target: _formatRp(target),
-                              shortage: shortage > 0 ? 'Kurang ${_formatRp(shortage)}' : 'Target Terpenuhi!',
-                              percent: (pct * 100).round(),
-                              estimate: isDone ? 'Goal Selesai' : 'Sedang Berjalan',
-                              progressColor: isDone ? const Color(0xFF10B981) : AppColors.primaryBrown,
-                              isHeaderOrange: !isDone,
-                            ),
-                          );
-                        }).toList(),
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildGoalItem(
+                                context: context,
+                                category: isDone ? 'SELESAI' : 'TARGET FINANSIAL',
+                                statusText: isDone ? 'Tercapai' : 'On Track',
+                                statusColor: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                title: g['title'] ?? 'Goal',
+                                subtitle: g['deadline'] != null ? 'Batas Waktu: ${_formatDeadlineDisplay(g['deadline'])}' : 'Target Tabungan Pribadi',
+                                icon: _getGoalIcon(g['icon']),
+                                collected: _formatRp(collected),
+                                target: _formatRp(target),
+                                shortage: shortage > 0 ? 'Kurang ${_formatRp(shortage)}' : 'Target Terpenuhi!',
+                                percent: (pct * 100).round(),
+                                estimate: isDone ? 'Goal Selesai' : 'Sedang Berjalan',
+                                progressColor: isDone ? const Color(0xFF10B981) : AppColors.primaryBrown,
+                                isHeaderOrange: !isDone,
+                              ),
+                            );
+                          }).toList(),
+                        ],
                       );
                     }),
                   ],
@@ -413,6 +545,127 @@ class _GoalsScreenState extends State<GoalsScreen> {
             fontSize: 12,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDraftGoalItem({
+    required BuildContext context,
+    required Map<String, dynamic> draft,
+  }) {
+    final String title = draft['title'] ?? 'Draf Target Impian';
+    final double target = double.tryParse('${draft['target_amount'] ?? 0}') ?? 0.0;
+    final String deadlineStr = draft['deadline'] != null ? _formatDeadlineDisplay(draft['deadline']) : 'Belum diatur';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header Card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.bookmark_outline, size: 16, color: Color(0xFFB45309)),
+                    SizedBox(width: 6),
+                    Text(
+                      'DRAF TARGET • BELUM AKTIF',
+                      style: TextStyle(
+                        color: Color(0xFF92400E),
+                        fontSize: 10,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: Color(0xFFB45309)),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Hapus Draf',
+                  onPressed: () => _deleteDraft(draft['id'] ?? '', title),
+                ),
+              ],
+            ),
+          ),
+
+          // Body
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF9C3),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(_getGoalIcon(draft['icon']), color: const Color(0xFFB45309), size: 28),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textDark),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Target: ${_formatRp(target)} • Batas: $deadlineStr',
+                            style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openDraft(draft),
+                    icon: const Icon(Icons.edit_note, color: Colors.white, size: 18),
+                    label: const Text(
+                      'Lanjutkan & Aktifkan Goal',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBrown,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(21)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

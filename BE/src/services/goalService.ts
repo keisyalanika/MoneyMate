@@ -72,10 +72,35 @@ export const addFund = async (data: { goal_id: number; user_id: number; amount: 
     [data.amount, data.goal_id]
   );
 
-  // Check if goal is now completed
+  // Kurangi saldo dompet pengguna otomatis (dana dialokasikan ke tabungan goal)
+  try {
+    const [wallets] = await pool.query<RowDataPacket[]>(
+      'SELECT id, balance FROM wallets WHERE user_id = ? ORDER BY is_default DESC, created_at ASC LIMIT 1',
+      [data.user_id]
+    );
+    if (wallets && wallets.length > 0) {
+      const curBal = Number(wallets[0].balance) || 0;
+      const newBal = Math.max(0, curBal - Number(data.amount));
+      await pool.query('UPDATE wallets SET balance = ? WHERE id = ?', [newBal, wallets[0].id]);
+    }
+  } catch (wErr: any) {
+    console.warn('[GoalFund] Gagal memperbarui saldo dompet:', wErr.message);
+  }
+
+  // Check if goal is now completed & send congratulatory notification
   const goal = await getGoalById(data.goal_id);
   if (goal && Number(goal.current_amount) >= Number(goal.target_amount)) {
     await pool.query('UPDATE goals SET is_completed = 1 WHERE id = ?', [data.goal_id]);
+    try {
+      await pool.query(
+        'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+        [
+          data.user_id,
+          '🎉 Target Keuangan Tercapai!',
+          `Selamat! Target menabung "${goal.title}" sebesar Rp ${Number(goal.target_amount).toLocaleString('id-ID')} telah sukses tercapai 100%!`
+        ]
+      );
+    } catch (_) {}
   }
 
   return { id: result.insertId, ...data };

@@ -1,5 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { fetchTransactionsList, fetchUsersList, createTransaction } from '../services/api';
+import { 
+  Users, 
+  Receipt, 
+  Wallet, 
+  FileDown, 
+  Sparkles, 
+  Search, 
+  RefreshCw, 
+  ListFilter, 
+  Utensils, 
+  Bus, 
+  ShoppingCart, 
+  Coffee, 
+  Zap, 
+  BookOpen, 
+  Activity, 
+  Package, 
+  CreditCard, 
+  BarChart3 
+} from 'lucide-react';
 
 export interface OverviewPageProps {
   onTriggerPdfToast: () => void;
@@ -69,6 +89,64 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const totalCashVolume = totalIncome + totalExpense;
   const netSurplus = totalIncome - totalExpense;
   const avgTrx = recentTransactions.length > 0 ? Math.round(totalCashVolume / recentTransactions.length) : 0;
+
+  // Helper for rendering clean Lucide category icons
+  const renderCategoryIcon = (categoryName: string) => {
+    const lower = (categoryName || '').toLowerCase();
+    if (lower.includes('makan') || lower.includes('food') || lower.includes('kuliner') || lower.includes('resto') || lower.includes('minum') || lower.includes('f&b')) {
+      return <Utensils className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    if (lower.includes('transport') || lower.includes('bensin') || lower.includes('ojol') || lower.includes('kendaraan') || lower.includes('motor')) {
+      return <Bus className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    if (lower.includes('belanja') || lower.includes('market') || lower.includes('shop') || lower.includes('supermarket')) {
+      return <ShoppingCart className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    if (lower.includes('hiburan') || lower.includes('lifestyle') || lower.includes('nongkrong') || lower.includes('kopi') || lower.includes('coffee') || lower.includes('cafe')) {
+      return <Coffee className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    if (lower.includes('tagihan') || lower.includes('listrik') || lower.includes('utilitas') || lower.includes('pulsa') || lower.includes('internet')) {
+      return <Zap className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    if (lower.includes('pendidikan') || lower.includes('kuliah') || lower.includes('buku') || lower.includes('kursus') || lower.includes('spp')) {
+      return <BookOpen className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    if (lower.includes('kesehatan') || lower.includes('obat') || lower.includes('dokter') || lower.includes('medis')) {
+      return <Activity className="w-3.5 h-3.5 text-[#5C2D16]" />;
+    }
+    return <Package className="w-3.5 h-3.5 text-[#5C2D16]" />;
+  };
+
+  // Dynamic Category Distribution based on actual real-time expense transactions
+  const categoryDistribution = useMemo(() => {
+    const expenseTrx = recentTransactions.filter(t => !t.isIncome && (t.rawAmount || 0) > 0);
+    const catMap: Record<string, number> = {};
+
+    expenseTrx.forEach(t => {
+      const cat = t.rawCategoryName || t.category || 'Lainnya';
+      catMap[cat] = (catMap[cat] || 0) + (t.rawAmount || 0);
+    });
+
+    const totalExp = Object.values(catMap).reduce((a, b) => a + b, 0);
+    const colorList = ['#5C2D16', '#8C5338', '#C25E38', '#D4A373', '#9C6644', '#7F4F24'];
+
+    if (totalExp > 0) {
+      return Object.entries(catMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, amount], idx) => {
+          const percent = Math.round((amount / totalExp) * 100);
+          return {
+            name,
+            amount,
+            percent,
+            color: colorList[idx % colorList.length]
+          };
+        });
+    }
+
+    return [];
+  }, [recentTransactions]);
 
   const currentData = (() => {
     if (recentTransactions.length === 0) {
@@ -219,11 +297,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           const userName = t.user_name || 'Pengguna Mobile';
           const amountNum = Number(t.amount || 0);
 
+          const rawCat = t.category_name || (isInc ? 'Pemasukan' : 'Pengeluaran');
+
           return {
             id: `TRX-${String(t.id).padStart(4, '0')}`,
             user: userName,
             sub: `ID: USR-${String(t.user_id || 1).padStart(3, '0')}${t.user_email ? ' • Mobile' : ''}`,
             category: t.note || t.category_name || (isInc ? 'Pemasukan' : 'Pengeluaran'),
+            rawCategoryName: rawCat,
             method: t.income_source_name || (isInc ? 'Dompet Digital' : 'Kas / Rekening'),
             amount: `Rp ${amountNum.toLocaleString('id-ID')}`,
             rawAmount: amountNum,
@@ -338,7 +419,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           onClick={onTriggerPdfToast}
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white text-xs font-bold rounded-xl shadow-md transition-all shrink-0 cursor-pointer"
         >
-          <span>📩</span> Unduh Laporan PDF
+          <FileDown className="w-4 h-4" /> Unduh Laporan PDF
         </button>
       </div>
 
@@ -348,8 +429,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#8C7A70]">Total Pengguna Aktif</span>
-            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16] font-bold text-xs">
-              👤
+            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+              <Users className="w-4 h-4 text-[#5C2D16]" />
             </div>
           </div>
           <div className="text-3xl font-black text-[#2D2825] tracking-tight">
@@ -369,8 +450,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#8C7A70]">Total Transaksi Tercatat</span>
-            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16] font-bold text-xs">
-              📑
+            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+              <Receipt className="w-4 h-4 text-[#5C2D16]" />
             </div>
           </div>
           <div className="text-3xl font-black text-[#2D2825] tracking-tight">
@@ -390,8 +471,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#8C7A70]">Volume Arus Kas Tercatat</span>
-            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16] font-bold text-xs">
-              💳
+            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+              <Wallet className="w-4 h-4 text-[#5C2D16]" />
             </div>
           </div>
           <div className="text-3xl font-black text-[#2D2825] tracking-tight">
@@ -604,7 +685,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-xl bg-[#5C2D16] text-white flex items-center justify-center font-bold text-sm">
-                  ✨
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h2 className="font-bold text-sm text-[#2D2825]">AI Financial Intelligence</h2>
@@ -680,10 +761,17 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               onClick={handleApplyAiRecommendation}
               className="w-full py-2.5 bg-[#5C2D16] hover:bg-[#462211] text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span>⚡</span> Terapkan Rekomendasi Terpilih →
+              <Sparkles className="w-3.5 h-3.5" /> Terapkan Rekomendasi Terpilih →
             </button>
-            <div className="text-center text-[10px] text-[#8C7A70]">
-              Memerlukan konfirmasi role Super Administrator
+            <div className="text-center text-[10px] text-[#8C7A70] flex items-center justify-center gap-1.5 flex-wrap">
+              <span>Super Administrator</span>
+              <span>•</span>
+              <button
+                onClick={() => onNavigateTab && onNavigateTab('ai')}
+                className="font-bold text-[#5C2D16] hover:underline cursor-pointer flex items-center gap-0.5"
+              >
+                Buka AI Workspace Penuh →
+              </button>
             </div>
           </div>
         </div>
@@ -697,12 +785,15 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <p className="text-[11px] text-[#8C7A70] mt-0.5">Pemetaan alokasi belanja total pengguna aktif bulan ini.</p>
           </div>
 
-          <div className="flex items-center gap-3 text-[11px] font-medium text-[#6E5D53]">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#5C2D16]"></span> Primer</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#8C5338]"></span> Sekunder</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#C25E38]"></span> Gaya Hidup</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#D4A373]"></span> Rutin</span>
-          </div>
+          {categoryDistribution.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-[#6E5D53]">
+              {categoryDistribution.slice(0, 4).map((cat, idx) => (
+                <span key={idx} className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }}></span> {cat.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center pt-2">
@@ -711,65 +802,52 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div className="w-36 h-36 rounded-full border-[14px] border-[#5C2D16] flex items-center justify-center border-t-[#C25E38] border-r-[#8C5338] border-b-[#D4A373] shadow-inner relative">
               <div className="text-center">
                 <div className="text-[9px] text-[#8C7A70] font-bold uppercase tracking-wider">Total Belanja</div>
-                <div className="text-base font-black text-[#2D2825]">{formatCurrency('Rp 3.12 M', '$ 201.2 K')}</div>
-                <div className="text-[9px] text-emerald-600 font-extrabold">100% Recorded</div>
+                <div className="text-base font-black text-[#2D2825]">
+                  {totalExpense > 0 ? formatCurrency(formatShortMoney(totalExpense), formatShortUsd(totalExpense)) : formatCurrency('Rp 0', '$ 0')}
+                </div>
+                <div className="text-[9px] text-emerald-600 font-extrabold">
+                  {totalExpense > 0 ? '100% Recorded' : 'Belum Ada Transaksi'}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Progress Bars Category Rows (2/3 width) */}
           <div className="md:col-span-2 space-y-3.5 text-xs">
-            {/* Row 1 */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>🍴</span> Makanan & Minuman (F&B)
-                </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 1.185.600.000', '$ 76.490')} <span className="text-[#8C7A70] font-normal">(38%)</span></span>
+            {categoryDistribution.length > 0 ? (
+              categoryDistribution.map((cat, idx) => (
+                <div key={idx}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-[#2D2825] flex items-center gap-2">
+                      <span className="p-1 rounded-md bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center">
+                        {renderCategoryIcon(cat.name)}
+                      </span>
+                      {cat.name}
+                    </span>
+                    <span className="font-extrabold text-[#2D2825]">
+                      {formatCurrency(`Rp ${cat.amount.toLocaleString('id-ID')}`, `$ ${(cat.amount / 15500).toFixed(0)}`)}{' '}
+                      <span className="text-[#8C7A70] font-normal">({cat.percent}%)</span>
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(cat.percent, 100)}%`, backgroundColor: cat.color }}
+                    ></div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-[#8C7A70] space-y-1">
+                <div className="w-10 h-10 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+                  <BarChart3 className="w-5 h-5 text-[#5C2D16]" />
+                </div>
+                <div className="text-xs font-semibold text-[#2D2825] pt-1">Belum Ada Pengeluaran Tercatat</div>
+                <p className="text-[11px] max-w-sm">
+                  Ketika pengguna melakukan transaksi pengeluaran dari aplikasi mobile atau admin, distribusi kategori akan otomatis dipetakan secara real-time di sini.
+                </p>
               </div>
-              <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#5C2D16] rounded-full" style={{ width: '38%' }}></div>
-              </div>
-            </div>
-
-            {/* Row 2 */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>🛒</span> Belanja & E-Commerce
-                </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 748.800.000', '$ 48.309')} <span className="text-[#8C7A70] font-normal">(24%)</span></span>
-              </div>
-              <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#8C5338] rounded-full" style={{ width: '24%' }}></div>
-              </div>
-            </div>
-
-            {/* Row 3 */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>☕</span> Hiburan, Kafe & Lifestyle
-                </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 624.000.000', '$ 40.258')} <span className="text-[#8C7A70] font-normal">(20%)</span></span>
-              </div>
-              <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#C25E38] rounded-full" style={{ width: '20%' }}></div>
-              </div>
-            </div>
-
-            {/* Row 4 */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>⚡</span> Tagihan, Listrik & Utilitas
-                </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 561.600.000', '$ 36.232')} <span className="text-[#8C7A70] font-normal">(18%)</span></span>
-              </div>
-              <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#D4A373] rounded-full" style={{ width: '18%' }}></div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -796,21 +874,22 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 onChange={e => setSearchTable(e.target.value)}
                 className="bg-[#F5F2ED] border border-[#E5DDD8] rounded-xl px-3 py-1.5 pl-8 text-xs text-[#2D2825] focus:outline-none w-48"
               />
-              <span className="absolute left-2.5 top-2 text-[#8C7A70] text-xs">🔍</span>
+              <Search className="absolute left-2.5 top-2 text-[#8C7A70] w-3.5 h-3.5 pointer-events-none" />
             </div>
             <button
               onClick={loadLiveTransactions}
               title="Perbarui data dari backend / mobile"
               className="px-3 py-1.5 bg-white border border-[#E5DDD8] text-[#5C2D16] font-bold text-xs rounded-xl hover:bg-[#FAF7F4] flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
             >
-              <span className={isRefreshingTrx ? 'animate-spin' : ''}>↻</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingTrx ? 'animate-spin' : ''}`} />
               <span>{isRefreshingTrx ? 'Memuat...' : 'Refresh'}</span>
             </button>
             <button
               onClick={() => onNavigateTab && onNavigateTab('transactions')}
-              className="px-3 py-1.5 bg-[#5C2D16] text-white font-bold text-xs rounded-xl hover:bg-[#482210] flex items-center gap-1 cursor-pointer shadow-xs"
+              className="px-3 py-1.5 bg-[#5C2D16] text-white font-bold text-xs rounded-xl hover:bg-[#482210] flex items-center gap-1.5 cursor-pointer shadow-xs"
             >
-              ≡ Lihat Semua
+              <ListFilter className="w-3.5 h-3.5" />
+              <span>Lihat Semua</span>
             </button>
           </div>
         </div>
@@ -834,8 +913,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 <tr>
                   <td colSpan={7} className="py-12 px-4 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3 max-w-md mx-auto">
-                      <div className="w-14 h-14 rounded-2xl bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-2xl shadow-xs">
-                        💳
+                      <div className="w-14 h-14 rounded-2xl bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center shadow-xs">
+                        <CreditCard className="w-7 h-7 text-[#5C2D16]" />
                       </div>
                       <div className="space-y-1">
                         <div className="font-bold text-[#2D2825] text-sm">Belum Ada Aktivitas Transaksi</div>
@@ -847,7 +926,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                         onClick={handleCreateSampleTransaction}
                         className="mt-2 px-3.5 py-1.5 bg-[#FAF4F0] hover:bg-[#F2EAE5] border border-[#E8DCD8] text-[#5C2D16] font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
                       >
-                        <span>✨</span>
+                        <Sparkles className="w-3.5 h-3.5" />
                         <span>Buat Transaksi Percobaan ke Database</span>
                       </button>
                     </div>

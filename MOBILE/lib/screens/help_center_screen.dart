@@ -61,119 +61,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
     });
   }
 
-  void _showContactSupportDialog() {
-    final messageController = TextEditingController();
-    final subjectController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Kirim Pesan Bantuan',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBrown,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20),
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Topik / Subjek Masalah',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: subjectController,
-              decoration: InputDecoration(
-                hintText: 'Contoh: Kendala hubungkan rekening',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                filled: true,
-                fillColor: AppColors.inputBg,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.inputBorder),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Detail Pertanyaan atau Masukan',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: messageController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Jelaskan pertanyaan atau kendala yang kamu alami...',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                filled: true,
-                fillColor: AppColors.inputBg,
-                contentPadding: const EdgeInsets.all(14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: AppColors.inputBorder),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBrown,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                onPressed: () {
-                  if (messageController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Pesan tidak boleh kosong')),
-                    );
-                    return;
-                  }
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pesan bantuan terkirim! Tim kami akan segera merespons.'),
-                      backgroundColor: AppColors.primaryBrown,
-                    ),
-                  );
-                },
-                child: const Text('Kirim Pertanyaan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -234,35 +121,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Contact Channels
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildContactCard(
-                      icon: Icons.chat_bubble_outline_rounded,
-                      title: 'Live Chat',
-                      subtitle: 'Hubungi CS kami',
-                      onTap: _showContactSupportDialog,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildContactCard(
-                      icon: Icons.mail_outline_rounded,
-                      title: 'Email Kami',
-                      subtitle: 'support@moneymate.id',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Email support: support@moneymate.id')),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
               // FAQ Section
               const Text(
@@ -341,52 +200,6 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
               const SizedBox(height: 24),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: AppColors.primaryBrown, size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-            ),
-          ],
         ),
       ),
     );

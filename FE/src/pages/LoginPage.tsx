@@ -4,6 +4,7 @@ import { loginUser } from '../services/api';
 
 interface Props {
   onLoginSuccess: (email: string) => void;
+  onNavigateRegister?: () => void;
 }
 
 export const LoginPage: React.FC<Props> = ({ onLoginSuccess }) => {

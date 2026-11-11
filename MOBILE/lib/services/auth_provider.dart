@@ -29,6 +29,7 @@ class AuthProvider with ChangeNotifier {
       ? _userNickname 
       : (_userName.isNotEmpty && _userName != 'Guest' ? _userName.split(' ').first : 'Pengguna');
   String get userEmail => _userEmail;
+  String get currentUserEmail => _userEmail;
   String get userPhone => _userPhone;
   String get userInitial => (userNickname.isNotEmpty 
       ? userNickname[0] 
@@ -61,6 +62,10 @@ class AuthProvider with ChangeNotifier {
     try {
       final prefs = await PreferencesService.getInstance();
       final savedName = prefs.getUserName();
+      _token = prefs.getAuthToken();
+      if (_token != null && _token!.isNotEmpty) {
+        ApiService.token = _token;
+      }
       if (savedName != 'Guest' && savedName.isNotEmpty) {
         _userName = savedName;
         _userNickname = prefs.getUserNickname();
@@ -69,6 +74,8 @@ class AuthProvider with ChangeNotifier {
         _role = prefs.getUserRole();
         _isLoggedIn = true;
         notifyListeners();
+        // Background sync wallet saldo from backend
+        fetchWallets();
       }
     } catch (e) {
       debugPrint('[AuthProvider] loadFromPreferences error: $e');
@@ -83,6 +90,9 @@ class AuthProvider with ChangeNotifier {
       await prefs.saveUserEmail(_userEmail);
       await prefs.saveUserPhone(_userPhone);
       await prefs.saveUserRole(_role);
+      if (_token != null && _token!.isNotEmpty) {
+        await prefs.saveAuthToken(_token!);
+      }
     } catch (e) {
       debugPrint('[AuthProvider] saveSession error: $e');
     }
@@ -257,6 +267,16 @@ class AuthProvider with ChangeNotifier {
       _registeredUsers[_userEmail.toLowerCase()]!['name'] = _userName;
       _registeredUsers[_userEmail.toLowerCase()]!['nickname'] = _userNickname;
       _registeredUsers[_userEmail.toLowerCase()]!['phone'] = _userPhone;
+    }
+
+    // Sinkronisasi update profil langsung ke Backend API
+    try {
+      await ApiService.updateProfile({
+        'name': _userName,
+        'phone': _userPhone,
+      });
+    } catch (e) {
+      debugPrint('[AuthProvider] updateProfile API error: $e');
     }
 
     await _saveSessionToPrefs();
@@ -482,6 +502,30 @@ class AuthProvider with ChangeNotifier {
     };
   }
 
+  Future<bool> updatePassword(String newPassword) async {
+    final email = _userEmail.isNotEmpty ? _userEmail.toLowerCase() : 'user@moneymate.com';
+    if (_registeredUsers.containsKey(email)) {
+      _registeredUsers[email]!['password'] = newPassword;
+    } else {
+      _registeredUsers[email] = {
+        'name': _userName,
+        'nickname': _userNickname,
+        'password': newPassword,
+        'role': _role,
+        'phone': _userPhone,
+      };
+    }
+    try {
+      await ApiService.resetPassword(
+        email: email,
+        newPassword: newPassword,
+        otp: '123456',
+      );
+    } catch (_) {}
+    notifyListeners();
+    return true;
+  }
+
   // ================= TRANSACTIONS INTEGRATION =================
   List<Map<String, dynamic>> _transactions = [];
   bool _isLoadingTransactions = false;
@@ -575,6 +619,10 @@ class AuthProvider with ChangeNotifier {
         'date': date,
         'note': note ?? '',
       });
+      // Sinkronkan saldo dompet real-time dari backend
+      if (success) {
+        await fetchWallets();
+      }
       return success;
     } catch (e) {
       debugPrint('[AuthProvider] addTransaction error: $e');

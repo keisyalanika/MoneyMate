@@ -12,7 +12,8 @@ import {
   Settings,
   User,
   LogOut,
-  Zap
+  Zap,
+  Sparkles
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -31,6 +32,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
       'users': 'users',
       'transactions': 'transactions',
       'budgets': 'budgets',
+      'ai': 'ai',
+      'ai-insight': 'ai',
+      'intelligence': 'ai',
       'analytics': 'analytics',
       'reports': 'reports',
       'settings': 'settings',
@@ -128,8 +132,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
           </button>
 
           <div className="pt-3 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">ANALITIK</div>
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">ANALITIK &amp; AI</div>
           </div>
+
+          <button
+            onClick={() => handleTabClick('ai')}
+            className={'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ' + (
+              currentTab === 'ai'
+                ? 'bg-[#5C2D16] text-white shadow-md font-bold'
+                : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
+            )}
+          >
+            <Sparkles className={'w-4 h-4 ' + (currentTab === 'ai' ? 'text-white' : 'text-[#6E5D53]')} />
+            <span>AI Intelligence</span>
+          </button>
 
           <button
             onClick={() => handleTabClick('analytics')}

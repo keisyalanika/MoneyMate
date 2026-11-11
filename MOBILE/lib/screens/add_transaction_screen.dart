@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 import '../utils/notification_helper.dart';
+import '../utils/currency_formatter.dart';
 import '../services/auth_provider.dart';
 import 'transaction_screen.dart';
 
@@ -168,6 +170,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           child: TextField(
                             controller: _nominalController,
                             keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              ThousandsSeparatorInputFormatter(),
+                            ],
                             decoration: const InputDecoration(
                               isDense: true,
                               contentPadding: EdgeInsets.zero,

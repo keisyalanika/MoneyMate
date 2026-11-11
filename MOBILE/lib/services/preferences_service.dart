@@ -79,12 +79,21 @@ class PreferencesService {
     return _prefs?.getString('user_role') ?? 'user';
   }
 
+  Future<void> saveAuthToken(String token) async {
+    await _prefs?.setString('auth_jwt_token', token);
+  }
+
+  String? getAuthToken() {
+    return _prefs?.getString('auth_jwt_token');
+  }
+
   Future<void> clearUserSession() async {
     await _prefs?.remove('user_name');
     await _prefs?.remove('user_nickname');
     await _prefs?.remove('user_email');
     await _prefs?.remove('user_phone');
     await _prefs?.remove('user_role');
+    await _prefs?.remove('auth_jwt_token');
   }
 
   // =============== PENGATURAN MATA UANG ===============

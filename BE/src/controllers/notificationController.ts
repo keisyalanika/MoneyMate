@@ -5,9 +5,31 @@ import { AuthRequest } from '../middleware/authMiddleware';
 // ---- GET notifications ----
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
-    const list = await notifService.getNotifications(req.user!.id);
-    const unread = await notifService.countUnread(req.user!.id);
+    const userId = req.user?.id || 1;
+    const list = await notifService.getNotifications(userId);
+    const unread = await notifService.countUnread(userId);
     res.json({ success: true, data: { notifications: list, unreadCount: unread } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ---- CREATE notification (admin / system) ----
+export const addNotification = async (req: AuthRequest, res: Response) => {
+  try {
+    const { user_id, title, message } = req.body;
+    const targetUserId = user_id || req.user?.id || 1;
+    if (!title) {
+      return res.status(400).json({ success: false, message: 'title is required' });
+    }
+
+    const created = await notifService.createNotification({
+      user_id: targetUserId,
+      title,
+      message,
+    });
+
+    res.status(201).json({ success: true, message: 'Notifikasi berhasil dibuat', data: created });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -26,7 +48,8 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
 // ---- MARK all as read ----
 export const markAllAsRead = async (req: AuthRequest, res: Response) => {
   try {
-    await notifService.markAllAsRead(req.user!.id);
+    const userId = req.user?.id || 1;
+    await notifService.markAllAsRead(userId);
     res.json({ success: true, message: 'All notifications marked as read' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

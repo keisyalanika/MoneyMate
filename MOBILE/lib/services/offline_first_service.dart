@@ -141,8 +141,10 @@ class OfflineFirstService {
     // 2. Coba kirim ke API di background
     final success = await ApiService.addTransaction(payload);
     if (success) {
-      // Sync ulang agar ID dari server ter-update
+      // Sync ulang agar ID dari server ter-update dan saldo otomatis ter-refresh
       await syncTransactions();
+      await syncSummary();
+      await syncBudgets();
     }
     return true; // Selalu sukses karena sudah disimpan lokal
   }

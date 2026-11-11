@@ -79,6 +79,7 @@ export const getTransactionById = async (id: number) => {
 // ---- CREATE transaction ----
 export const createTransaction = async (data: {
   user_id: number;
+  wallet_id?: number;
   type: string;
   amount: number;
   category_id: number;
@@ -92,6 +93,81 @@ export const createTransaction = async (data: {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [data.user_id, data.type, data.amount, data.category_id, data.income_source_id || null, data.date, data.note || null, data.receipt_image_url || null]
   );
+
+  // AUTO-UPDATE WALLET SALDO OTOMATIS
+  const isIncome = data.type.toLowerCase() === 'income';
+  const delta = isIncome ? Number(data.amount) : -Number(data.amount);
+
+  try {
+    const [wallets] = await pool.query<RowDataPacket[]>(
+      'SELECT id, balance FROM wallets WHERE user_id = ? ORDER BY is_default DESC, created_at ASC LIMIT 1',
+      [data.user_id]
+    );
+    if (wallets && wallets.length > 0) {
+      const currentBal = Number(wallets[0].balance) || 0;
+      const newBal = Math.max(0, currentBal + delta);
+      await pool.query('UPDATE wallets SET balance = ? WHERE id = ?', [newBal, wallets[0].id]);
+    } else {
+      const initialBal = isIncome ? Number(data.amount) : 0;
+      await pool.query(
+        'INSERT INTO wallets (user_id, name, balance, currency, is_default) VALUES (?, ?, ?, ?, ?)',
+        [data.user_id, 'Dompet Utama', initialBal, 'IDR', 1]
+      );
+    }
+  } catch (err: any) {
+    console.warn('[AutoBalance] Gagal memperbarui saldo dompet:', err.message);
+  }
+
+  // AUTO-NOTIFIKASI ANGGARAN (JIKA PENGELUARAN MENDEKATI / MELEBIHI LIMIT)
+  if (!isIncome) {
+    try {
+      const txDate = new Date(data.date);
+      const month = txDate.getMonth() + 1;
+      const year = txDate.getFullYear();
+
+      const [budgets] = await pool.query<RowDataPacket[]>(
+        `SELECT b.*, c.name as category_name FROM budgets b
+         JOIN categories c ON b.category_id = c.id
+         WHERE b.user_id = ? AND b.category_id = ? AND b.month = ? AND b.year = ?`,
+        [data.user_id, data.category_id, month, year]
+      );
+
+      if (budgets && budgets.length > 0) {
+        const budget = budgets[0];
+        const [spentRow] = await pool.query<RowDataPacket[]>(
+          `SELECT COALESCE(SUM(amount), 0) AS total_spent FROM transactions
+           WHERE user_id = ? AND category_id = ? AND type = 'expense' AND MONTH(date) = ? AND YEAR(date) = ?`,
+          [data.user_id, data.category_id, month, year]
+        );
+        const totalSpent = Number(spentRow[0].total_spent);
+        const limitAmount = Number(budget.amount);
+        const ratio = limitAmount > 0 ? (totalSpent / limitAmount) * 100 : 0;
+
+        if (ratio >= 100) {
+          await pool.query(
+            'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+            [
+              data.user_id,
+              '⚠️ Peringatan Overbudget!',
+              `Pengeluaran kategori ${budget.category_name} sudah mencapai Rp ${totalSpent.toLocaleString('id-ID')} (melebihi pagu anggaran Rp ${limitAmount.toLocaleString('id-ID')}).`
+            ]
+          );
+        } else if (ratio >= 80) {
+          await pool.query(
+            'INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)',
+            [
+              data.user_id,
+              '⚡ Peringatan Kuota Anggaran',
+              `Pengeluaran kategori ${budget.category_name} telah mencapai ${Math.round(ratio)}% dari anggaran bulanan Anda.`
+            ]
+          );
+        }
+      }
+    } catch (notifErr: any) {
+      console.warn('[AutoNotification] Gagal memeriksa kuota anggaran:', notifErr.message);
+    }
+  }
+
   return getTransactionById(result.insertId);
 };
 
@@ -118,6 +194,26 @@ export const updateTransaction = async (id: number, data: {
 
 // ---- DELETE transaction ----
 export const deleteTransaction = async (id: number) => {
+  const tx = await getTransactionById(id);
+  if (tx) {
+    const isIncome = tx.type?.toLowerCase() === 'income';
+    // Kembalikan saldo: jika income dihapus maka kurangi saldo; jika expense dihapus maka kembalikan saldo
+    const reverseDelta = isIncome ? -Number(tx.amount) : Number(tx.amount);
+    try {
+      const [wallets] = await pool.query<RowDataPacket[]>(
+        'SELECT id, balance FROM wallets WHERE user_id = ? ORDER BY is_default DESC, created_at ASC LIMIT 1',
+        [tx.user_id]
+      );
+      if (wallets && wallets.length > 0) {
+        const currentBal = Number(wallets[0].balance) || 0;
+        const newBal = Math.max(0, currentBal + reverseDelta);
+        await pool.query('UPDATE wallets SET balance = ? WHERE id = ?', [newBal, wallets[0].id]);
+      }
+    } catch (err: any) {
+      console.warn('[AutoBalance] Gagal mengembalikan saldo dompet saat transaksi dihapus:', err.message);
+    }
+  }
+
   const [result] = await pool.query<ResultSetHeader>('DELETE FROM transactions WHERE id = ?', [id]);
   return result.affectedRows > 0;
 };

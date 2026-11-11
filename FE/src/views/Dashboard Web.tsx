@@ -3,28 +3,16 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '../../app/components/Sidebar';
-import { OverviewPage } from './OverviewPage';
-import { UserManagementPage, UserItem } from './UserManagementPage';
-import { TransactionsPage } from './TransactionsPage';
-import { BudgetsPage } from './BudgetsPage';
-import { AiInsightPage } from './AiInsightPage';
-import { AnalyticsPage } from './AnalyticsPage';
-import { ReportsPage } from './ReportsPage';
-import { SettingsPage } from './SettingsPage';
-import { ProfilePage } from './ProfilePage';
+import { OverviewPage } from '../pages/OverviewPage';
+import { UserManagementPage } from '../pages/UserManagementPage';
+import { TransactionsPage } from '../pages/TransactionsPage';
+import { BudgetsPage } from '../pages/BudgetsPage';
+import { AiInsightPage } from '../pages/AiInsightPage';
+import { AnalyticsPage } from '../pages/AnalyticsPage';
+import { ReportsPage } from '../pages/ReportsPage';
+import { SettingsPage } from '../pages/SettingsPage';
+import { ProfilePage } from '../pages/ProfilePage';
 import { Search, Bell, LogOut } from 'lucide-react';
-
-const INITIAL_USERS: UserItem[] = [
-  { id: 101, name: 'Kayla', email: 'kayla@gmail.com', prodi: 'Informatika', saldo: 'Rp 15.000.000', status: 'Aktif' },
-  { id: 102, name: 'Exa', email: 'angeliqueexaa@student.ub.ac.id', prodi: 'Sistem Informasi', saldo: 'Rp 150.000.000', status: 'Aktif' },
-  { id: 1, name: 'Keisya Lanika', email: 'KeisyaExaHaniyah@gmail.com', prodi: 'Informatika', saldo: 'Rp 2.450.000', status: 'Aktif' },
-  { id: 2, name: 'Bima Santoso', email: 'bima.santoso@student.ac.id', prodi: 'Sistem Informasi', saldo: 'Rp 1.150.000', status: 'Aktif' },
-  { id: 3, name: 'Aulia Rahma', email: 'aulia.r@student.ac.id', prodi: 'Manajemen', saldo: 'Rp 4.800.000', status: 'Aktif' },
-  { id: 4, name: 'Rizky Aditya', email: 'rizky.a@student.ac.id', prodi: 'Teknik Elektro', saldo: 'Rp 850.000', status: 'Aktif' },
-  { id: 5, name: 'Nadia Putri', email: 'nadia.p@student.ac.id', prodi: 'Akuntansi', saldo: 'Rp 3.200.000', status: 'Aktif' },
-  { id: 6, name: 'Ahmad Fauzi', email: 'ahmad.fauzi@student.ac.id', prodi: 'Teknik Informatika', saldo: 'Rp 1.750.000', status: 'Aktif' },
-  { id: 7, name: 'Bambang Santoso', email: 'bambang.s@student.ac.id', prodi: 'Ilmu Komunikasi', saldo: 'Rp 2.100.000', status: 'Aktif' }
-];
 
 interface DashboardProps {
   userEmail?: string;
@@ -88,9 +76,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
 
   const [currency, setCurrency] = useState<'IDR' | 'USD'>('IDR');
   
-  // Shared persistent users state across all pages (Item 3)
-  const [usersList, setUsersList] = useState<UserItem[]>(INITIAL_USERS);
-
   // Notification and Toast States
   const [pdfToast, setPdfToast] = useState(false);
   const [pdfToastMessage, setPdfToastMessage] = useState('Memproses Unduh PDF Laporan...');
@@ -98,43 +83,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
   const [unreadNotifCount, setUnreadNotifCount] = useState(3);
   const [latestAiToastTitle, setLatestAiToastTitle] = useState('Rekomendasi AI Diterapkan');
   const [latestAiToastDesc, setLatestAiToastDesc] = useState('Intervensi cerdas berhasil diaktifkan untuk akun mahasiswa.');
-
-  // Load users from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('moneymate_users_db');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsersList(parsed);
-        }
-      }
-    } catch {
-      // fallback
-    }
-  }, []);
-
-  const handleAddUserGlobal = (newUser: UserItem) => {
-    const updated = [newUser, ...usersList];
-    setUsersList(updated);
-    try {
-      localStorage.setItem('moneymate_users_db', JSON.stringify(updated));
-    } catch {
-      // fallback
-    }
-    // Increment notification counter & add message
-    setUnreadNotifCount(prev => prev + 1);
-  };
-
-  const handleUpdateUserGlobal = (updatedUser: UserItem) => {
-    const updated = usersList.map(u => u.id === updatedUser.id ? updatedUser : u);
-    setUsersList(updated);
-    try {
-      localStorage.setItem('moneymate_users_db', JSON.stringify(updated));
-    } catch {
-      // fallback
-    }
-  };
 
   const handleDownloadPdf = (customTitle?: string) => {
     setPdfToastMessage(customTitle ? `Memproses Unduh: ${customTitle}...` : 'Memproses Unduh PDF Laporan...');
@@ -276,7 +224,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
                       <button onClick={() => setShowNotifDropdown(false)} className="text-[#8C7A70] hover:text-[#2D2825] text-xs font-bold cursor-pointer">✕</button>
                     </div>
                     <p className="text-[11px] text-[#554A43] leading-relaxed">
-                      Total {usersList.length} akun mahasiswa aktif tersinkronisasi ke Dashboard dan Analytics.
+                      Seluruh akun mahasiswa dan transaksi aktif tersinkronisasi langsung ke Backend.
                     </p>
                     <div className="flex items-center gap-2 pt-1 text-[10px] border-t border-[#F0E8E4]">
                       <span className="font-bold text-emerald-700 flex items-center gap-1">
@@ -341,44 +289,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ userEmail = 'KeisyaExaHani
             <OverviewPage
               onTriggerPdfToast={handleDownloadPdf}
               fmtMoney={fmtMoney}
-              onNavigateTab={setActiveTab}
+              onNavigateTab={handleTabChange}
               onTriggerAiNotification={handleAiNotification}
-              users={usersList}
-              totalUsersCount={usersList.length}
             />
           )}
           {activeTab === 'users' && (
             <UserManagementPage
               fmtMoney={fmtMoney}
-              users={usersList}
-              onAddUser={handleAddUserGlobal}
-              onUpdateUser={handleUpdateUserGlobal}
             />
           )}
-          {activeTab === 'transactions' && <TransactionsPage onTriggerPdfToast={handleDownloadPdf} users={usersList} />}
+          {activeTab === 'transactions' && <TransactionsPage onTriggerPdfToast={handleDownloadPdf} />}
           {activeTab === 'budgets' && (
             <BudgetsPage
               onTriggerPdfToast={handleDownloadPdf}
               fmtMoney={fmtMoney}
-              users={usersList}
-              totalUsersCount={usersList.length}
             />
           )}
           {activeTab === 'ai' && <AiInsightPage onTriggerPdfToast={handleDownloadPdf} />}
           {activeTab === 'analytics' && (
             <AnalyticsPage
               fmtMoney={fmtMoney}
-              totalUsersCount={usersList.length}
             />
           )}
           {activeTab === 'reports' && (
             <ReportsPage
               onTriggerPdfToast={handleDownloadPdf}
               fmtMoney={fmtMoney}
-              totalUsersCount={usersList.length}
             />
           )}
-          {activeTab === 'settings' && <SettingsPage fmtMoney={fmtMoney} />}
+          {activeTab === 'settings' && <SettingsPage onTriggerSaveToast={handleDownloadPdf} fmtMoney={fmtMoney} />}
           {activeTab === 'profile' && <ProfilePage userEmail={userEmail} onLogout={handleLogoutGlobal} />}
         </main>
       </div>

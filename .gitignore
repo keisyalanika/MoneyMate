@@ -7,6 +7,10 @@ build/
 .vscode/
 .idea/
 
+# Next.js
+.next/
+*.tsbuildinfo
+
 # Flutter / Dart
 .dart_tool/
 .packages

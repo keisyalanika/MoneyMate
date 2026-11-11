@@ -1,13 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction_model.dart';
 import '../models/category_model.dart';
 import '../models/budget_model.dart';
 
 class ApiService {
   // Use 10.0.2.2 for Android Emulator, localhost for iOS / Desktop / Web
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:5000/api';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:5000/api';
+    }
+    return 'http://localhost:5000/api';
+  }
   static String? token;
 
   static Map<String, String> get headers {
@@ -129,46 +136,105 @@ class ApiService {
     ];
   }
 
-  // ================= GOALS =================
-  static Future<List<Map<String, dynamic>>> fetchGoals() async {
+  // ================= GOALS (OFFLINE-FIRST DENGAN LOCAL STORAGE & SYNC API) =================
+  static const String _goalsKey = 'moneymate_goals_storage';
+
+  static Future<List<Map<String, dynamic>>> _getLocalGoals() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/goals'), headers: headers);
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = json.decode(response.body);
-        final List<dynamic> list = body['data'];
-        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      final prefs = await SharedPreferences.getInstance();
+      final String? str = prefs.getString(_goalsKey);
+      if (str != null && str.trim().isNotEmpty) {
+        final List<dynamic> decoded = json.decode(str);
+        return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint('API Error fetchGoals: $e');
-    }
+    } catch (_) {}
     return [];
   }
 
-  static Future<bool> addGoal(Map<String, dynamic> payload) async {
+  static Future<void> _setLocalGoals(List<Map<String, dynamic>> goals) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/goals'),
-        headers: headers,
-        body: json.encode(payload),
-      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_goalsKey, json.encode(goals));
+    } catch (_) {}
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchGoals() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/goals'), headers: headers)
+          .timeout(const Duration(seconds: 2));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'];
+        final remote = list.map((e) => Map<String, dynamic>.from(e)).toList();
+        if (remote.isNotEmpty) {
+          await _setLocalGoals(remote);
+          return remote;
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API fetchGoals offline, using local storage: $e');
+    }
+    return await _getLocalGoals();
+  }
+
+  static Future<bool> addGoal(Map<String, dynamic> payload) async {
+    // 1. Simpan langsung ke local storage agar goal tidak pernah hilang
+    final current = await _getLocalGoals();
+    final item = Map<String, dynamic>.from(payload);
+    item['id'] = item['id'] ?? 'goal_${DateTime.now().millisecondsSinceEpoch}';
+    final double initDeposit = double.tryParse('${payload['initial_deposit'] ?? payload['current_amount'] ?? 0}') ?? 0.0;
+    item['current_amount'] = initDeposit;
+    item['is_completed'] = 0;
+    item['created_at'] = DateTime.now().toIso8601String();
+    current.insert(0, item);
+    await _setLocalGoals(current);
+
+    // 2. Coba sinkronisasi ke server jika API aktif
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/goals'),
+            headers: headers,
+            body: json.encode(payload),
+          )
+          .timeout(const Duration(seconds: 3));
       return response.statusCode == 201;
     } catch (e) {
-      if (kDebugMode) debugPrint('API Error addGoal: $e');
-      return false;
+      if (kDebugMode) debugPrint('API addGoal offline fallback: $e');
+      return true; // Tetap berhasil karena sudah tersimpan di perangkat lokal
     }
   }
 
   static Future<bool> addGoalFund(dynamic goalId, double amount, [String? note]) async {
+    // Update local storage
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/goals/$goalId/funds'),
-        headers: headers,
-        body: json.encode({'amount': amount, 'note': note ?? 'Setoran tabungan'}),
-      );
+      final current = await _getLocalGoals();
+      final idx = current.indexWhere((g) => g['id'].toString() == goalId.toString());
+      if (idx >= 0) {
+        final double curr = double.tryParse('${current[idx]['current_amount'] ?? 0}') ?? 0.0;
+        final double tgt = double.tryParse('${current[idx]['target_amount'] ?? 0}') ?? 1.0;
+        final double updated = curr + amount;
+        current[idx]['current_amount'] = updated;
+        if (updated >= tgt) {
+          current[idx]['is_completed'] = 1;
+        }
+        await _setLocalGoals(current);
+      }
+    } catch (_) {}
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/goals/$goalId/funds'),
+            headers: headers,
+            body: json.encode({'amount': amount, 'note': note ?? 'Setoran tabungan'}),
+          )
+          .timeout(const Duration(seconds: 3));
       return response.statusCode == 201;
     } catch (e) {
-      if (kDebugMode) debugPrint('API Error addGoalFund: $e');
-      return false;
+      if (kDebugMode) debugPrint('API addGoalFund offline fallback: $e');
+      return true;
     }
   }
 
@@ -431,6 +497,85 @@ class ApiService {
         'success': false,
         'message': 'Gagal memperbarui sandi ke server backend.',
       };
+    }
+  }
+
+  // ================= NOTIFIKASI =================
+  static Future<List<Map<String, dynamic>>> fetchNotifications() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/notifications'), headers: headers)
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final dynamic data = body['data'];
+        List<dynamic> list = [];
+        if (data is Map && data.containsKey('notifications')) {
+          list = data['notifications'];
+        } else if (data is List) {
+          list = data;
+        }
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchNotifications: $e');
+    }
+    return [];
+  }
+
+  static Future<bool> markNotificationAsRead(int notifId) async {
+    try {
+      final response = await http
+          .put(Uri.parse('$baseUrl/notifications/$notifId/read'), headers: headers)
+          .timeout(const Duration(seconds: 3));
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error markNotificationAsRead: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> markAllNotificationsAsRead() async {
+    try {
+      final response = await http
+          .put(Uri.parse('$baseUrl/notifications/read-all'), headers: headers)
+          .timeout(const Duration(seconds: 3));
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error markAllNotificationsAsRead: $e');
+      return false;
+    }
+  }
+
+  // ================= PROFIL PENGGUNA =================
+  static Future<Map<String, dynamic>?> fetchProfile() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/users/me'), headers: headers)
+          .timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        return body['data'] ?? body;
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchProfile: $e');
+    }
+    return null;
+  }
+
+  static Future<bool> updateProfile(Map<String, dynamic> data) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/users/me'),
+            headers: headers,
+            body: json.encode(data),
+          )
+          .timeout(const Duration(seconds: 4));
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error updateProfile: $e');
+      return false;
     }
   }
 }

@@ -173,7 +173,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ onTriggerPdfToast, fmt
 
   // Handle Schedule Save
   const handleSaveSchedule = () => {
-    const activeStakeholders = [];
+    const activeStakeholders: string[] = [];
     if (stakeholders.keuangan) activeStakeholders.push('Biro Keuangan');
     if (stakeholders.baak) activeStakeholders.push('BAAK');
     if (stakeholders.dekanat) activeStakeholders.push('Dekanat');

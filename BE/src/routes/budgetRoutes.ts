@@ -4,6 +4,7 @@ import {
   addBudget,
   updateBudget,
   deleteBudget,
+  sendBudgetAlert,
 } from '../controllers/budgetController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -15,5 +16,6 @@ router.get('/', getBudgets);
 router.post('/', addBudget);
 router.put('/:id', updateBudget);
 router.delete('/:id', deleteBudget);
+router.post('/:id/alert', sendBudgetAlert);
 
 export default router;

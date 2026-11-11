@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { RefreshCw, Download, Send, Eye, ThumbsUp } from 'lucide-react';
-import { fetchBudgets } from '../services/api';
+import { fetchBudgets, fetchTransactionsList, sendBudgetAlert } from '../services/api';
 
 interface BudgetsPageProps {
   onTriggerPdfToast: () => void;
@@ -22,6 +22,9 @@ interface StudentBudgetItem {
   status: string;
   statusType: 'over' | 'waspada' | 'aman';
   actionType: 'send' | 'thumbs';
+  rawLimit?: number;
+  rawSpent?: number;
+  userId?: number;
 }
 
 type ModalMode = 'send' | 'preview' | 'thumbs';
@@ -48,11 +51,17 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
   const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null);
 
   const [studentBudgets, setStudentBudgets] = useState<StudentBudgetItem[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
 
   const loadBudgetsData = async () => {
     setIsRefreshing(true);
     try {
-      const data = await fetchBudgets();
+      const [data, trxData] = await Promise.all([
+        fetchBudgets(),
+        fetchTransactionsList(200)
+      ]);
+      setAllTransactions(trxData || []);
+
       if (data && data.length > 0) {
         const colors = [
           'bg-rose-100 text-rose-800',
@@ -94,7 +103,10 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
             catKritis: b.categoryName || 'Kategori Umum',
             status: statusText,
             statusType,
-            actionType: isOver ? 'send' : 'thumbs'
+            actionType: isOver ? 'send' : 'thumbs',
+            rawLimit: limit,
+            rawSpent: spent,
+            userId: b.user_id ? Number(b.user_id) : undefined
           };
         });
         setStudentBudgets(mapped);
@@ -123,6 +135,71 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
       window.removeEventListener('focus', handleFocus);
     };
   }, []);
+
+  // Compute dynamic expense composition for selected student based on real transaction data
+  const dynamicComposition = useMemo(() => {
+    if (!selectedStudent) return [];
+
+    // Filter actual expense transactions for this student
+    const studentTrx = allTransactions.filter(t => {
+      const isExp = t.type === 'expense' || String(t.type).toLowerCase() === 'expense';
+      if (!isExp) return false;
+      if (selectedStudent.name && selectedStudent.name !== 'Pengguna') {
+        const studentName = selectedStudent.name.toLowerCase();
+        return (t.user_name && t.user_name.toLowerCase().includes(studentName)) ||
+               (t.student && t.student.toLowerCase().includes(studentName));
+      }
+      return true;
+    });
+
+    if (studentTrx.length > 0) {
+      const catMap: Record<string, number> = {};
+      studentTrx.forEach(t => {
+        const cat = t.category_name || t.category || selectedStudent.catKritis || 'Pengeluaran';
+        const amt = Number(t.amount || 0);
+        catMap[cat] = (catMap[cat] || 0) + amt;
+      });
+
+      const totalExp = Object.values(catMap).reduce((a, b) => a + b, 0);
+      if (totalExp > 0) {
+        const barColors = ['bg-[#5C2D16]', 'bg-amber-600', 'bg-emerald-600'];
+        return Object.entries(catMap)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([category, amount], idx) => {
+            const percent = Math.round((amount / totalExp) * 100);
+            return {
+              category: idx === 0 ? `${category} (Pos Terbesar)` : category,
+              amount,
+              percent,
+              barColor: barColors[idx % barColors.length]
+            };
+          });
+      }
+    }
+
+    // Dynamic fallback strictly matching selected student's realisasi
+    const spentVal = selectedStudent.rawSpent ?? Number(selectedStudent.realisasi.replace(/\D/g, '') || 0);
+    if (spentVal > 0) {
+      return [
+        {
+          category: `${selectedStudent.catKritis} (Pos Utama)`,
+          amount: spentVal,
+          percent: 100,
+          barColor: 'bg-[#5C2D16]'
+        }
+      ];
+    }
+
+    return [
+      {
+        category: `${selectedStudent.catKritis} (Belum Ada Transaksi)`,
+        amount: 0,
+        percent: 0,
+        barColor: 'bg-stone-300'
+      }
+    ];
+  }, [selectedStudent, allTransactions]);
 
   const handleRefreshData = () => {
     loadBudgetsData();
@@ -155,8 +232,18 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
   };
 
   // Confirm Actions
-  const handleConfirmSend = () => {
+  const handleConfirmSend = async () => {
     if (!selectedStudent) return;
+    try {
+      await sendBudgetAlert(selectedStudent.id, {
+        alert_type: modalMode === 'thumbs' ? 'appreciation' : 'warning',
+        custom_message: aiCustomMessage,
+        push_notif: pushNotif
+      });
+    } catch (err: any) {
+      console.warn('Backend send budget alert failed:', err.message);
+    }
+
     if (modalMode === 'send') {
       setActionSuccessToast(`Peringatan defisit anggaran berhasil dikirimkan ke ${selectedStudent.name} via WhatsApp & Push Notifikasi!`);
     } else if (modalMode === 'thumbs') {
@@ -716,36 +803,23 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
                     </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-[#554A43]">{selectedStudent.catKritis} (Pos Terbesar)</span>
-                        <strong className="text-[#2D2825]">42% • Rp 987.000</strong>
+                  <div className="space-y-2.5">
+                    {dynamicComposition.map((item, idx) => (
+                      <div key={idx}>
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="text-[#554A43] font-medium">{item.category}</span>
+                          <strong className="text-[#2D2825]">
+                            {item.percent}% • Rp {item.amount.toLocaleString('id-ID')}
+                          </strong>
+                        </div>
+                        <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${item.barColor} rounded-full transition-all duration-500`}
+                            style={{ width: `${Math.min(item.percent, 100)}%` }}
+                          ></div>
+                        </div>
                       </div>
-                      <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#5C2D16] rounded-full" style={{ width: '42%' }}></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-[#554A43]">Kebutuhan Studi &amp; Akademik</span>
-                        <strong className="text-[#2D2825]">28% • Rp 658.000</strong>
-                      </div>
-                      <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-600 rounded-full" style={{ width: '28%' }}></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-[#554A43]">Transportasi &amp; Penunjang Lain</span>
-                        <strong className="text-[#2D2825]">30% • Rp 705.000</strong>
-                      </div>
-                      <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-600 rounded-full" style={{ width: '30%' }}></div>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
@@ -755,7 +829,7 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
                     <span>🤖</span> Evaluasi Pola Transaksi Mahasiswa (AI Insight)
                   </div>
                   <p className="text-[11px] text-[#554A43] leading-relaxed">
-                    Berdasarkan audit pola transaksi, <strong>{selectedStudent.name}</strong> menunjukkan kedisiplinan baik pada alokasi biaya akademik, namun terdapat deviasi konsumsi pada kategori <strong>{selectedStudent.catKritis}</strong>. Tidak ditemukan anomali transaksi berisiko tinggi.
+                    Berdasarkan audit realisasi transaksi perbankan, <strong>{selectedStudent.name}</strong> mencatat pengeluaran sebesar <strong>{selectedStudent.realisasi}</strong> ({selectedStudent.percent} dari batas pagu {selectedStudent.budget}) dengan pos pengeluaran utama pada kategori <strong>{selectedStudent.catKritis}</strong>. Status kepatuhan saat ini: <strong className={selectedStudent.isOver ? 'text-[#D9381E]' : 'text-emerald-700'}>{selectedStudent.status}</strong> ({selectedStudent.quotaText}).
                   </p>
                 </div>
 
@@ -767,7 +841,9 @@ export const BudgetsPage: React.FC<BudgetsPageProps> = ({ onTriggerPdfToast, fmt
                   </div>
                   <div className="flex justify-between py-0.5 border-b border-[#F0E8E4]">
                     <span>✓ Rekomendasi Batas Belanja Harian:</span>
-                    <strong className="text-[#2D2825]">Rp 45.000 / hari</strong>
+                    <strong className="text-[#2D2825]">
+                      Rp {Math.round((selectedStudent.rawLimit || 1500000) / 30).toLocaleString('id-ID')} / hari
+                    </strong>
                   </div>
                   <div className="flex justify-between py-0.5">
                     <span>⏱️ Riwayat Intervensi Semester Ini:</span>
