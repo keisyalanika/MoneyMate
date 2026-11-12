@@ -13,11 +13,9 @@ void showPasswordResetSuccessModal(BuildContext context) {
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             // Handle bar indikator atas
             Container(
               width: 40,
@@ -36,8 +34,8 @@ void showPasswordResetSuccessModal(BuildContext context) {
                 Container(
                   width: 80,
                   height: 80,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFAF0E6), // Warna krem pudar
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAF0E6), // Warna krem pudar
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -106,9 +104,9 @@ void showPasswordResetSuccessModal(BuildContext context) {
                 color: const Color(0xFFFAF0E6),
                 borderRadius: BorderRadius.circular(30),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: const [
                   Icon(
                     Icons.verified_user_outlined,
                     size: 16,
@@ -149,9 +147,9 @@ void showPasswordResetSuccessModal(BuildContext context) {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                  children: const [
                     Text(
                       'Masuk Sekarang',
                       style: TextStyle(
@@ -177,9 +175,9 @@ void showPasswordResetSuccessModal(BuildContext context) {
               onTap: () {
                 // Aksi bantuan
               },
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: const [
                   Text(
                     'Butuh Bantuan Lain?',
                     style: TextStyle(
@@ -200,8 +198,7 @@ void showPasswordResetSuccessModal(BuildContext context) {
             const SizedBox(height: 12),
           ],
         ),
-      ),
-    );
-  },
-);
+      );
+    },
+  );
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_provider.dart';
+import '../services/api_service.dart';
 import 'ai_chat_screen.dart';
-import 'budget_screen.dart';
+import 'add_goal_screen.dart';
 
 class AiInsightScreen extends StatefulWidget {
   const AiInsightScreen({super.key});
@@ -100,7 +103,6 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
   // ==================== TAB 1: RINGKASAN ====================
   Widget _buildRingkasanTab() {
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,13 +117,16 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             ),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Halo, Keisya!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-                      SizedBox(height: 4),
-                      Text('Berikut adalah analisis keuangan kamu berdasarkan pola pengeluaran bulan ini.', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
+                      Text(
+                        'Halo, ${Provider.of<AuthProvider>(context, listen: false).userNickname}!',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14)),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text('Berikut adalah analisis keuangan kamu berdasarkan pola pengeluaran bulan ini.', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
                     ],
                   ),
                 ),
@@ -165,12 +170,12 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                   ],
                 ),
                 const SizedBox(height: 20),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        children: const [
                           Text('Total Pemasukan', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                           SizedBox(height: 4),
                           Text('Rp 4.500.000', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
@@ -180,7 +185,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        children: const [
                           Text('Total Pengeluaran', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                           SizedBox(height: 4),
                           Text('Rp 3.200.000', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
@@ -192,18 +197,18 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
                 const SizedBox(height: 16),
                 const Divider(color: Color(0xFFF0EAE1)),
                 const SizedBox(height: 16),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: const [
                         Text('Sisa Saldo', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
                         SizedBox(height: 4),
                         Text('Rp 1.300.000', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
                       ],
                     ),
-                    Icon(Icons.bar_chart, color: Color(0xFF8C381E), size: 32),
+                    const Icon(Icons.bar_chart, color: Color(0xFF8C381E), size: 32),
                   ],
                 ),
               ],
@@ -221,20 +226,20 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFF0EAE1)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   backgroundColor: Color(0xFFFDF3F0),
                   child: Icon(Icons.lightbulb_outline, color: Color(0xFF8C381E)),
                 ),
-                SizedBox(width: 16),
-                Expanded(
+                const SizedBox(width: 16),
+                const Expanded(
                   child: Text(
                     'Pengeluaran kamu masih sesuai dengan budget bulan ini. Tetap jaga konsistensi ya!',
                     style: TextStyle(fontSize: 12, color: Color(0xFF8C827A), height: 1.4),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Color(0xFF8C827A)),
+                const Icon(Icons.chevron_right, color: Color(0xFF8C827A)),
               ],
             ),
           ),
@@ -246,13 +251,12 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
   // ==================== TAB 2: PREDIKSI BUDGET ====================
   Widget _buildPrediksiTab() {
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
+          Row(
+            children: const [
               Icon(Icons.auto_awesome, color: Color(0xFF8C381E), size: 16),
               SizedBox(width: 8),
               Text('Prediksi Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2C1A14))),
@@ -275,7 +279,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             decoration: BoxDecoration(
               color: const Color(0xFFFDF3F0),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF8C381E).withValues(alpha: 0.3)),
+              border: Border.all(color: const Color(0xFF8C381E).withOpacity(0.3)),
             ),
             child: Row(
               children: [
@@ -369,7 +373,6 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
   // ==================== TAB 3: REKOMENDASI ====================
   Widget _buildRekomendasiTab() {
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,7 +383,7 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             decoration: BoxDecoration(
               color: const Color(0xFFFDF3F0),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF8C381E).withValues(alpha: 0.3)),
+              border: Border.all(color: const Color(0xFF8C381E).withOpacity(0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +429,14 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             title: 'Tekan Batas Harian Makanan',
             description: 'Turunkan batas jajan dari Rp 50.000 ke Rp 30.000/hari hingga akhir bulan.',
             buttonText: 'Terapkan Batas Baru',
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('💡 Gunakan fitur Budget di menu utama untuk atur batas pengeluaran!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
           ),
           _buildRecommendationCard(
             icon: '🔄',
@@ -434,11 +444,30 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
             description: 'Pindahkan sisa budget Hiburan sebesar Rp 150.000 ke kategori Makanan.',
             buttonText: 'Pindahkan Budget',
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const BudgetScreen()),
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('💡 Atur alokasi budget di menu Budget!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
               );
             },
+          ),
+          // ===== KARTU GOAL REKOMENDASI AI =====
+          _buildAiGoalRecommendationCard(
+            emoji: '💰',
+            title: 'Buat Dana Darurat',
+            description: 'Kamu belum punya Dana Darurat. AI menyarankan menabung Rp 500.000/bulan selama 6 bulan.',
+            targetAmount: 3000000,
+            monthDuration: 6,
+            icon: 'savings',
+          ),
+          _buildAiGoalRecommendationCard(
+            emoji: '🎓',
+            title: 'Goal Tabungan Kuliah / Kursus',
+            description: 'Siapkan biaya pendidikan atau pengembangan diri mulai dari sekarang.',
+            targetAmount: 5000000,
+            monthDuration: 10,
+            icon: 'diamond',
           ),
         ],
       ),
@@ -489,6 +518,179 @@ class _AiInsightScreenState extends State<AiInsightScreen> with SingleTickerProv
           ),
         ],
       ),
+    );
+  }
+
+  // ==================== KARTU AI GOAL RECOMMENDATION ====================
+  Widget _buildAiGoalRecommendationCard({
+    required String emoji,
+    required String title,
+    required String description,
+    required double targetAmount,
+    required int monthDuration,
+    required String icon,
+  }) {
+    bool isSaving = false;
+
+    String formatRp(double v) {
+      final s = v.round().toString();
+      final buf = StringBuffer();
+      for (int i = 0; i < s.length; i++) {
+        if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
+        buf.write(s[i]);
+      }
+      return 'Rp ${buf.toString()}';
+    }
+
+    final deadline = DateTime.now().add(Duration(days: monthDuration * 30));
+    final deadlineStr = '${deadline.year}-${deadline.month.toString().padLeft(2, '0')}-${deadline.day.toString().padLeft(2, '0')}';
+    final monthly = targetAmount / monthDuration;
+
+    return StatefulBuilder(
+      builder: (ctx, setCardState) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFDE8D8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF0EB),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.auto_awesome, size: 14, color: Color(0xFF8C381E)),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text('REKOMENDASI GOAL AI',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF8C381E), letterSpacing: 0.5)),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 22)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(title,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(description, style: const TextStyle(fontSize: 12, color: Color(0xFF8C827A), height: 1.3)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _buildSmallChip('Target: ${formatRp(targetAmount)}'),
+                  const SizedBox(width: 8),
+                  _buildSmallChip('${formatRp(monthly)}/bln'),
+                  const SizedBox(width: 8),
+                  _buildSmallChip('$monthDuration bln'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF592314),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 0,
+                        ),
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                setCardState(() => isSaving = true);
+                                final success = await ApiService.addGoal({
+                                  'title': title,
+                                  'target_amount': targetAmount,
+                                  'current_amount': 0,
+                                  'icon': icon,
+                                  'deadline': deadlineStr,
+                                });
+                                setCardState(() => isSaving = false);
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(success ? '✅ Goal "$title" berhasil dibuat!' : 'Gagal menyimpan goal.'),
+                                    backgroundColor: success ? const Color(0xFF27AE60) : Colors.red,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                        child: isSaving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('🚀 Buat Goal Ini',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 40,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF8C381E)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddGoalScreen(
+                              initialDraft: {
+                                'title': title,
+                                'target_amount': targetAmount,
+                                'icon': icon,
+                                'deadline': deadlineStr,
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text('Edit', style: TextStyle(color: Color(0xFF8C381E), fontWeight: FontWeight.w600, fontSize: 13)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSmallChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF0EB),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF592314), fontWeight: FontWeight.w600)),
     );
   }
 }

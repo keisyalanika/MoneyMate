@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { UserItem } from './UserManagementPage';
+import { Users, Receipt, Wallet, FileDown, Sparkles } from 'lucide-react';
 
 export interface OverviewPageProps {
   onTriggerPdfToast: () => void;
@@ -261,7 +262,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           onClick={onTriggerPdfToast}
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#5C2D16] hover:bg-[#462211] text-white text-xs font-bold rounded-xl shadow-md transition-all shrink-0 cursor-pointer"
         >
-          <span>📩</span> Unduh Laporan PDF
+          <FileDown className="w-4 h-4" /> Unduh Laporan PDF
         </button>
       </div>
 
@@ -271,8 +272,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#8C7A70]">Total Pengguna Aktif</span>
-            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16] font-bold text-xs">
-              👤
+            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+              <Users className="w-4 h-4 text-[#5C2D16]" />
             </div>
           </div>
           <div className="text-3xl font-black text-[#2D2825] tracking-tight">{totalUsersCount}</div>
@@ -286,8 +287,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#8C7A70]">Total Transaksi Tercatat</span>
-            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16] font-bold text-xs">
-              📑
+            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+              <Receipt className="w-4 h-4 text-[#5C2D16]" />
             </div>
           </div>
           <div className="text-3xl font-black text-[#2D2825] tracking-tight">34,500</div>
@@ -301,8 +302,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div className="bg-white border border-[#E5DDD8] rounded-2xl p-4 shadow-xs space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-[#8C7A70]">Volume Arus Kas Tercatat</span>
-            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16] font-bold text-xs">
-              💳
+            <div className="w-8 h-8 rounded-full bg-[#FAF4F0] border border-[#E8DCD8] flex items-center justify-center text-[#5C2D16]">
+              <Wallet className="w-4 h-4 text-[#5C2D16]" />
             </div>
           </div>
           <div className="text-3xl font-black text-[#2D2825] tracking-tight">{formatCurrency('Rp 4.5 M', '$ 290.3 K')}</div>
@@ -616,7 +617,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div className="w-36 h-36 rounded-full border-[14px] border-[#5C2D16] flex items-center justify-center border-t-[#C25E38] border-r-[#8C5338] border-b-[#D4A373] shadow-inner relative">
               <div className="text-center">
                 <div className="text-[9px] text-[#8C7A70] font-bold uppercase tracking-wider">Total Belanja</div>
-                <div className="text-base font-black text-[#2D2825]">{formatCurrency('Rp 3.12 M', '$ 201.2 K')}</div>
+                <div className="text-base font-black text-[#2D2825]">{formatCurrency('Rp 2.450.000', '$ 158')}</div>
                 <div className="text-[9px] text-emerald-600 font-extrabold">100% Recorded</div>
               </div>
             </div>
@@ -628,12 +629,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>🍴</span> Makanan & Minuman (F&B)
+                  <span>🍴</span> Makanan &amp; Minuman
                 </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 1.185.600.000', '$ 76.490')} <span className="text-[#8C7A70] font-normal">(38%)</span></span>
+                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 980.000', '$ 63')} <span className="text-[#8C7A70] font-normal">(40%)</span></span>
               </div>
               <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#5C2D16] rounded-full" style={{ width: '38%' }}></div>
+                <div className="h-full bg-[#5C2D16] rounded-full" style={{ width: '40%' }}></div>
               </div>
             </div>
 
@@ -641,12 +642,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>🛒</span> Belanja & E-Commerce
+                  <span>🚌</span> Transportasi Kampus
                 </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 748.800.000', '$ 48.309')} <span className="text-[#8C7A70] font-normal">(24%)</span></span>
+                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 612.500', '$ 39')} <span className="text-[#8C7A70] font-normal">(25%)</span></span>
               </div>
               <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#8C5338] rounded-full" style={{ width: '24%' }}></div>
+                <div className="h-full bg-[#8C5338] rounded-full" style={{ width: '25%' }}></div>
               </div>
             </div>
 
@@ -654,9 +655,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>☕</span> Hiburan, Kafe & Lifestyle
+                  <span>🛒</span> Belanja Kebutuhan Kos
                 </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 624.000.000', '$ 40.258')} <span className="text-[#8C7A70] font-normal">(20%)</span></span>
+                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 490.000', '$ 31')} <span className="text-[#8C7A70] font-normal">(20%)</span></span>
               </div>
               <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
                 <div className="h-full bg-[#C25E38] rounded-full" style={{ width: '20%' }}></div>
@@ -667,12 +668,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div>
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-[#2D2825] flex items-center gap-2">
-                  <span>⚡</span> Tagihan, Listrik & Utilitas
+                  <span>⚡</span> Tagihan, Kuota &amp; Utilitas
                 </span>
-                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 561.600.000', '$ 36.232')} <span className="text-[#8C7A70] font-normal">(18%)</span></span>
+                <span className="font-extrabold text-[#2D2825]">{formatCurrency('Rp 367.500', '$ 23')} <span className="text-[#8C7A70] font-normal">(15%)</span></span>
               </div>
               <div className="w-full h-2 bg-[#F5F2ED] rounded-full overflow-hidden">
-                <div className="h-full bg-[#D4A373] rounded-full" style={{ width: '18%' }}></div>
+                <div className="h-full bg-[#D4A373] rounded-full" style={{ width: '15%' }}></div>
               </div>
             </div>
           </div>

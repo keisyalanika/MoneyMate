@@ -2,6 +2,9 @@
 // Shared TypeScript types for MoneyMate DB
 // ============================================
 
+/** Representasi TINYINT(1) MySQL yang dipertahankan di response API (0/1). */
+export type DbBool = 0 | 1;
+
 export type TransactionType = 'income' | 'expense';
 export type UserRole = 'student' | 'admin';
 export type ReportType = 'monthly' | 'weekly' | 'custom' | 'annual';
@@ -17,45 +20,18 @@ export interface User {
   phone?: string;
   password?: string;        // excluded on responses
   avatar_url?: string;
-  birth_date?: string;
-  bio?: string;
   role: UserRole;
-  is_active: boolean;
+  is_active: DbBool;
   created_at: Date;
   updated_at: Date;
-}
-
-// ---------- Wallets ----------
-export interface Wallet {
-  id: number;
-  user_id: number;
-  name: string;
-  balance: number;
-  currency: string;
-  is_default: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-// ---------- OTP Codes ----------
-export interface OtpCode {
-  id: number;
-  email: string;
-  otp_code: string;
-  expires_at: Date;
-  is_used: boolean;
-  created_at: Date;
 }
 
 // ---------- Categories ----------
 export interface Category {
   id: number;
-  user_id?: number;
   name: string;
   type: TransactionType;
   icon: string;
-  color?: string;
-  is_pinned?: boolean;
   created_at: Date;
 }
 
@@ -67,11 +43,21 @@ export interface IncomeSource {
   created_at: Date;
 }
 
+// ---------- Wallets ----------
+export interface Wallet {
+  id: number;
+  user_id: number;
+  name: string;
+  balance: number;
+  currency: string;
+  is_default: DbBool;
+  created_at: Date;
+}
+
 // ---------- Transactions ----------
 export interface Transaction {
   id: number;
   user_id: number;
-  wallet_id?: number;
   type: TransactionType;
   amount: number;
   category_id: number;
@@ -83,9 +69,10 @@ export interface Transaction {
   // joined fields
   category_name?: string;
   category_icon?: string;
-  category_color?: string;
   user_name?: string;
-  wallet_name?: string;
+  user_email?: string;
+  user_avatar?: string;
+  income_source_name?: string;
 }
 
 // ---------- Budgets ----------
@@ -96,13 +83,14 @@ export interface Budget {
   amount: number;
   month: number;
   year: number;
-  is_active: boolean;
+  is_active: DbBool;
   created_at: Date;
   // joined/computed fields
   category_name?: string;
   category_icon?: string;
   spent_amount?: number;
   percentage?: number;
+  user_name?: string;
 }
 
 // ---------- Goals ----------
@@ -114,7 +102,7 @@ export interface Goal {
   current_amount: number;
   icon?: string;
   deadline?: string;
-  is_completed: boolean;
+  is_completed: DbBool;
   created_at: Date;
 }
 
@@ -135,12 +123,7 @@ export interface AiInsight {
   insight_type: string;
   content: string;
   created_at: Date;
-}
-
-export interface AiChatMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp?: string;
+  user_name?: string;
 }
 
 // ---------- Notifications ----------
@@ -149,7 +132,7 @@ export interface Notification {
   user_id: number;
   title: string;
   message?: string;
-  is_read: boolean;
+  is_read: DbBool;
   created_at: Date;
 }
 
@@ -164,6 +147,8 @@ export interface Report {
   period_end?: string;
   file_url?: string;
   created_at: Date;
+  user_name?: string;
+  generated_by_name?: string;
 }
 
 // ---------- User Settings ----------
@@ -173,9 +158,7 @@ export interface UserSettings {
   currency: CurrencyType;
   language: LangType;
   theme: ThemeType;
-  notification_enabled: boolean;
-  default_budget_limit?: number;
-  ews_enabled?: boolean;
+  notification_enabled: DbBool;
   updated_at: Date;
 }
 
@@ -188,6 +171,7 @@ export interface AuditLog {
   target_id?: number;
   description?: string;
   created_at: Date;
+  admin_name?: string;
 }
 
 // ---------- Financial Summary (computed) ----------
@@ -199,4 +183,3 @@ export interface FinancialSummary {
   activeGoalsCount: number;
   totalUsers: number;
 }
-

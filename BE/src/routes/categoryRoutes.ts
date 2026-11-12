@@ -1,22 +1,15 @@
 import { Router } from 'express';
-import {
-  getCategories,
-  addCategory,
-  updateCategory,
-  deleteCategory,
-  togglePinCategory,
-} from '../controllers/categoryController';
-import { protect } from '../middleware/authMiddleware';
+import { categoryController } from '../controllers';
+import { protect, admin } from '../middleware/authMiddleware';
 
 const router = Router();
 
-// Category routes are protected
-router.use(protect);
+// Categories can be viewed by authenticated users
+router.get('/', protect, categoryController.getCategories);
 
-router.get('/', getCategories);
-router.post('/', addCategory);
-router.put('/:id/pin', togglePinCategory);
-router.put('/:id', updateCategory);
-router.delete('/:id', deleteCategory);
+// Category modifications are restricted to admin
+router.post('/', protect, admin, categoryController.addCategory);
+router.put('/:id', protect, admin, categoryController.updateCategory);
+router.delete('/:id', protect, admin, categoryController.deleteCategory);
 
 export default router;

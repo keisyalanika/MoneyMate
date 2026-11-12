@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import apiRouter from './routes';
+import { errorHandler, notFound } from './middleware/errorHandler';
 
 const app = express();
 
@@ -26,5 +27,9 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api', apiRouter);
+
+// 404 + global error handler (harus paling akhir)
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;

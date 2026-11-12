@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../services/api_service.dart';
 import '../utils/theme.dart';
 
 class NotificationScreen extends StatefulWidget {
@@ -9,16 +11,12 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  // Preferensi notifikasi (dapat disimpan ke backend)
-  bool _budgetReminder = true;
-  bool _transactionAlert = true;
-  bool _weeklyReport = false;
-  bool _financialTips = true;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _notifications = [];
 
-  // Daftar riwayat notifikasi lengkap gabungan
-  final List<Map<String, dynamic>> _notifications = [
+  final List<Map<String, dynamic>> _fallbackNotifications = [
     {
-      'id': 'notif-1',
+      'id': 1,
       'title': 'Peringatan Anggaran',
       'body': 'Pengeluaran Kebutuhan Pokok sudah mencapai 80% dari limit bulanan.',
       'time': '2 jam yang lalu',
@@ -27,7 +25,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       'isRead': false,
     },
     {
-      'id': 'notif-2',
+      'id': 2,
       'title': 'Laporan Finansial Siap',
       'body': 'Ringkasan pengeluaran & pemasukan minggu ini sudah siap dianalisis.',
       'time': 'Kemarin, 19:30',
@@ -36,7 +34,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       'isRead': true,
     },
     {
-      'id': 'notif-3',
+      'id': 3,
       'title': 'Tips Hemat MoneyMate',
       'body': 'Sisihkan minimal 20% penghasilan di awal bulan untuk dana darurat.',
       'time': '3 hari yang lalu',
@@ -45,9 +43,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
       'isRead': true,
     },
     {
-      'id': 'notif-4',
-      'title': 'Goal Hampir Tercapai! 🎯',
-      'body': 'Goal "Laptop Baru" sudah mencapai 90%. Terus semangat!',
+      'id': 4,
+      'title': 'Goal Tercapai! 🎯',
+      'body': 'Target menabung Anda telah mencapai 100%. Selamat!',
       'time': '5 hari yang lalu',
       'icon': Icons.flag_outlined,
       'color': Colors.teal,
@@ -55,326 +53,240 @@ class _NotificationScreenState extends State<NotificationScreen> {
     },
   ];
 
-  void _markAllAsRead() {
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() => _isLoading = true);
+    try {
+      final remoteList = await ApiService.fetchNotifications();
+      if (remoteList.isNotEmpty) {
+        setState(() {
+          _notifications = remoteList.map((item) {
+            final title = (item['title'] ?? 'Pemberitahuan').toString();
+            final isRead = item['is_read'] == 1 || item['is_read'] == true;
+
+            IconData icon = Icons.notifications_rounded;
+            Color color = AppColors.primaryBrown;
+
+            if (title.contains('⚠️') || title.toLowerCase().contains('peringatan') || title.toLowerCase().contains('overbudget')) {
+              icon = Icons.warning_amber_rounded;
+              color = AppColors.accentOrange;
+            } else if (title.contains('🎉') || title.contains('🎯') || title.toLowerCase().contains('goal')) {
+              icon = Icons.flag_rounded;
+              color = Colors.teal;
+            } else if (title.contains('👏') || title.toLowerCase().contains('apresiasi')) {
+              icon = Icons.thumb_up_rounded;
+              color = const Color(0xFF10B981);
+            }
+
+            String timeStr = 'Baru saja';
+            if (item['created_at'] != null) {
+              try {
+                final dt = DateTime.parse(item['created_at'].toString());
+                timeStr = DateFormat('dd MMM, HH:mm').format(dt);
+              } catch (_) {}
+            }
+
+            return {
+              'id': item['id'],
+              'title': title,
+              'body': item['message'] ?? '',
+              'time': timeStr,
+              'icon': icon,
+              'color': color,
+              'isRead': isRead,
+            };
+          }).toList();
+        });
+      } else {
+        setState(() {
+          _notifications = List.from(_fallbackNotifications);
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _notifications = List.from(_fallbackNotifications);
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _markAllAsRead() async {
     setState(() {
-      for (var item in _notifications) {
-        item['isRead'] = true;
+      for (var n in _notifications) {
+        n['isRead'] = true;
       }
     });
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Semua notifikasi telah ditandai terbaca'),
-        duration: Duration(milliseconds: 1200),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    await ApiService.markAllNotificationsAsRead();
   }
 
-  void _showPreferenceSaved() {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Preferensi notifikasi disimpan'),
-        duration: Duration(milliseconds: 1200),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: Colors.white,
-            activeTrackColor: AppColors.primaryBrown,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.grey.shade300,
-          ),
-        ],
-      ),
-    );
+  Future<void> _markOneAsRead(Map<String, dynamic> item) async {
+    if (item['isRead'] == true) return;
+    setState(() {
+      item['isRead'] = true;
+    });
+    if (item['id'] is int) {
+      await ApiService.markNotificationAsRead(item['id'] as int);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFFAF8F5),
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2C1A14), size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           'Notifikasi',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: AppColors.primaryBrown,
+            color: Color(0xFF2C1A14),
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.primaryBrown, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
         actions: [
-          if (_notifications.isNotEmpty)
-            TextButton(
-              onPressed: _markAllAsRead,
-              child: const Text(
-                'Tandai terbaca',
-                style: TextStyle(fontSize: 12, color: AppColors.accentOrange, fontWeight: FontWeight.bold),
-              ),
+          TextButton(
+            onPressed: _markAllAsRead,
+            child: const Text(
+              'Tandai terbaca',
+              style: TextStyle(fontSize: 12, color: Color(0xFF8C381E), fontWeight: FontWeight.bold),
             ),
+          ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bagian 1: Preferensi Notifikasi
-              const Text(
-                'Preferensi Notifikasi',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildSwitchTile(
-                      title: 'Pengingat Anggaran',
-                      subtitle: 'Peringatan saat pengeluaran mendekati limit',
-                      value: _budgetReminder,
-                      onChanged: (val) {
-                        setState(() => _budgetReminder = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchTile(
-                      title: 'Notifikasi Transaksi',
-                      subtitle: 'Notifikasi instan saat transaksi baru dicatat',
-                      value: _transactionAlert,
-                      onChanged: (val) {
-                        setState(() => _transactionAlert = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchTile(
-                      title: 'Laporan Berkala',
-                      subtitle: 'Rangkuman keuangan mingguan & bulanan',
-                      value: _weeklyReport,
-                      onChanged: (val) {
-                        setState(() => _weeklyReport = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchTile(
-                      title: 'Tips & Edukasi Finansial',
-                      subtitle: 'Informasi dan saran untuk kesehatan keuangan',
-                      value: _financialTips,
-                      onChanged: (val) {
-                        setState(() => _financialTips = val);
-                        _showPreferenceSaved();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 28),
-
-              // Bagian 2: Riwayat Notifikasi
-              const Text(
-                'Riwayat Notifikasi',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              if (_notifications.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.notifications_off_outlined,
-                          size: 40, color: AppColors.textMuted),
-                      SizedBox(height: 8),
-                      Text(
-                        'Belum ada notifikasi baru',
-                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _notifications.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final item = _notifications[index];
-                    final bool isRead = item['isRead'] as bool;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        setState(() => item['isRead'] = true);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: isRead ? Colors.white : const Color(0xFFFFF9F5),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isRead
-                                ? AppColors.inputBorder
-                                : AppColors.accentOrange.withValues(alpha: 0.3),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primaryBrown),
+            )
+          : RefreshIndicator(
+              color: AppColors.primaryBrown,
+              onRefresh: _loadNotifications,
+              child: _notifications.isEmpty
+                  ? ListView(
+                      children: const [
+                        SizedBox(height: 120),
+                        Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.notifications_off_outlined, size: 56, color: Color(0xFFD6CFC8)),
+                              SizedBox(height: 16),
+                              Text('Belum ada notifikasi', style: TextStyle(color: Color(0xFF8C827A), fontSize: 14)),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: (item['color'] as Color).withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                item['icon'] as IconData,
-                                color: item['color'] as Color,
-                                size: 20,
+                      ],
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      itemCount: _notifications.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = _notifications[index];
+                        final bool isRead = item['isRead'] as bool;
+                        return GestureDetector(
+                          onTap: () => _markOneAsRead(item),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isRead ? Colors.white : const Color(0xFFFDF3F0),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isRead
+                                    ? const Color(0xFFF0EAE1)
+                                    : const Color(0xFF8C381E).withOpacity(0.3),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: (item['color'] as Color).withOpacity(0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    item['icon'] as IconData,
+                                    color: item['color'] as Color,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(
-                                        child: Text(
-                                          item['title'] as String,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight:
-                                                isRead ? FontWeight.w600 : FontWeight.bold,
-                                            color: AppColors.textDark,
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item['title'] as String,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
+                                                color: const Color(0xFF2C1A14),
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          Text(
+                                            item['time'] as String,
+                                            style: const TextStyle(fontSize: 10, color: Color(0xFF8C827A)),
+                                          ),
+                                        ],
                                       ),
+                                      const SizedBox(height: 6),
                                       Text(
-                                        item['time'] as String,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textMuted,
+                                        item['body'] as String,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isRead ? const Color(0xFF8C827A) : const Color(0xFF2C1A14),
+                                          height: 1.4,
                                         ),
                                       ),
+                                      if (!isRead) ...[
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 8,
+                                              height: 8,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFF8C381E),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            const Text(
+                                              'Belum dibaca',
+                                              style: TextStyle(fontSize: 10, color: Color(0xFF8C381E), fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ]
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item['body'] as String,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isRead ? AppColors.textMuted : AppColors.textDark,
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                  if (!isRead) ...[
-                                    const SizedBox(height: 8),
-                                    const Row(
-                                      children: [
-                                        Icon(Icons.circle, size: 8, color: AppColors.accentOrange),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Belum dibaca',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: AppColors.accentOrange,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
     );
   }
 }

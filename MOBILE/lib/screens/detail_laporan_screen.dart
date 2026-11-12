@@ -68,6 +68,10 @@ class _DetailLaporanScreenState extends State<DetailLaporanScreen>
   // ── Tabs ──
   final List<String> _tabs = ['Bulan Ini', 'Bulan Lalu', 'Kuartal 3', 'Tahun 2026'];
 
+  // ── Periode navigasi ──
+  int _monthOffset = 0;
+  int _quarterOffset = 0;
+  int _yearOffset = 0;
 
   static const List<_SpendingCategory> _categoriesMonthly = [
     _SpendingCategory(name: 'Makanan & Minum', subtitle: 'Kebutuhan harian & kuliner', icon: Icons.restaurant, iconColor: Color(0xFF592314), amount: 1420000, percent: 41.5),

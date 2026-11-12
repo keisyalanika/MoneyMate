@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+
   Future<void> _handleLogin() async {
     // Tutup keyboard
     FocusScope.of(context).unfocus();
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final result = await authProvider.login(
       _emailController.text.trim(),
-      _passwordController.text,
+      _passwordController.text.trim(),
     );
 
     if (!mounted) return;
@@ -131,7 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                 ),
                 child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
                   child: Form(
                     key: _formKey,
@@ -153,31 +153,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 4),
                         const Text(
                           'Masuk untuk melanjutkan ke akunmu',
-                          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          style:
+                              TextStyle(fontSize: 12, color: AppColors.textMuted),
                         ),
                         const SizedBox(height: 16),
 
-                        // Error Banner Alert
+
+                        // Error Banner
                         if (_errorMessage != null) ...[
+                          const SizedBox(height: 14),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               color: AppColors.errorBg,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.errorBorder),
+                              border: Border.all(color: const Color(0xFFFECACA)),
                             ),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Icon(Icons.error_outline, color: AppColors.errorText, size: 18),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     _errorMessage!,
-                                    style: const TextStyle(
-                                      color: AppColors.errorText,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: const TextStyle(color: AppColors.errorText, fontSize: 12, fontWeight: FontWeight.w500),
                                   ),
                                 ),
                                 GestureDetector(
@@ -187,9 +187,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
                         ],
 
+                        const SizedBox(height: 16),
                         _buildLabel('Email'),
                         TextFormField(
                           controller: _emailController,
@@ -206,9 +206,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                           decoration: InputDecoration(
-                            hintText: 'Masukkan email terdaftar',
+                            hintText: 'Masukkan email kamu',
                             hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                            prefixIcon: const Icon(Icons.mail_outline, size: 20, color: AppColors.textMuted),
+                            prefixIcon: const Icon(Icons.email_outlined, size: 20, color: AppColors.textMuted),
                             filled: true,
                             fillColor: AppColors.inputBg,
                             contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -226,8 +226,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderSide: const BorderSide(color: AppColors.errorText, width: 1.5)),
                           ),
                         ),
-                        const SizedBox(height: 16),
 
+                        const SizedBox(height: 14),
                         _buildLabel('Kata Sandi'),
                         TextFormField(
                           controller: _passwordController,
@@ -335,17 +335,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _buildSocialButton(
-                                    icon: Icons.g_mobiledata_rounded,
-                                    label: 'Google')),
-                            const SizedBox(width: 12),
-                            Expanded(
-                                child: _buildSocialButton(
-                                    icon: Icons.apple_rounded, label: 'Apple')),
-                          ],
+                        SizedBox(
+                          width: double.infinity,
+                          child: _buildSocialButton(
+                            leading: Image.asset(
+                              'assets/google_logo.png',
+                              width: 20,
+                              height: 20,
+                              fit: BoxFit.contain,
+                            ),
+                            label: 'Google',
+                          ),
                         ),
                         const SizedBox(height: 24),
                         Row(
@@ -390,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSocialButton({required IconData icon, required String label}) {
+  Widget _buildSocialButton({required Widget leading, required String label}) {
     return Container(
       height: 46,
       decoration: BoxDecoration(
@@ -401,8 +401,8 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 22, color: AppColors.textDark),
-          const SizedBox(width: 6),
+          leading,
+          const SizedBox(width: 8),
           Text(label,
               style: const TextStyle(
                   fontSize: 13,

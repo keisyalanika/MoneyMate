@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
+import '../services/auth_provider.dart';
+import '../navigation/app_router.dart';
 import 'forgot_password_screen.dart';
 
 class LoginErrorScreen extends StatefulWidget {
@@ -12,11 +15,11 @@ class LoginErrorScreen extends StatefulWidget {
 class _LoginErrorScreenState extends State<LoginErrorScreen> {
   bool _obscureText = true;
   bool _showErrorBanner = true;
+  bool _isLoading = false;
+  String _errorMessageText = 'Email atau kata sandi salah. Silakan periksa kembali.';
 
-  final TextEditingController _emailController =
-      TextEditingController(text: 'KeisyaExaHaniyah@gmail.com');
-  final TextEditingController _passwordController =
-      TextEditingController(text: '12345678');
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void dispose() {
@@ -25,13 +28,40 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
     super.dispose();
   }
 
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessageText = 'Email dan kata sandi wajib diisi.';
+        _showErrorBanner = true;
+      });
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final res = await auth.login(email, password);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (res['success'] == true) {
+      Navigator.pushReplacementNamed(context, AppRouter.mainNav);
+    } else {
+      setState(() {
+        _errorMessageText = res['message'] ?? 'Email atau kata sandi salah.';
+        _showErrorBanner = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
               const SizedBox(height: 32),
@@ -92,8 +122,8 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      children: [
+                    Row(
+                      children: const [
                         Text(
                           'Selamat datang kembali ',
                           style: TextStyle(
@@ -136,10 +166,10 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                               size: 18,
                             ),
                             const SizedBox(width: 10),
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'Email atau kata sandi salah. Silakan periksa kembali.',
-                                style: TextStyle(
+                                _errorMessageText,
+                                style: const TextStyle(
                                   color: AppColors.errorText,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -336,24 +366,31 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                           ),
                           elevation: 0,
                         ),
-                        onPressed: () {
-                          // Aksi login
-                        },
-                        child: const Text(
-                          'Masuk',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: _isLoading ? null : _handleLogin,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text(
+                                'Masuk',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),
 
                     // Divider Atau
-                    const Row(
-                      children: [
+                    Row(
+                      children: const [
                         Expanded(
                           child: Divider(color: AppColors.inputBorder),
                         ),
@@ -375,64 +412,34 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                     const SizedBox(height: 20),
 
                     // Social Media Login
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(
-                                color: AppColors.inputBorder,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.g_mobiledata,
-                              color: Colors.redAccent,
-                              size: 24,
-                            ),
-                            label: const Text(
-                              'Google',
-                              style: TextStyle(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(
+                            color: AppColors.inputBorder,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(
-                                color: AppColors.inputBorder,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.apple,
-                              color: Colors.black,
-                              size: 20,
-                            ),
-                            label: const Text(
-                              'Apple',
-                              style: TextStyle(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
+                        onPressed: () {},
+                        icon: Image.asset(
+                          'assets/google_logo.png',
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.contain,
+                        ),
+                        label: const Text(
+                          'Google',
+                          style: TextStyle(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 28),
 

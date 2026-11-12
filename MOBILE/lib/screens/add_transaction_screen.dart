@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 import '../utils/notification_helper.dart';
+import '../utils/currency_formatter.dart';
+import '../services/auth_provider.dart';
+import 'transaction_screen.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -47,7 +52,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
@@ -134,7 +138,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
+                    color: Colors.black.withOpacity(0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -166,6 +170,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           child: TextField(
                             controller: _nominalController,
                             keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              ThousandsSeparatorInputFormatter(),
+                            ],
                             decoration: const InputDecoration(
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
@@ -248,8 +256,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   const SizedBox(height: 20),
 
                   // 4. Catatan
-                  const Row(
-                    children: [
+                  Row(
+                    children: const [
                       Icon(Icons.description_outlined, size: 16, color: AppColors.textDark),
                       SizedBox(width: 8),
                       Text(
@@ -282,7 +290,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         TextField(
                           controller: _noteController,
                           maxLines: 3,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                             border: InputBorder.none,
@@ -298,7 +306,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           '0/100',
                           style: TextStyle(
                             fontSize: 10,
-                            color: AppColors.textMuted.withValues(alpha: 0.7),
+                            color: AppColors.textMuted.withOpacity(0.7),
                           ),
                         ),
                       ],
@@ -314,20 +322,45 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final String nominal = _nominalController.text.trim();
-                  if (nominal.isEmpty) return; // Validasi sederhana
+                  if (nominal.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Silakan masukkan nominal transaksi.')),
+                    );
+                    return;
+                  }
 
-                  // Mengirimkan notifikasi data transaksi baru ke _TransactionScreen
-                  // dan menutup modal, mengembalikan 'true' agar main_navigation
-                  // bisa memindahkan tab ke Transaksi.
-                  NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat!');
-                  Navigator.pop(context, {
-                    'amount': nominal,
+                  final double amount =
+                      double.tryParse(nominal.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0;
+                  if (amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Nominal transaksi harus lebih dari 0.')),
+                    );
+                    return;
+                  }
+
+                  final auth = Provider.of<AuthProvider>(context, listen: false);
+                  await auth.addTransaction(
+                    type: isIncome ? 'income' : 'expense',
+                    amount: amount,
+                    category: _selectedCategory,
+                    date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+                    note: _noteController.text.trim(),
+                  );
+
+                  final txMap = {
                     'category': _selectedCategory,
+                    'amount': amount,
                     'isExpense': !isIncome,
                     'note': _noteController.text.trim(),
-                  });
+                    'date': DateFormat('yyyy-MM-dd').format(_selectedDate),
+                  };
+                  newTransactionNotifier.value = txMap;
+
+                  if (!mounted) return;
+                  NotificationHelper.showTopNotification(context, 'Transaksi berhasil dicatat!');
+                  Navigator.pop(context, txMap);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryBrown,
@@ -451,8 +484,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         color: const Color(0xFFEBE6DF),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Row(
-                        children: [
+                      child: Row(
+                        children: const [
                           Icon(Icons.search, color: AppColors.textMuted, size: 20),
                           SizedBox(width: 8),
                           Expanded(
@@ -532,7 +565,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               color: AppColors.background,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.background.withValues(alpha: 0.9),
+                                  color: AppColors.background.withOpacity(0.9),
                                   blurRadius: 10,
                                   offset: const Offset(0, -10),
                                 ),

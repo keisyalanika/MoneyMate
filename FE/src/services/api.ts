@@ -1,7 +1,11 @@
 import axios from 'axios';
 import { FinancialSummary, Transaction, Category, Budget, Goal, IncomeSource, AiInsightItem, ReportItem, UserSettings } from '../models/types';
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || (import.meta as any).env?.VITE_API_URL || 'http://localhost:5001/api';
+const API_BASE = 
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) || 
+  (import.meta as any).env?.VITE_API_BASE_URL || 
+  (import.meta as any).env?.VITE_API_URL || 
+  'http://localhost:5000/api';
 
 export const client = axios.create({
   baseURL: API_BASE,
@@ -344,4 +348,26 @@ export const submitResetPassword = async (email: string, otp_code: string, new_p
   const res = await client.post('/auth/reset-password', { email, otp_code, new_password });
   return res.data;
 };
+
+// ================= ADMIN USER SALDO ADJUSTMENT =================
+export const updateUserSaldo = async (userId: number | string, amount: number, action: 'set' | 'add' | 'subtract' = 'set', note?: string) => {
+  const res = await client.put(`/users/${userId}/saldo`, { amount, action, note });
+  return res.data;
+};
+
+// ================= NOTIFICATIONS (Admin Broadcast & Alerts) =================
+export const fetchNotifications = async (): Promise<any[]> => {
+  try {
+    const res = await client.get('/notifications');
+    return res.data.data?.notifications || res.data.data || [];
+  } catch {
+    return [];
+  }
+};
+
+export const createNotification = async (userId: number, title: string, message: string) => {
+  const res = await client.post('/notifications', { user_id: userId, title, message });
+  return res.data.data;
+};
+
 

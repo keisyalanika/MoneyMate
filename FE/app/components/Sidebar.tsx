@@ -7,13 +7,13 @@ import {
   Users,
   CreditCard,
   Target,
-  Sparkles,
   TrendingUp,
   FileText,
   Settings,
   User,
   LogOut,
-  Zap
+  Zap,
+  Sparkles
 } from 'lucide-react';
 
 export interface SidebarProps {
@@ -33,6 +33,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
       'transactions': 'transactions',
       'budgets': 'budgets',
       'ai': 'ai',
+      'ai-insight': 'ai',
+      'intelligence': 'ai',
       'analytics': 'analytics',
       'reports': 'reports',
       'settings': 'settings',
@@ -130,7 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
           </button>
 
           <div className="pt-3 pb-1">
-            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">INTELLIGENCE</div>
+            <div className="text-[10px] font-bold text-[#8C7A70] uppercase px-3 tracking-wider">ANALITIK &amp; AI</div>
           </div>
 
           <button
@@ -141,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab = 'overview', setAct
                 : 'text-[#6E5D53] hover:bg-[#EAE0DB]/60 hover:text-[#5C2D16]'
             )}
           >
-            <Sparkles className={'w-4 h-4 ' + (currentTab === 'ai' ? 'text-white' : 'text-[#C25E38]')} />
+            <Sparkles className={'w-4 h-4 ' + (currentTab === 'ai' ? 'text-white' : 'text-[#6E5D53]')} />
             <span>AI Intelligence</span>
           </button>
 

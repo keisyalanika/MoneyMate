@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/theme.dart';
+import '../services/auth_provider.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -9,166 +12,294 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  // State pengaturan keamanan
-  bool _twoFactorAuth = false;
-  bool _hideBalanceByDefault = false;
+  bool _hideBalanceEnabled = false;
+  bool _loginAlertEnabled = true;
+  bool _isLoading = true;
 
-  void _showChangePasswordDialog() {
-    final oldPasswordController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    _loadSecurityPreferences();
+  }
+
+  Future<void> _loadSecurityPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _hideBalanceEnabled = prefs.getBool('security_hide_balance') ?? false;
+        _loginAlertEnabled = prefs.getBool('security_login_alert') ?? true;
+        _isLoading = false;
+      });
+    } catch (_) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateBoolPref(String key, bool value, Function(bool) updateState) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+    setState(() => updateState(value));
+  }
+
+  void _showChangePasswordModal() {
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
-    bool obscureOld = true;
     bool obscureNew = true;
     bool obscureConfirm = true;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Ubah Kata Sandi',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBrown,
+        builder: (modalContext, setModalState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              left: 24,
+              right: 24,
+              top: 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 20),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Kata Sandi Lama',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: oldPasswordController,
-                obscureText: obscureOld,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan kata sandi saat ini',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.inputBg,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  suffixIcon: IconButton(
-                    icon: Icon(obscureOld ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
-                    onPressed: () => setModalState(() => obscureOld = !obscureOld),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.inputBorder),
-                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Kata Sandi Baru',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: newPasswordController,
-                obscureText: obscureNew,
-                decoration: InputDecoration(
-                  hintText: 'Minimal 8 karakter',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.inputBg,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  suffixIcon: IconButton(
-                    icon: Icon(obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
-                    onPressed: () => setModalState(() => obscureNew = !obscureNew),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.inputBorder),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Konfirmasi Kata Sandi Baru',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: confirmPasswordController,
-                obscureText: obscureConfirm,
-                decoration: InputDecoration(
-                  hintText: 'Ulangi kata sandi baru',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                  filled: true,
-                  fillColor: AppColors.inputBg,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  suffixIcon: IconButton(
-                    icon: Icon(obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
-                    onPressed: () => setModalState(() => obscureConfirm = !obscureConfirm),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.inputBorder),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBrown,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () {
-                    if (newPasswordController.text.length < 8) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Kata sandi baru minimal 8 karakter')),
-                      );
-                      return;
-                    }
-                    if (newPasswordController.text != confirmPasswordController.text) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok')),
-                      );
-                      return;
-                    }
-
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Kata sandi berhasil diubah!'),
-                        backgroundColor: AppColors.primaryBrown,
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Ubah Kata Sandi',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
                       ),
-                    );
-                  },
-                  child: const Text('Simpan Kata Sandi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20, color: AppColors.textMuted),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Masukkan kata sandi baru untuk meningkatkan keamanan akunmu.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 20),
+
+                // Kata Sandi Baru
+                const Text(
+                  'Kata Sandi Baru',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: obscureNew,
+                  decoration: InputDecoration(
+                    hintText: 'Minimal 6 karakter',
+                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.inputBg,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.inputBorder),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
+                        color: AppColors.textMuted,
+                      ),
+                      onPressed: () {
+                        setModalState(() => obscureNew = !obscureNew);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Konfirmasi Kata Sandi Baru
+                const Text(
+                  'Konfirmasi Kata Sandi Baru',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: obscureConfirm,
+                  decoration: InputDecoration(
+                    hintText: 'Ulangi kata sandi baru',
+                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.inputBg,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.inputBorder),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
+                        color: AppColors.textMuted,
+                      ),
+                      onPressed: () {
+                        setModalState(() => obscureConfirm = !obscureConfirm);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Tombol Simpan
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final newPass = newPasswordController.text.trim();
+                      final confirmPass = confirmPasswordController.text.trim();
+
+                      if (newPass.length < 6) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Kata sandi baru minimal harus 6 karakter.')),
+                        );
+                        return;
+                      }
+
+                      if (newPass != confirmPass) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Konfirmasi kata sandi tidak cocok.')),
+                        );
+                        return;
+                      }
+
+                      final auth = Provider.of<AuthProvider>(context, listen: false);
+                      await auth.updatePassword(newPass);
+
+                      if (!mounted) return;
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Kata sandi berhasil diperbarui!'),
+                          backgroundColor: Color(0xFF10B981),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBrown,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Simpan Kata Sandi',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showLogoutAllSessionsDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Keluar dari Semua Sesi?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Akunmu akan dikeluarkan dari semua perangkat lain yang terhubung. Kamu harus masuk kembali untuk menggunakannya.',
+          style: TextStyle(fontSize: 12, height: 1.4),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Berhasil keluar dari semua perangkat lain.'),
+                  backgroundColor: Color(0xFF10B981),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBrown,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            child: const Text('Keluar Sesi Lain', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+            SizedBox(width: 8),
+            Text('Hapus Akun Permanen?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+          ],
+        ),
+        content: const Text(
+          'Tindakan ini tidak dapat dibatalkan. Seluruh riwayat transaksi, anggaran, target tabungan, dan profilmu akan dihapus selamanya dari sistem.',
+          style: TextStyle(fontSize: 12, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Permintaan penghapusan akun telah dicatat.'),
+                  backgroundColor: Color(0xFFDC2626),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            child: const Text('Hapus Akun', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -179,7 +310,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Keamanan Akun',
+          'Keamanan',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -190,140 +321,237 @@ class _SecurityScreenState extends State<SecurityScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.primaryBrown, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primaryBrown, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bagian 1: Autentikasi
-              const Text(
-                'Autentikasi & Sandi',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.lock_reset_rounded, color: AppColors.primaryBrown, size: 20),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBrown))
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Status Keamanan Banner
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF592314), Color(0xFF7E3520)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      title: const Text('Ubah Kata Sandi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Ganti sandi akun secara berkala', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                      onTap: _showChangePasswordDialog,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryBrown.withOpacity(0.15),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    const Divider(height: 1, color: AppColors.inputBorder),
-                    _buildSwitchItem(
-                      icon: Icons.verified_user_outlined,
-                      title: 'Verifikasi 2 Langkah (2FA)',
-                      subtitle: 'Perlindungan ekstra via SMS/Authenticator',
-                      value: _twoFactorAuth,
-                      onChanged: (val) {
-                        setState(() => _twoFactorAuth = val);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(_twoFactorAuth ? '2FA diaktifkan' : '2FA dinonaktifkan')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Bagian 2: Privasi
-              const Text(
-                'Privasi Tampilan',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: _buildSwitchItem(
-                  icon: Icons.visibility_off_outlined,
-                  title: 'Sembunyikan Saldo Default',
-                  subtitle: 'Saldo disamarkan dengan tanda bintang saat dibuka',
-                  value: _hideBalanceByDefault,
-                  onChanged: (val) {
-                    setState(() => _hideBalanceByDefault = val);
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Bagian 3: Riwayat Perangkat Aktif
-              const Text(
-                'Perangkat Aktif',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Column(
-                  children: [
-                    Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.phone_iphone_rounded, color: AppColors.primaryBrown, size: 28),
-                        SizedBox(width: 14),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.verified_user_rounded, color: Color(0xFFFFD54F), size: 30),
+                        ),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                            children: const [
                               Text(
-                                'Perangkat Ini (Mobile App)',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                                'Status: Terlindungi',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                               ),
-                              SizedBox(height: 2),
+                              SizedBox(height: 4),
                               Text(
-                                'Jakarta, Indonesia • Aktif Sekarang',
-                                style: TextStyle(fontSize: 11, color: AppColors.greenAccent, fontWeight: FontWeight.w500),
+                                'Enkripsi data aktif & proteksi akun siap melindungi keuanganmu.',
+                                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 2. Section: Kredensial Akun
+                  _buildSectionTitle('KREDENSIAL AKUN'),
+                  _buildCardGroup([
+                    _buildTileItem(
+                      icon: Icons.lock_reset_rounded,
+                      title: 'Ubah Kata Sandi',
+                      subtitle: 'Perbarui kata sandi akun secara berkala',
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textMuted),
+                      onTap: _showChangePasswordModal,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+
+                  // 3. Section: Privasi & Pengaturan Tampilan
+                  _buildSectionTitle('PRIVASI & NOTIFIKASI'),
+                  _buildCardGroup([
+                    _buildSwitchItem(
+                      icon: Icons.visibility_off_outlined,
+                      title: 'Sensor Saldo di Beranda',
+                      subtitle: 'Samarkan nominal (Rp ••••••) untuk privasi',
+                      value: _hideBalanceEnabled,
+                      onChanged: (val) {
+                        _updateBoolPref('security_hide_balance', val, (v) => _hideBalanceEnabled = v);
+                      },
+                    ),
+                    const Divider(height: 1, indent: 56, color: Color(0xFFF0E5D8)),
+                    _buildSwitchItem(
+                      icon: Icons.add_alert_outlined,
+                      title: 'Peringatan Login Perangkat Baru',
+                      subtitle: 'Pemberitahuan jika ada login yang mencurigakan',
+                      value: _loginAlertEnabled,
+                      onChanged: (val) {
+                        _updateBoolPref('security_login_alert', val, (v) => _loginAlertEnabled = v);
+                      },
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+
+                  // 4. Section: Sesi & Perangkat
+                  _buildSectionTitle('PERANGKAT TERHUBUNG'),
+                  _buildCardGroup([
+                    _buildTileItem(
+                      icon: Icons.phone_android_rounded,
+                      title: 'Perangkat Ini (Mobile)',
+                      subtitle: 'Sesi aktif saat ini • Jakarta, Indonesia',
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('Aktif', style: TextStyle(color: Color(0xFF27AE60), fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                      onTap: () {},
+                    ),
+                    const Divider(height: 1, indent: 56, color: Color(0xFFF0E5D8)),
+                    _buildTileItem(
+                      icon: Icons.devices_other_rounded,
+                      title: 'Keluar dari Sesi Lain',
+                      subtitle: 'Hentikan akses dari perangkat lain',
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.textMuted),
+                      onTap: _showLogoutAllSessionsDialog,
+                    ),
+                  ]),
+                  const SizedBox(height: 24),
+
+                  // 5. Section: Zona Bahaya
+                  _buildSectionTitle('ZONA PENGATURAN AKUN'),
+                  _buildCardGroup([
+                    _buildTileItem(
+                      icon: Icons.delete_outline_rounded,
+                      iconColor: const Color(0xFFDC2626),
+                      iconBg: const Color(0xFFFEE2E2),
+                      title: 'Hapus Akun & Data',
+                      titleColor: const Color(0xFFDC2626),
+                      subtitle: 'Hapus seluruh data keuangan secara permanen',
+                      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFFDC2626)),
+                      onTap: _showDeleteAccountDialog,
+                    ),
+                  ]),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
+            ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 11,
+          letterSpacing: 1,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textMuted,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardGroup(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF0E5D8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _buildTileItem({
+    required IconData icon,
+    Color? iconColor,
+    Color? iconBg,
+    required String title,
+    Color? titleColor,
+    required String subtitle,
+    required Widget trailing,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconBg ?? const Color(0xFFFAF7F2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor ?? AppColors.primaryBrown, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: titleColor ?? AppColors.textDark,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            trailing,
+          ],
         ),
       ),
     );
@@ -337,25 +565,29 @@ class _SecurityScreenState extends State<SecurityScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(10),
+              color: const Color(0xFFFAF7F2),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: AppColors.primaryBrown, size: 20),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -368,10 +600,8 @@ class _SecurityScreenState extends State<SecurityScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
+            activeColor: Colors.white,
             activeTrackColor: AppColors.primaryBrown,
-            inactiveThumbColor: Colors.white,
-            inactiveTrackColor: Colors.grey.shade300,
           ),
         ],
       ),

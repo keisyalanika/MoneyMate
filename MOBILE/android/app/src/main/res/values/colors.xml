@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- MoneyMate Brand Colors -->
+    <color name="splashBackground">#FAF6F0</color>
+    <color name="primaryBrown">#592314</color>
+    <color name="accentOrange">#D95B27</color>
+</resources>
+

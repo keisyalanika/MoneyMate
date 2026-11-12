@@ -1,12 +1,15 @@
 node_modules/
 dist/
 build/
-.next/
 .env
 .DS_Store
 *.log
 .vscode/
 .idea/
+
+# Next.js
+.next/
+*.tsbuildinfo
 
 # Flutter / Dart
 .dart_tool/

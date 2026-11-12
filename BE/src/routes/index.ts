@@ -17,7 +17,6 @@ import walletRoutes from './walletRoutes';
 const apiRouter = Router();
 
 apiRouter.use('/auth', authRoutes);
-apiRouter.use('/wallets', walletRoutes);
 apiRouter.use('/summary', summaryRoutes);
 apiRouter.use('/transactions', transactionRoutes);
 apiRouter.use('/categories', categoryRoutes);
@@ -30,5 +29,6 @@ apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/income-sources', incomeSourceRoutes);
 apiRouter.use('/insights', insightRoutes);
+apiRouter.use('/wallets', walletRoutes);
 
 export default apiRouter;

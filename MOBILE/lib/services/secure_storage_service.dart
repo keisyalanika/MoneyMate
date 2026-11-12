@@ -1,64 +1,90 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+/// ============================================================
+/// SecureStorageService — Penyimpanan data SENSITIF (Encrypted)
+/// Tipe Storage: Flutter Secure Storage (Keychain iOS / Keystore Android)
+/// Cocok untuk: token akses, refresh token, PIN, kunci enkripsi
+/// Data dienkripsi secara otomatis oleh platform OS
+/// ============================================================
 class SecureStorageService {
-  // Konfigurasi enkripsi hardware platform
-  static const FlutterSecureStorage _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-      resetOnError: true,
-    ),
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock,
-    ),
-  );
+  static SecureStorageService? _instance;
+  final FlutterSecureStorage _storage;
 
-  // Key penyimpanan rahasia
-  static const String _keyAccessToken = 'auth_jwt_access_token';
-  static const String _keyRefreshToken = 'auth_jwt_refresh_token';
-  static const String _keyUserId = 'auth_logged_in_user_id';
-  static const String _keyUserPin = 'auth_security_pin';
+  SecureStorageService._()
+      : _storage = const FlutterSecureStorage(
+          aOptions: AndroidOptions(resetOnError: true),
+        );
 
-  // 1. Simpan & Baca Access Token (JWT)
-  static Future<void> saveAccessToken(String token) async {
-    await _storage.write(key: _keyAccessToken, value: token);
+  static SecureStorageService getInstance() {
+    _instance ??= SecureStorageService._();
+    return _instance!;
   }
 
-  static Future<String?> getAccessToken() async {
-    return await _storage.read(key: _keyAccessToken);
+  // =============== ACCESS TOKEN ===============
+  Future<void> saveAccessToken(String token) async {
+    await _storage.write(key: 'access_token', value: token);
   }
 
-  // 2. Simpan & Baca Refresh Token
-  static Future<void> saveRefreshToken(String token) async {
-    await _storage.write(key: _keyRefreshToken, value: token);
+  Future<String?> getAccessToken() async {
+    return await _storage.read(key: 'access_token');
   }
 
-  static Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _keyRefreshToken);
+  Future<void> deleteAccessToken() async {
+    await _storage.delete(key: 'access_token');
   }
 
-  // 3. Simpan & Baca User ID Kredensial
-  static Future<void> saveUserId(String userId) async {
-    await _storage.write(key: _keyUserId, value: userId);
+  // =============== REFRESH TOKEN ===============
+  Future<void> saveRefreshToken(String token) async {
+    await _storage.write(key: 'refresh_token', value: token);
   }
 
-  static Future<String?> getUserId() async {
-    return await _storage.read(key: _keyUserId);
+  Future<String?> getRefreshToken() async {
+    return await _storage.read(key: 'refresh_token');
   }
 
-  // 4. Simpan PIN Transaksi / Keamanan
-  static Future<void> saveUserPin(String pin) async {
-    await _storage.write(key: _keyUserPin, value: pin);
+  Future<void> deleteRefreshToken() async {
+    await _storage.delete(key: 'refresh_token');
   }
 
-  static Future<String?> getUserPin() async {
-    return await _storage.read(key: _keyUserPin);
+  // =============== USER ID ===============
+  Future<void> saveUserId(String userId) async {
+    await _storage.write(key: 'user_id', value: userId);
   }
 
-  // 5. Hapus Seluruh Kredensial Rahasia Saat Logout
-  static Future<void> clearAllSecrets() async {
-    await _storage.delete(key: _keyAccessToken);
-    await _storage.delete(key: _keyRefreshToken);
-    await _storage.delete(key: _keyUserId);
-    await _storage.delete(key: _keyUserPin);
+  Future<String?> getUserId() async {
+    return await _storage.read(key: 'user_id');
+  }
+
+  Future<void> deleteUserId() async {
+    await _storage.delete(key: 'user_id');
+  }
+
+  // =============== PIN / BIOMETRIC FLAG ===============
+  Future<void> savePin(String pin) async {
+    await _storage.write(key: 'user_pin', value: pin);
+  }
+
+  Future<String?> getPin() async {
+    return await _storage.read(key: 'user_pin');
+  }
+
+  Future<void> setBiometricEnabled(bool enabled) async {
+    await _storage.write(key: 'biometric_enabled', value: enabled.toString());
+  }
+
+  Future<bool> isBiometricEnabled() async {
+    final val = await _storage.read(key: 'biometric_enabled');
+    return val == 'true';
+  }
+
+  // =============== SESSION STATUS ===============
+  Future<bool> hasActiveSession() async {
+    final token = await getAccessToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  // =============== CLEAR ALL (LOGOUT) ===============
+  Future<void> clearAll() async {
+    await _storage.deleteAll();
   }
 }

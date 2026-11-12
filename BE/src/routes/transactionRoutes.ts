@@ -1,12 +1,5 @@
 import { Router } from 'express';
-import {
-  getTransactions,
-  getTransaction,
-  addTransaction,
-  updateTransaction,
-  removeTransaction,
-  getMonthlySummary,
-} from '../controllers/transactionController';
+import { transactionController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -14,11 +7,11 @@ const router = Router();
 // All transaction routes are protected
 router.use(protect);
 
-router.get('/', getTransactions);
-router.get('/monthly-summary', getMonthlySummary);
-router.get('/:id', getTransaction);
-router.post('/', addTransaction);
-router.put('/:id', updateTransaction);
-router.delete('/:id', removeTransaction);
+router.get('/', transactionController.getTransactions);
+router.get('/monthly-summary', transactionController.getMonthlySummary);
+router.get('/:id', transactionController.getTransaction);
+router.post('/', transactionController.addTransaction);
+router.put('/:id', transactionController.updateTransaction);
+router.delete('/:id', transactionController.removeTransaction);
 
 export default router;

@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
+import '../utils/currency_formatter.dart';
 
-void showGoalFundsSuccessModal(BuildContext context) {
+void showGoalFundsSuccessModal({
+  required BuildContext context,
+  required String goalTitle,
+  required double amount,
+  required double currentAmount,
+  required double targetAmount,
+  required VoidCallback onDone,
+}) {
+  final progress = targetAmount > 0
+      ? (currentAmount / targetAmount).clamp(0.0, 1.0)
+      : 0.0;
+  final remaining = (targetAmount - currentAmount).clamp(0.0, double.infinity);
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    isDismissible: false,
+    enableDrag: false,
     backgroundColor: Colors.transparent,
-    builder: (context) {
+    builder: (modalContext) {
       return Container(
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-            // Handle bar indikator atas
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             Container(
               width: 40,
               height: 4,
@@ -27,8 +39,6 @@ void showGoalFundsSuccessModal(BuildContext context) {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Ikon Sukses
             Stack(
               clipBehavior: Clip.none,
               children: [
@@ -36,7 +46,7 @@ void showGoalFundsSuccessModal(BuildContext context) {
                   width: 80,
                   height: 80,
                   decoration: const BoxDecoration(
-                    color: Color(0xFFE8F5E9), // Light green
+                    color: Color(0xFFE8F5E9),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -44,7 +54,7 @@ void showGoalFundsSuccessModal(BuildContext context) {
                       width: 52,
                       height: 52,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF27AE60), // Green main
+                        color: Color(0xFF27AE60),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -61,7 +71,7 @@ void showGoalFundsSuccessModal(BuildContext context) {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFB35A43), // Badge color
+                      color: Color(0xFFB35A43),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -74,8 +84,6 @@ void showGoalFundsSuccessModal(BuildContext context) {
               ],
             ),
             const SizedBox(height: 24),
-
-            // Judul & Deskripsi
             const Text(
               'Yeay! Tabungan Berhasil Ditambah',
               textAlign: TextAlign.center,
@@ -86,54 +94,79 @@ void showGoalFundsSuccessModal(BuildContext context) {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Dana sebesar Rp 1.250.000 telah berhasil dialokasikan ke Goal Laptop Baru. Sebentar lagi impianmu tercapai!',
+            Text(
+              'Dana sebesar ${CurrencyFormatter.formatRupiah(amount)} telah dialokasikan ke goal "$goalTitle". Progres kamu sekarang ${(progress * 100).toStringAsFixed(1)}%.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF8C827A),
                 height: 1.4,
               ),
             ),
             const SizedBox(height: 20),
-
-            // Informasi Waktu
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFFF9EFEA),
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
                 children: [
-                  Icon(
-                    Icons.history,
-                    size: 16,
-                    color: Color(0xFF8C4A27),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Terkumpul',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF8C4A27)),
+                      ),
+                      Text(
+                        CurrencyFormatter.formatRupiah(currentAmount),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF8C4A27),
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 6),
-                  Text(
-                    'Hari ini, 7 September 2026',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF8C4A27),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: const Color(0xFFE8DCD1),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF8A3A23),
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Target ${CurrencyFormatter.formatRupiah(targetAmount)}',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF8C4A27)),
+                      ),
+                      Text(
+                        'Sisa ${CurrencyFormatter.formatRupiah(remaining)}',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF8C4A27)),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-
-            // Tombol Utama "Kembali ke Detail Goal"
             SizedBox(
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Tutup modal
-                  Navigator.pop(context); // Kembali ke halaman sebelumnya (Goal Detail)
+                  Navigator.pop(modalContext);
+                  onDone();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF8A3A23),
@@ -153,15 +186,13 @@ void showGoalFundsSuccessModal(BuildContext context) {
               ),
             ),
             const SizedBox(height: 12),
-            
-            // Opsi "Lihat Riwayat Tabungan"
             SizedBox(
               width: double.infinity,
               height: 52,
               child: TextButton(
                 onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
+                  Navigator.pop(modalContext);
+                  onDone();
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -183,8 +214,7 @@ void showGoalFundsSuccessModal(BuildContext context) {
             const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
-  },
-);
+      );
+    },
+  );
 }

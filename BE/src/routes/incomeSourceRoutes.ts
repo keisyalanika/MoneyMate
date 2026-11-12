@@ -1,9 +1,5 @@
 import { Router } from 'express';
-import {
-  getIncomeSources,
-  addIncomeSource,
-  removeIncomeSource,
-} from '../controllers/incomeSourceController';
+import { incomeSourceController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -11,8 +7,8 @@ const router = Router();
 // Require login for income sources
 router.use(protect);
 
-router.get('/', getIncomeSources);
-router.post('/', addIncomeSource);
-router.delete('/:id', removeIncomeSource);
+router.get('/', incomeSourceController.getIncomeSources);
+router.post('/', incomeSourceController.addIncomeSource);
+router.delete('/:id', incomeSourceController.removeIncomeSource);
 
 export default router;
