@@ -1,15 +1,12 @@
 import { Router } from 'express';
-import {
-  getSettings,
-  updateSettings,
-} from '../controllers/settingsController';
+import { settingsController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
 
 router.use(protect);
 
-router.get('/', getSettings);
-router.put('/', updateSettings);
+router.get('/', settingsController.getSettings);
+router.put('/', settingsController.updateSettings);
 
 export default router;

@@ -2,6 +2,9 @@
 // Shared TypeScript types for MoneyMate DB
 // ============================================
 
+/** Representasi TINYINT(1) MySQL yang dipertahankan di response API (0/1). */
+export type DbBool = 0 | 1;
+
 export type TransactionType = 'income' | 'expense';
 export type UserRole = 'student' | 'admin';
 export type ReportType = 'monthly' | 'weekly' | 'custom' | 'annual';
@@ -18,7 +21,7 @@ export interface User {
   password?: string;        // excluded on responses
   avatar_url?: string;
   role: UserRole;
-  is_active: boolean;
+  is_active: DbBool;
   created_at: Date;
   updated_at: Date;
 }
@@ -40,6 +43,17 @@ export interface IncomeSource {
   created_at: Date;
 }
 
+// ---------- Wallets ----------
+export interface Wallet {
+  id: number;
+  user_id: number;
+  name: string;
+  balance: number;
+  currency: string;
+  is_default: DbBool;
+  created_at: Date;
+}
+
 // ---------- Transactions ----------
 export interface Transaction {
   id: number;
@@ -56,6 +70,9 @@ export interface Transaction {
   category_name?: string;
   category_icon?: string;
   user_name?: string;
+  user_email?: string;
+  user_avatar?: string;
+  income_source_name?: string;
 }
 
 // ---------- Budgets ----------
@@ -66,13 +83,14 @@ export interface Budget {
   amount: number;
   month: number;
   year: number;
-  is_active: boolean;
+  is_active: DbBool;
   created_at: Date;
   // joined/computed fields
   category_name?: string;
   category_icon?: string;
   spent_amount?: number;
   percentage?: number;
+  user_name?: string;
 }
 
 // ---------- Goals ----------
@@ -84,7 +102,7 @@ export interface Goal {
   current_amount: number;
   icon?: string;
   deadline?: string;
-  is_completed: boolean;
+  is_completed: DbBool;
   created_at: Date;
 }
 
@@ -105,6 +123,7 @@ export interface AiInsight {
   insight_type: string;
   content: string;
   created_at: Date;
+  user_name?: string;
 }
 
 // ---------- Notifications ----------
@@ -113,7 +132,7 @@ export interface Notification {
   user_id: number;
   title: string;
   message?: string;
-  is_read: boolean;
+  is_read: DbBool;
   created_at: Date;
 }
 
@@ -128,6 +147,8 @@ export interface Report {
   period_end?: string;
   file_url?: string;
   created_at: Date;
+  user_name?: string;
+  generated_by_name?: string;
 }
 
 // ---------- User Settings ----------
@@ -137,7 +158,7 @@ export interface UserSettings {
   currency: CurrencyType;
   language: LangType;
   theme: ThemeType;
-  notification_enabled: boolean;
+  notification_enabled: DbBool;
   updated_at: Date;
 }
 
@@ -150,6 +171,7 @@ export interface AuditLog {
   target_id?: number;
   description?: string;
   created_at: Date;
+  admin_name?: string;
 }
 
 // ---------- Financial Summary (computed) ----------

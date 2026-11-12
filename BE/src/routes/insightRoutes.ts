@@ -1,17 +1,13 @@
 import { Router } from 'express';
-import {
-  getInsights,
-  createInsight,
-  deleteInsight,
-} from '../controllers/insightController';
+import { insightController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
 
 router.use(protect);
 
-router.get('/', getInsights);
-router.post('/', createInsight);
-router.delete('/:id', deleteInsight);
+router.get('/', insightController.getInsights);
+router.post('/', insightController.createInsight);
+router.delete('/:id', insightController.deleteInsight);
 
 export default router;

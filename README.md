@@ -69,12 +69,29 @@ MoneyMate/
 - **Flutter SDK** (optional for MOBILE app)
 
 ### 2. Running Backend (BE)
+
+Backend memakai **Prisma ORM** untuk skema & migrasi database MySQL.
+
 ```bash
 cd BE
 npm install
+cp .env.example .env      # sesuaikan DATABASE_URL & DB_*
+npm run db:setup          # apply migration + seed data awal
 npm run dev
 ```
 Server run at: `http://localhost:5000`
+
+Perintah database yang sering dipakai:
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run prisma:generate` | Generate Prisma Client ke `src/generated/prisma` |
+| `npm run prisma:migrate` | Buat & apply migration baru saat schema berubah |
+| `npm run prisma:deploy` | Apply migration yang sudah ada (tanpa membuat baru) |
+| `npm run prisma:seed` | Isi ulang data awal (idempotent) |
+| `npm run prisma:studio` | Buka GUI database |
+
+> Catatan: `moneymate_db` harus sudah dibuat (`CREATE DATABASE moneymate_db`), karena Prisma tidak membuat database secara otomatis. Seluruh akses database backend kini lewat Prisma + repository pattern (tidak ada lagi query mentah `mysql2`).
 
 ### 3. Running Frontend Admin (FE)
 ```bash
