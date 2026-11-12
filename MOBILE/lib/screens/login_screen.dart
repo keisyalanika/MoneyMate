@@ -335,17 +335,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: _buildSocialButton(
-                                    icon: Icons.g_mobiledata_rounded,
-                                    label: 'Google')),
-                            const SizedBox(width: 12),
-                            Expanded(
-                                child: _buildSocialButton(
-                                    icon: Icons.apple_rounded, label: 'Apple')),
-                          ],
+                        SizedBox(
+                          width: double.infinity,
+                          child: _buildSocialButton(
+                            leading: Image.asset(
+                              'assets/google_logo.png',
+                              width: 20,
+                              height: 20,
+                              fit: BoxFit.contain,
+                            ),
+                            label: 'Google',
+                          ),
                         ),
                         const SizedBox(height: 24),
                         Row(
@@ -390,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildSocialButton({required IconData icon, required String label}) {
+  Widget _buildSocialButton({required Widget leading, required String label}) {
     return Container(
       height: 46,
       decoration: BoxDecoration(
@@ -401,8 +401,8 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 22, color: AppColors.textDark),
-          const SizedBox(width: 6),
+          leading,
+          const SizedBox(width: 8),
           Text(label,
               style: const TextStyle(
                   fontSize: 13,

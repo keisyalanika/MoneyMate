@@ -487,6 +487,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                               padding: const EdgeInsets.only(bottom: 16),
                               child: _buildGoalItem(
                                 context: context,
+                                goal: g,
                                 category: isDone ? 'SELESAI' : 'TARGET FINANSIAL',
                                 statusText: isDone ? 'Tercapai' : 'On Track',
                                 statusColor: isDone ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
@@ -672,6 +673,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   Widget _buildGoalItem({
     required BuildContext context,
+    required Map<String, dynamic> goal,
     required String category,
     required String statusText,
     required Color statusColor,
@@ -687,11 +689,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
     bool isHeaderOrange = false,
   }) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const GoalDetailScreen()),
+          MaterialPageRoute(
+            builder: (context) => GoalDetailScreen(goal: goal),
+          ),
         );
+        if (mounted) _loadGoals();
       },
       child: Container(
         decoration: BoxDecoration(

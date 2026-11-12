@@ -87,6 +87,14 @@ class PreferencesService {
     return _prefs?.getString('auth_jwt_token');
   }
 
+  Future<void> saveSessionActive(bool active) async {
+    await _prefs?.setBool('is_session_active', active);
+  }
+
+  bool isSessionActive() {
+    return _prefs?.getBool('is_session_active') ?? false;
+  }
+
   Future<void> clearUserSession() async {
     await _prefs?.remove('user_name');
     await _prefs?.remove('user_nickname');
@@ -94,6 +102,7 @@ class PreferencesService {
     await _prefs?.remove('user_phone');
     await _prefs?.remove('user_role');
     await _prefs?.remove('auth_jwt_token');
+    await _prefs?.remove('is_session_active');
   }
 
   // =============== PENGATURAN MATA UANG ===============

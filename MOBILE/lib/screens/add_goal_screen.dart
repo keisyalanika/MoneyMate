@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_provider.dart';
 import '../utils/theme.dart';
 import '../utils/currency_formatter.dart';
 import '../services/api_service.dart';
@@ -20,6 +22,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   final TextEditingController _initialDepositController = TextEditingController();
   
   bool _autoReminder = true;
+  bool _isSaving = false;
   IconData _selectedIcon = Icons.laptop_mac;
   DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 120));
 
@@ -50,7 +53,34 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         } catch (_) {}
       }
     }
+    _nameController.addListener(_onFormChanged);
+    _amountController.addListener(_onFormChanged);
+    _initialDepositController.addListener(_onFormChanged);
   }
+
+  void _onFormChanged() {
+    if (mounted) setState(() {});
+  }
+
+  double _parseMoney(String text) {
+    final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+    return double.tryParse(digits) ?? 0.0;
+  }
+
+  int get _monthsUntilDeadline {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(
+      _selectedDeadline.year,
+      _selectedDeadline.month,
+      _selectedDeadline.day,
+    );
+    final days = target.difference(today).inDays;
+    if (days <= 0) return 0;
+    return (days / 30).ceil();
+  }
+
+  String _formatRp(num value) => CurrencyFormatter.formatRupiah(value);
 
   IconData _getIconFromKey(dynamic key) {
     switch (key?.toString().toLowerCase()) {
@@ -361,26 +391,8 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             ),
 
             _buildSection(
-              title: 'Kategori Impian',
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F0EB),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Expanded(child: Text('Elektronik & Kerja', style: TextStyle(color: AppColors.textDark, fontSize: 14))),
-                    Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted),
-                  ],
-                ),
-              ),
-            ),
-
-            _buildSection(
               title: 'Setoran Awal (Opsional)',
-              trailing: const Text('Hari ini', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+              trailing: const Text('Dari saldo aktif', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
               child: _buildTextField(
                 controller: _initialDepositController,
                 hint: '1.500.000',
@@ -389,84 +401,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               ),
             ),
 
-            // AI Financial Copilot Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F0EB),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.auto_awesome, color: AppColors.primaryBrown, size: 18),
-                          SizedBox(width: 8),
-                          Text('AI Financial Copilot', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.primaryBrown)),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD1FAE5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('Rekomendasi Cerdas', style: TextStyle(color: Color(0xFF065F46), fontSize: 10, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(color: AppColors.textDark, fontSize: 12, height: 1.5),
-                      children: [
-                        TextSpan(text: 'Dengan setoran awal '),
-                        TextSpan(text: 'Rp 1.500.000', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: ', kamu hanya perlu menabung '),
-                        TextSpan(text: 'Rp 3.375.000/bulan', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
-                        TextSpan(text: ' atau sekitar '),
-                        TextSpan(text: 'Rp 112.500/hari', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
-                        TextSpan(text: ' agar target laptop tercapai sebelum tahun baru!'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: const [
-                            Icon(Icons.trending_up, color: AppColors.textMuted, size: 16),
-                            SizedBox(width: 6),
-                            Expanded(
-                              child: Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(text: 'Potensi Tercapai: ', style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
-                                    TextSpan(text: '98%\n', style: TextStyle(color: AppColors.textDark, fontSize: 10, fontWeight: FontWeight.bold)),
-                                    TextSpan(text: 'Realistis', style: TextStyle(color: AppColors.textDark, fontSize: 10, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          'Tanpa Ganggu Pengeluaran\nRutin',
-                          style: TextStyle(color: AppColors.primaryBrown, fontSize: 10, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _buildAiCopilotCard(),
             const SizedBox(height: 24),
 
             // Pengingat Nabung Otomatis
@@ -516,45 +451,111 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton.icon(
-                onPressed: () async {
-                  final String rawTitle = _nameController.text.trim();
-                  final String amountStr = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                  final double parsedAmount = double.tryParse(amountStr) ?? 0.0;
-                  final String initialStr = _initialDepositController.text.replaceAll(RegExp(r'[^0-9]'), '');
-                  final double initialAmount = double.tryParse(initialStr) ?? 0.0;
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                        FocusScope.of(context).unfocus();
 
-                  // Gunakan input user, atau nilai default placeholder jika tidak diisi manual
-                  final String finalTitle = rawTitle.isNotEmpty ? rawTitle : 'MacBook Pro M3 Max';
-                  final double finalTarget = parsedAmount > 0 ? parsedAmount : 15000000.0;
+                        final String rawTitle = _nameController.text.trim();
+                        final double parsedAmount = _parseMoney(_amountController.text);
+                        final double initialAmount =
+                            _parseMoney(_initialDepositController.text);
 
-                  final String deadlineStr =
-                      '${_selectedDeadline.year}-${_selectedDeadline.month.toString().padLeft(2, '0')}-${_selectedDeadline.day.toString().padLeft(2, '0')}';
+                        if (rawTitle.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Nama target finansial wajib diisi.'),
+                              backgroundColor: Color(0xFFDC2626),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+                        if (parsedAmount <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Target nominal harus lebih dari 0.'),
+                              backgroundColor: Color(0xFFDC2626),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+                        if (initialAmount > parsedAmount) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Setoran awal tidak boleh melebihi target.'),
+                              backgroundColor: Color(0xFFDC2626),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
 
-                  await ApiService.addGoal({
-                    'title': finalTitle,
-                    'target_amount': finalTarget,
-                    'current_amount': initialAmount,
-                    'initial_deposit': initialAmount,
-                    'icon': _getIconName(_selectedIcon),
-                    'deadline': deadlineStr,
-                  });
+                        final String deadlineStr =
+                            '${_selectedDeadline.year}-${_selectedDeadline.month.toString().padLeft(2, '0')}-${_selectedDeadline.day.toString().padLeft(2, '0')}';
 
-                  if (widget.initialDraft != null && widget.initialDraft!['id'] != null) {
-                    await DraftGoalService.deleteDraftGoal(widget.initialDraft!['id']);
-                  }
+                        setState(() => _isSaving = true);
+                        final success = await ApiService.addGoal({
+                          'title': rawTitle,
+                          'target_amount': parsedAmount,
+                          'current_amount': initialAmount,
+                          'initial_deposit': initialAmount,
+                          'icon': _getIconName(_selectedIcon),
+                          'deadline': deadlineStr,
+                        });
+                        if (!mounted) return;
+                        setState(() => _isSaving = false);
 
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Target "$finalTitle" berhasil disimpan!'),
-                        backgroundColor: const Color(0xFF10B981),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    Navigator.pop(context, true);
-                  }
-                },
-                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                        if (!success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ApiService.lastGoalError ??
+                                    'Gagal menyimpan goal. Periksa saldo dompet aplikasi atau koneksi.',
+                              ),
+                              backgroundColor: const Color(0xFFDC2626),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (widget.initialDraft != null &&
+                            widget.initialDraft!['id'] != null) {
+                          await DraftGoalService.deleteDraftGoal(
+                            widget.initialDraft!['id'],
+                          );
+                        }
+
+                        if (initialAmount > 0) {
+                          await Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          ).fetchWallets();
+                        }
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Target "$rawTitle" berhasil disimpan!'),
+                              backgroundColor: const Color(0xFF10B981),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          Navigator.pop(context, true);
+                        }
+                      },
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.check_circle_outline, color: Colors.white),
                 label: const Text(
                   'Simpan Target Goal',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
@@ -620,6 +621,135 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAiCopilotCard() {
+    final target = _parseMoney(_amountController.text);
+    final initial = _parseMoney(_initialDepositController.text);
+    final remaining = (target - initial).clamp(0.0, double.infinity);
+    final months = _monthsUntilDeadline;
+    final monthly = remaining <= 0 ? 0.0 : remaining / (months > 0 ? months : 1);
+    final title = _nameController.text.trim().isEmpty
+        ? 'target impianmu'
+        : '"${_nameController.text.trim()}"';
+
+    final String message;
+    if (target <= 0) {
+      message = 'Isi target nominal terlebih dahulu agar rekomendasi tabungan bulanan bisa dihitung.';
+    } else if (remaining <= 0) {
+      message = 'Setoran awal kamu sudah memenuhi target $title. Goal akan langsung tercapai.';
+    } else if (months <= 0) {
+      message = 'Target waktu sudah lewat. Pilih tanggal baru atau tambah setoran agar target $title tetap bisa tercapai.';
+    } else {
+      message = 'Dengan setoran awal ${_formatRp(initial)}, kamu perlu menabung ${_formatRp(monthly)}/bulan selama $months bulan agar target $title tercapai.';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F0EB),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: AppColors.primaryBrown, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'AI Financial Copilot',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.primaryBrown,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD1FAE5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Rekomendasi Cerdas',
+                  style: TextStyle(
+                    color: Color(0xFF065F46),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.textDark,
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.trending_up, color: AppColors.textMuted, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: 'Sisa Target: ',
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+                            ),
+                            TextSpan(
+                              text: '${_formatRp(remaining)}\n',
+                              style: const TextStyle(
+                                color: AppColors.textDark,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: months > 0 ? '$months bulan lagi' : 'Batas waktu belum diatur',
+                              style: const TextStyle(
+                                color: AppColors.textDark,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'Estimasi ${_formatRp(monthly)}/bulan',
+                  style: const TextStyle(
+                    color: AppColors.primaryBrown,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -20,11 +20,15 @@ void main() async {
   final prefs = await PreferencesService.getInstance();
   final offlineService = OfflineFirstService(db, prefs);
 
+  // Pulihkan sesi login yang tersimpan sebelum UI pertama kali tampil
+  final authProvider = AuthProvider();
+  await authProvider.initialize();
+
   runApp(
     MultiProvider(
       providers: [
         // Auth Provider (Login/Register)
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
 
         // User Provider (Drift Stream untuk data pengguna)
         ChangeNotifierProvider(create: (_) => UserProvider(db)),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
+import '../services/auth_provider.dart';
 import '../utils/theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -33,13 +35,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _animController.forward();
 
-    // Navigasi ke Login setelah splash selesai
+    // Navigasi setelah splash selesai: langsung ke app jika sesi masih aktif.
+    // Sesi sudah dipulihkan di main() sebelum UI pertama tampil.
     Future.delayed(const Duration(milliseconds: 1600), () {
-      if (mounted) {
-        // Kembalikan status bar sebelum pindah halaman
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-        Navigator.pushReplacementNamed(context, AppRouter.login);
-      }
+      if (!mounted) return;
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      // Kembalikan status bar sebelum pindah halaman
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      Navigator.pushReplacementNamed(
+        context,
+        auth.isLoggedIn ? AppRouter.mainNav : AppRouter.login,
+      );
     });
   }
 

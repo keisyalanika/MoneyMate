@@ -55,6 +55,10 @@ class SecureStorageService {
     return await _storage.read(key: 'user_id');
   }
 
+  Future<void> deleteUserId() async {
+    await _storage.delete(key: 'user_id');
+  }
+
   // =============== PIN / BIOMETRIC FLAG ===============
   Future<void> savePin(String pin) async {
     await _storage.write(key: 'user_pin', value: pin);

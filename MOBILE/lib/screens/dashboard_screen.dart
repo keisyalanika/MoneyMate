@@ -334,12 +334,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       spacing: 20,
       children: actions.map((item) {
         return GestureDetector(
-          onTap: () {
+          onTap: () async {
             if (item['label'] == 'Goals') {
-              Navigator.push(
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const GoalsScreen()),
               );
+              if (mounted) setState(() {});
             } else if (item['label'] == 'Budget') {
               Navigator.push(
                 context,
@@ -482,11 +483,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildGoalsCard(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const GoalsScreen()),
         );
+        if (mounted) setState(() {});
       },
       child: Container(
         padding: const EdgeInsets.all(16),

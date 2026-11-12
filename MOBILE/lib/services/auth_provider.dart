@@ -4,9 +4,12 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'api_service.dart';
 import 'preferences_service.dart';
+import 'secure_storage_service.dart';
 
 class AuthProvider with ChangeNotifier {
   bool _isLoggedIn = false;
+  bool _isInitialized = false;
+  late final Future<void> _initFuture;
   String _userName = 'Guest';
   String _userNickname = '';
   String _userEmail = '';
@@ -20,9 +23,12 @@ class AuthProvider with ChangeNotifier {
   String? _errorMessage;
 
   AuthProvider() {
-    _loadFromPreferences();
+    _initFuture = _loadFromPreferences();
   }
 
+  Future<void> initialize() => _initFuture;
+
+  bool get isInitialized => _isInitialized;
   bool get isLoggedIn => _isLoggedIn;
   String get userName => _userName;
   String get userNickname => _userNickname.isNotEmpty 
@@ -63,22 +69,35 @@ class AuthProvider with ChangeNotifier {
       final prefs = await PreferencesService.getInstance();
       final savedName = prefs.getUserName();
       _token = prefs.getAuthToken();
+      if (_token == null || _token!.isEmpty) {
+        _token = await SecureStorageService.getInstance().getAccessToken();
+      }
       if (_token != null && _token!.isNotEmpty) {
         ApiService.token = _token;
       }
-      if (savedName != 'Guest' && savedName.isNotEmpty) {
+      // Sesi dianggap valid selama flag tersimpan / nama user tersimpan.
+      // Tidak ada pengecekan kedaluwarsa: sesi bertahan sampai user logout.
+      final hasSavedSession =
+          prefs.isSessionActive() || (savedName != 'Guest' && savedName.isNotEmpty);
+      if (hasSavedSession && savedName != 'Guest' && savedName.isNotEmpty) {
         _userName = savedName;
         _userNickname = prefs.getUserNickname();
         _userEmail = prefs.getUserEmail();
         _userPhone = prefs.getUserPhone();
         _role = prefs.getUserRole();
         _isLoggedIn = true;
-        notifyListeners();
+        await prefs.saveSessionActive(true);
+        if (_token != null && _token!.isNotEmpty) {
+          await SecureStorageService.getInstance().saveAccessToken(_token!);
+        }
         // Background sync wallet saldo from backend
         fetchWallets();
       }
     } catch (e) {
       debugPrint('[AuthProvider] loadFromPreferences error: $e');
+    } finally {
+      _isInitialized = true;
+      notifyListeners();
     }
   }
 
@@ -92,7 +111,9 @@ class AuthProvider with ChangeNotifier {
       await prefs.saveUserRole(_role);
       if (_token != null && _token!.isNotEmpty) {
         await prefs.saveAuthToken(_token!);
+        await SecureStorageService.getInstance().saveAccessToken(_token!);
       }
+      await prefs.saveSessionActive(true);
     } catch (e) {
       debugPrint('[AuthProvider] saveSession error: $e');
     }
@@ -283,7 +304,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void logout() async {
+  Future<void> logout() async {
     _isLoggedIn = false;
     _userName = 'Guest';
     _userNickname = '';
@@ -297,6 +318,10 @@ class AuthProvider with ChangeNotifier {
     try {
       final prefs = await PreferencesService.getInstance();
       await prefs.clearUserSession();
+      final secure = SecureStorageService.getInstance();
+      await secure.deleteAccessToken();
+      await secure.deleteRefreshToken();
+      await secure.deleteUserId();
     } catch (_) {}
 
     notifyListeners();

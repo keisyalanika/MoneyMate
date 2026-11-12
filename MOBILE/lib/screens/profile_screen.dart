@@ -45,10 +45,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              Provider.of<AuthProvider>(context, listen: false).logout();
-              Navigator.pushNamedAndRemoveUntil(context, AppRouter.login, (route) => false);
+              final navigator = Navigator.of(context);
+              await Provider.of<AuthProvider>(context, listen: false).logout();
+              navigator.pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
             },
             child: const Text('Keluar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),

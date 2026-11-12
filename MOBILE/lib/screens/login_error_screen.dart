@@ -412,64 +412,34 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                     const SizedBox(height: 20),
 
                     // Social Media Login
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(
-                                color: AppColors.inputBorder,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.g_mobiledata,
-                              color: Colors.redAccent,
-                              size: 24,
-                            ),
-                            label: const Text(
-                              'Google',
-                              style: TextStyle(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(
+                            color: AppColors.inputBorder,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(
-                                color: AppColors.inputBorder,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {},
-                            icon: const Icon(
-                              Icons.apple,
-                              color: Colors.black,
-                              size: 20,
-                            ),
-                            label: const Text(
-                              'Apple',
-                              style: TextStyle(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
+                        onPressed: () {},
+                        icon: Image.asset(
+                          'assets/google_logo.png',
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.contain,
+                        ),
+                        label: const Text(
+                          'Google',
+                          style: TextStyle(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 28),
 

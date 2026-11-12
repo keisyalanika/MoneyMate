@@ -1,15 +1,178 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../services/api_service.dart';
+import '../services/auth_provider.dart';
+import '../utils/currency_formatter.dart';
+import '../utils/theme.dart';
 import 'goal_funds_success_modal.dart';
 
 class AddGoalFundsScreen extends StatefulWidget {
-  const AddGoalFundsScreen({Key? key}) : super(key: key);
+  final Map<String, dynamic> goal;
+
+  const AddGoalFundsScreen({super.key, required this.goal});
 
   @override
   State<AddGoalFundsScreen> createState() => _AddGoalFundsScreenState();
 }
 
 class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
-  bool isAutoDebit = true;
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  double _availableBalance = 0;
+  bool _isLoadingWallets = true;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWallets();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  double get _collected =>
+      double.tryParse('${widget.goal['current_amount'] ?? 0}') ?? 0.0;
+
+  double get _target =>
+      double.tryParse('${widget.goal['target_amount'] ?? 0}') ?? 0.0;
+
+  double get _shortage => (_target - _collected).clamp(0.0, double.infinity);
+
+  double get _amount {
+    final digits = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    return double.tryParse(digits) ?? 0.0;
+  }
+
+  double get _projectedAmount {
+    final projected = _collected + _amount;
+    return projected > _target && _target > 0 ? _target : projected;
+  }
+
+  double get _projectedProgress =>
+      _target > 0 ? (_projectedAmount / _target).clamp(0.0, 1.0) : 0.0;
+
+  String get _goalTitle => widget.goal['title']?.toString() ?? 'Target Impian';
+
+  IconData get _goalIcon {
+    switch (widget.goal['icon']?.toString().toLowerCase()) {
+      case 'laptop':
+        return Icons.laptop_mac;
+      case 'flight':
+        return Icons.flight_takeoff;
+      case 'car':
+        return Icons.directions_car;
+      case 'home':
+        return Icons.home;
+      case 'savings':
+        return Icons.savings;
+      case 'diamond':
+        return Icons.diamond;
+      default:
+        return Icons.flag;
+    }
+  }
+
+  String _formatRp(num value) => CurrencyFormatter.formatRupiah(value);
+
+  Future<void> _loadWallets() async {
+    setState(() => _isLoadingWallets = true);
+    final result = await ApiService.fetchWallets();
+
+    double total = 0;
+    if (result['success'] == true) {
+      final rawList = result['data'];
+      if (rawList is List) {
+        for (final item in rawList) {
+          if (item is Map) {
+            total += double.tryParse('${item['balance'] ?? 0}') ?? 0;
+          }
+        }
+      }
+      final reportedTotal = result['totalBalance'];
+      if (reportedTotal is num) {
+        total = reportedTotal.toDouble();
+      } else if (reportedTotal != null) {
+        total = double.tryParse('$reportedTotal') ?? total;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _availableBalance = total;
+      _isLoadingWallets = false;
+    });
+  }
+
+  void _setAmount(double amount) {
+    _amountController.text = CurrencyFormatter.formatDots(amount);
+    setState(() {});
+  }
+
+  Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
+    final amount = _amount;
+    if (amount <= 0) {
+      _showError('Masukkan nominal setoran terlebih dahulu.');
+      return;
+    }
+    if (_availableBalance < amount) {
+      _showError(
+        'Saldo aktif tidak cukup. Saldo tersedia ${_formatRp(_availableBalance)}.',
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final result = await ApiService.addGoalFund(
+      goalId: widget.goal['id'],
+      amount: amount,
+      note: _noteController.text.trim().isEmpty
+          ? 'Setoran tabungan'
+          : _noteController.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (result['success'] == true) {
+      try {
+        await Provider.of<AuthProvider>(context, listen: false).fetchWallets();
+      } catch (_) {}
+      if (!mounted) return;
+
+      final newAmount =
+          double.tryParse('${result['current_amount']}') ?? (_collected + amount);
+      showGoalFundsSuccessModal(
+        context: context,
+        goalTitle: _goalTitle,
+        amount: amount,
+        currentAmount: newAmount,
+        targetAmount: _target,
+        onDone: () => Navigator.pop(context, true),
+      );
+    } else {
+      _showError(result['message']?.toString() ?? 'Gagal menyetor dana.');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,39 +194,42 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
           ),
         ),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF2C1A14)),
-              ),
-              child: const Icon(Icons.question_mark, color: Color(0xFF2C1A14), size: 14),
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mini Goal Card Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFB35A43), shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'ALOKASI DANA • LAPTOP BARU',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF5A4A42), letterSpacing: 1),
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFB35A43),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'ALOKASI DANA • ${_goalTitle.toUpperCase()}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF5A4A42),
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -71,454 +237,34 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                     color: const Color(0xFFF9EFEA),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.check_circle_outline, size: 12, color: Color(0xFFB35A43)),
                       SizedBox(width: 4),
-                      Text('Goal Aktif', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
+                      Text(
+                        'Goal Aktif',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFB35A43),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-
-            // Mini Goal Card Body
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF5A3E2B),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.laptop_mac, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text('Laptop Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-                            Text('Elektronik & Kerja Produktif', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
-                          ],
-                        ),
-                      ),
-                      const Text('75%', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: 0.75,
-                      minHeight: 8,
-                      backgroundColor: const Color(0xFFEFE8E1),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('Terkumpul Rp 11.250.000', style: TextStyle(fontSize: 11, color: Color(0xFF5A4A42))),
-                      Text('Target Rp 15.000.000', style: TextStyle(fontSize: 11, color: Color(0xFF5A4A42))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCF9F5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFFB35A43)),
-                        const SizedBox(width: 6),
-                        RichText(
-                          text: const TextSpan(
-                            style: TextStyle(fontSize: 11, color: Color(0xFF5A4A42)),
-                            children: [
-                              TextSpan(text: 'Kurang '),
-                              TextSpan(text: 'Rp 3.750.000', style: TextStyle(color: Color(0xFFB35A43), fontWeight: FontWeight.bold)),
-                              TextSpan(text: ' lagi untuk mencapai impian'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildGoalSummaryCard(),
             const SizedBox(height: 24),
-
-            // Nominal Tambah Dana
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'NOMINAL TAMBAH DANA',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A), letterSpacing: 0.5),
-                      ),
-                      Row(
-                        children: const [
-                          Icon(Icons.auto_awesome, size: 14, color: Color(0xFFB35A43)),
-                          SizedBox(width: 4),
-                          Text('Bebas Biaya Admin', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Rp ', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFB3B3B3))),
-                      const Expanded(
-                        child: Text(
-                          '1.250.000',
-                          style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Color(0xFF3E2723)),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3EBE3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.close, size: 16, color: Color(0xFF8C827A)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(child: _buildQuickAmountChip('+ Rp 250.000')),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildQuickAmountChip('+ Rp 500.000')),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _buildQuickAmountChip('+ Rp 1.000.000')),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF9EFEA),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.flash_on, size: 14, color: Color(0xFFB35A43)),
-                              SizedBox(width: 4),
-                              Text('Lunasi Sisa', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _buildAmountCard(),
             const SizedBox(height: 20),
-
-            // AI Financial Copilot
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF6EFE9),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFE8DCD1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.auto_awesome, size: 16, color: Color(0xFF5A4A42)),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('AI FINANCIAL COPILOT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A))),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8DCD1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text('75% → 83.3%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5A4A42))),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  RichText(
-                    text: const TextSpan(
-                      style: TextStyle(fontSize: 13, color: Color(0xFF5A4A42), height: 1.5),
-                      children: [
-                        TextSpan(text: 'Dengan menambah Rp 1.250.000 hari ini, progres goal kamu naik menjadi '),
-                        TextSpan(text: '83.3%', style: TextStyle(color: Color(0xFFB35A43), fontWeight: FontWeight.bold)),
-                        TextSpan(text: '! Kamu tinggal butuh sekitar '),
-                        TextSpan(text: '2 bulan lagi', style: TextStyle(fontWeight: FontWeight.bold)),
-                        TextSpan(text: ' untuk laptop impian.'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Stack(
-                            children: [
-                              LinearProgressIndicator(
-                                value: 0.833, // Target
-                                minHeight: 6,
-                                backgroundColor: const Color(0xFFDCD1C5),
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8A3A23)),
-                              ),
-                              LinearProgressIndicator(
-                                value: 0.75, // Current
-                                minHeight: 6,
-                                backgroundColor: Colors.transparent,
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text('Sisa Rp 2.500.000', style: TextStyle(fontSize: 10, color: Color(0xFF8C827A))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            _buildProjectionCard(),
             const SizedBox(height: 20),
-
-            // Sumber Dana Tabungan
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('SUMBER DANA TABUNGAN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A))),
-                      Text('Ganti Rekening >', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB35A43))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFCF9F5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFEFE8E1)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF5A3E2B),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.account_balance, color: Colors.white, size: 24),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text('BCA Prioritas', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFD4EEDC),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text('Tersedia', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF27AE60))),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              const Text('Saldo Aktif: Rp 42.800.000', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.check_circle, color: Color(0xFF5A3E2B), size: 24),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildSmallWalletChip(Icons.account_balance_wallet, 'Dompet Tunai', 'Rp 850.000'),
-                        const SizedBox(width: 8),
-                        _buildSmallWalletChip(Icons.credit_card, 'Mandiri Utama', 'Rp 5.200.000'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildWalletCard(),
             const SizedBox(height: 20),
-
-            // Settings (Date & Auto-debit)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, color: Color(0xFF8C827A), size: 20),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Tanggal Setoran', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
-                              SizedBox(height: 4),
-                              Text('Hari ini, 7 September 2026', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3EBE3),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text('Instan', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5A4A42))),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFF0EAE1)),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.sync, color: Color(0xFF8C827A), size: 20),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Jadikan Setoran Rutin Bulanan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF2C1A14))),
-                              SizedBox(height: 4),
-                              Text('Auto-debet setiap tanggal 25', style: TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: isAutoDebit,
-                          onChanged: (val) {
-                            setState(() {
-                              isAutoDebit = val;
-                            });
-                          },
-                          activeColor: Colors.white,
-                          activeTrackColor: const Color(0xFF4A3428),
-                          inactiveTrackColor: const Color(0xFFEFE8E1),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Catatan
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('CATATAN SETORAN (OPSIONAL)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8C827A))),
-                      Text('47/100', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F4F1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Tabungan dari bonus project freelance bulan ini',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF5A4A42)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildNoteCard(),
             const SizedBox(height: 24),
-
-            // Actions
             SizedBox(
               width: double.infinity,
               height: 56,
@@ -530,24 +276,31 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                   ),
                   elevation: 0,
                 ),
-                onPressed: () {
-                  showGoalFundsSuccessModal(context);
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Konfirmasi Setor Dana',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Konfirmasi Setor Dana',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -562,9 +315,9 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
                   ),
                 ),
                 onPressed: () => Navigator.pop(context),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.arrow_back, color: Color(0xFF8A3A23), size: 20),
                     SizedBox(width: 8),
                     Text(
@@ -586,38 +339,471 @@ class _AddGoalFundsScreenState extends State<AddGoalFundsScreen> {
     );
   }
 
-  Widget _buildQuickAmountChip(String amount) {
+  Widget _buildGoalSummaryCard() {
+    final progress = _target > 0 ? (_collected / _target).clamp(0.0, 1.0) : 0.0;
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F4F1),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Center(
-        child: Text(
-          amount,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF5A4A42)),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF5A3E2B),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(_goalIcon, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _goalTitle,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C1A14),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Target ${_formatRp(_target)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF8C827A),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${(progress * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB35A43),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: const Color(0xFFEFE8E1),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A3E2B)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Terkumpul ${_formatRp(_collected)}',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF5A4A42)),
+              ),
+              Text(
+                'Kurang ${_formatRp(_shortage)}',
+                style: const TextStyle(fontSize: 11, color: Color(0xFFB35A43)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmountCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'NOMINAL TAMBAH DANA',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF8C827A),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Text(
+                'Rp ',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB3B3B3),
+                ),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _amountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandsSeparatorInputFormatter(),
+                  ],
+                  onChanged: (_) => setState(() {}),
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF3E2723),
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: '0',
+                    hintStyle: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFFB3B3B3),
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+              ),
+              if (_amount > 0)
+                GestureDetector(
+                  onTap: () {
+                    _amountController.clear();
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF3EBE3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, size: 16, color: Color(0xFF8C827A)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _buildQuickAmountChip('+ Rp 250.000', 250000)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildQuickAmountChip('+ Rp 500.000', 500000)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _buildQuickAmountChip('+ Rp 1.000.000', 1000000)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _setAmount(_shortage),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9EFEA),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.flash_on, size: 14, color: Color(0xFFB35A43)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Lunasi Sisa',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFB35A43),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAmountChip(String label, double amount) {
+    return GestureDetector(
+      onTap: () => _setAmount(amount),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F4F1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF5A4A42),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSmallWalletChip(IconData icon, String title, String amount) {
+  Widget _buildProjectionCard() {
+    final projected = _projectedAmount;
+    final projectedPct = _projectedProgress * 100;
+    final remaining = (_target - projected).clamp(0.0, double.infinity);
+    final amount = _amount;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCF9F5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEFE8E1)),
+        color: const Color(0xFFF6EFE9),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF8C827A)),
-          const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 11, color: Color(0xFF5A4A42))),
-          const Text(' (', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
-          Text(amount, style: const TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
-          const Text(')', style: TextStyle(fontSize: 11, color: Color(0xFF8C827A))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.auto_awesome, size: 16, color: Color(0xFF5A4A42)),
+                  SizedBox(width: 8),
+                  Text(
+                    'AI FINANCIAL COPILOT',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF8C827A),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8DCD1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${(_target > 0 ? (_collected / _target * 100) : 0).toStringAsFixed(0)}% → ${projectedPct.toStringAsFixed(1)}%',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF5A4A42),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            amount <= 0
+                ? 'Masukkan nominal setoran untuk melihat proyeksi progres goal kamu.'
+                : 'Dengan menambah ${_formatRp(amount)} hari ini, progres goal kamu naik menjadi ${projectedPct.toStringAsFixed(1)}%. Kamu tinggal butuh ${_formatRp(remaining)} lagi.',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF5A4A42),
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: _target > 0 ? (projected / _target).clamp(0.0, 1.0) : 0.0,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFDCD1C5),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8A3A23)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Sisa ${_formatRp(remaining)}',
+                style: const TextStyle(fontSize: 10, color: Color(0xFF8C827A)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWalletCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'SUMBER DANA TABUNGAN',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF8C827A),
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Dana diambil dari total saldo aktif di halaman utama.',
+            style: TextStyle(fontSize: 11, color: Color(0xFF8C827A)),
+          ),
+          const SizedBox(height: 16),
+          if (_isLoadingWallets)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primaryBrown,
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9EFEA),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _amount > 0 && _amount > _availableBalance
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFFB35A43),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF5A3E2B),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Saldo Aktif MoneyMate',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2C1A14),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tersedia ${_formatRp(_availableBalance)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF8C827A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.check_circle,
+                    color: Color(0xFF5A3E2B),
+                    size: 22,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoteCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'CATATAN SETORAN (OPSIONAL)',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF8C827A),
+                ),
+              ),
+              Text(
+                '${_noteController.text.length}/100',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF8C827A)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _noteController,
+            maxLength: 100,
+            maxLines: 3,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'Contoh: Tabungan dari bonus freelance',
+              hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF8C827A)),
+              counterText: '',
+              filled: true,
+              fillColor: const Color(0xFFF8F4F1),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            style: const TextStyle(fontSize: 13, color: Color(0xFF5A4A42)),
+          ),
         ],
       ),
     );

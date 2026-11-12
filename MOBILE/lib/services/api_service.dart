@@ -7,8 +7,11 @@ import '../models/category_model.dart';
 import '../models/budget_model.dart';
 
 class ApiService {
+  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+
   // Use 10.0.2.2 for Android Emulator, localhost for iOS / Desktop / Web
   static String get baseUrl {
+    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     if (kIsWeb) return 'http://localhost:5000/api';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:5000/api';
@@ -138,6 +141,15 @@ class ApiService {
 
   // ================= GOALS (OFFLINE-FIRST DENGAN LOCAL STORAGE & SYNC API) =================
   static const String _goalsKey = 'moneymate_goals_storage';
+  static String? lastGoalError;
+
+  static String _goalIdString(dynamic id) => id?.toString() ?? '';
+
+  static bool _isServerGoalId(dynamic id) =>
+      RegExp(r'^\d+$').hasMatch(_goalIdString(id));
+
+  static String _goalFundsKey(dynamic goalId) =>
+      'moneymate_goal_funds_${_goalIdString(goalId)}';
 
   static Future<List<Map<String, dynamic>>> _getLocalGoals() async {
     try {
@@ -158,6 +170,83 @@ class ApiService {
     } catch (_) {}
   }
 
+  static Future<List<Map<String, dynamic>>> _getLocalFunds(dynamic goalId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? str = prefs.getString(_goalFundsKey(goalId));
+      if (str != null && str.trim().isNotEmpty) {
+        final List<dynamic> decoded = json.decode(str);
+        return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  static Future<void> _setLocalFunds(
+    dynamic goalId,
+    List<Map<String, dynamic>> funds,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_goalFundsKey(goalId), json.encode(funds));
+    } catch (_) {}
+  }
+
+  static Future<void> _replaceLocalGoal(Map<String, dynamic> item) async {
+    final current = await _getLocalGoals();
+    final idx = current.indexWhere(
+      (g) => _goalIdString(g['id']) == _goalIdString(item['id']),
+    );
+    if (idx >= 0) {
+      current[idx] = item;
+    } else {
+      current.insert(0, item);
+    }
+    await _setLocalGoals(current);
+  }
+
+  static Future<double> _applyLocalFund({
+    required dynamic goalId,
+    required double amount,
+    String? note,
+    double? forcedAmount,
+    bool? completed,
+    bool pendingSync = false,
+  }) async {
+    final current = await _getLocalGoals();
+    final idx = current.indexWhere(
+      (g) => _goalIdString(g['id']) == _goalIdString(goalId),
+    );
+
+    double updatedAmount = forcedAmount ?? amount;
+    bool isCompleted = completed ?? false;
+
+    if (idx >= 0) {
+      final double curr =
+          double.tryParse('${current[idx]['current_amount'] ?? 0}') ?? 0.0;
+      final double target =
+          double.tryParse('${current[idx]['target_amount'] ?? 0}') ?? 0.0;
+      updatedAmount = forcedAmount ?? (curr + amount);
+      isCompleted = completed ?? (target > 0 && updatedAmount >= target);
+      current[idx]['current_amount'] = updatedAmount;
+      current[idx]['is_completed'] = isCompleted ? 1 : 0;
+      await _setLocalGoals(current);
+    }
+
+    final funds = await _getLocalFunds(goalId);
+    funds.insert(0, {
+      'id': 'fund_${DateTime.now().millisecondsSinceEpoch}',
+      'goal_id': goalId,
+      'amount': amount,
+      'note': note ?? 'Setoran tabungan',
+      'created_at': DateTime.now().toIso8601String(),
+      'pending_sync': pendingSync,
+    });
+    await _setLocalFunds(goalId, funds);
+
+    return updatedAmount;
+  }
+
   static Future<List<Map<String, dynamic>>> fetchGoals() async {
     try {
       final response = await http
@@ -165,11 +254,31 @@ class ApiService {
           .timeout(const Duration(seconds: 2));
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
-        final List<dynamic> list = body['data'];
+        final List<dynamic> list = body['data'] ?? [];
         final remote = list.map((e) => Map<String, dynamic>.from(e)).toList();
         if (remote.isNotEmpty) {
-          await _setLocalGoals(remote);
-          return remote;
+          final local = await _getLocalGoals();
+          final pendingLocal = local.where((g) {
+            final id = _goalIdString(g['id']);
+            final isTempId = id.isNotEmpty && !RegExp(r'^\d+$').hasMatch(id);
+            if (!isTempId) return false;
+
+            final title = g['title']?.toString().trim().toLowerCase() ?? '';
+            final target =
+                double.tryParse('${g['target_amount'] ?? 0}') ?? 0.0;
+            final matchedRemote = remote.any((r) {
+              if (_goalIdString(r['id']) == id) return true;
+              final rTitle =
+                  r['title']?.toString().trim().toLowerCase() ?? '';
+              final rTarget =
+                  double.tryParse('${r['target_amount'] ?? 0}') ?? 0.0;
+              return rTitle == title && rTarget == target;
+            });
+            return !matchedRemote;
+          }).toList();
+          final merged = [...remote, ...pendingLocal];
+          await _setLocalGoals(merged);
+          return merged;
         }
       }
     } catch (e) {
@@ -179,16 +288,31 @@ class ApiService {
   }
 
   static Future<bool> addGoal(Map<String, dynamic> payload) async {
+    lastGoalError = null;
     // 1. Simpan langsung ke local storage agar goal tidak pernah hilang
     final current = await _getLocalGoals();
+    final tempId = 'goal_${DateTime.now().millisecondsSinceEpoch}';
     final item = Map<String, dynamic>.from(payload);
-    item['id'] = item['id'] ?? 'goal_${DateTime.now().millisecondsSinceEpoch}';
-    final double initDeposit = double.tryParse('${payload['initial_deposit'] ?? payload['current_amount'] ?? 0}') ?? 0.0;
+    final double initDeposit =
+        double.tryParse('${payload['initial_deposit'] ?? payload['current_amount'] ?? 0}') ?? 0.0;
+    item['id'] = tempId;
     item['current_amount'] = initDeposit;
     item['is_completed'] = 0;
     item['created_at'] = DateTime.now().toIso8601String();
     current.insert(0, item);
     await _setLocalGoals(current);
+
+    if (initDeposit > 0) {
+      await _setLocalFunds(tempId, [
+        {
+          'id': 'fund_${DateTime.now().millisecondsSinceEpoch}',
+          'goal_id': tempId,
+          'amount': initDeposit,
+          'note': 'Setoran awal goal',
+          'created_at': DateTime.now().toIso8601String(),
+        },
+      ]);
+    }
 
     // 2. Coba sinkronisasi ke server jika API aktif
     try {
@@ -198,44 +322,178 @@ class ApiService {
             headers: headers,
             body: json.encode(payload),
           )
-          .timeout(const Duration(seconds: 3));
-      return response.statusCode == 201;
+          .timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 201) {
+        final body = json.decode(response.body);
+        final raw = body['data'];
+        if (raw is Map) {
+          final serverGoal = Map<String, dynamic>.from(raw);
+          serverGoal['current_amount'] ??= initDeposit;
+          for (final key in ['title', 'target_amount', 'icon', 'deadline']) {
+            serverGoal[key] ??= item[key];
+          }
+          await _replaceLocalGoal(serverGoal);
+
+          final list = await _getLocalGoals();
+          list.removeWhere((g) => _goalIdString(g['id']) == tempId);
+          await _setLocalGoals(list);
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove(_goalFundsKey(tempId));
+          } catch (_) {}
+        }
+        return true;
+      }
+
+      try {
+        final body = json.decode(response.body);
+        lastGoalError = body['message']?.toString();
+      } catch (_) {}
+
+      // Server menolak goal: hapus data sementara agar tidak muncul sebagai goal valid.
+      final list = await _getLocalGoals();
+      list.removeWhere((g) => _goalIdString(g['id']) == tempId);
+      await _setLocalGoals(list);
+      return false;
     } catch (e) {
       if (kDebugMode) debugPrint('API addGoal offline fallback: $e');
       return true; // Tetap berhasil karena sudah tersimpan di perangkat lokal
     }
   }
 
-  static Future<bool> addGoalFund(dynamic goalId, double amount, [String? note]) async {
-    // Update local storage
-    try {
-      final current = await _getLocalGoals();
-      final idx = current.indexWhere((g) => g['id'].toString() == goalId.toString());
-      if (idx >= 0) {
-        final double curr = double.tryParse('${current[idx]['current_amount'] ?? 0}') ?? 0.0;
-        final double tgt = double.tryParse('${current[idx]['target_amount'] ?? 0}') ?? 1.0;
-        final double updated = curr + amount;
-        current[idx]['current_amount'] = updated;
-        if (updated >= tgt) {
-          current[idx]['is_completed'] = 1;
-        }
-        await _setLocalGoals(current);
-      }
-    } catch (_) {}
+  static Future<Map<String, dynamic>> addGoalFund({
+    required dynamic goalId,
+    required double amount,
+    String? note,
+    int? walletId,
+  }) async {
+    if (!amount.isFinite || amount <= 0) {
+      return {'success': false, 'message': 'Nominal setoran harus lebih dari 0.'};
+    }
+
+    final isServerGoal = _isServerGoalId(goalId);
+
+    // Setoran membutuhkan server agar saldo aktif ikut terpotong.
+    if (!isServerGoal) {
+      return {
+        'success': false,
+        'message':
+            'Goal ini belum tersinkron dengan server. Sambungkan internet lalu buka ulang halaman Goals.',
+      };
+    }
 
     try {
       final response = await http
           .post(
             Uri.parse('$baseUrl/goals/$goalId/funds'),
             headers: headers,
-            body: json.encode({'amount': amount, 'note': note ?? 'Setoran tabungan'}),
+            body: json.encode({
+              'amount': amount,
+              'note': note ?? 'Setoran tabungan',
+              if (walletId != null) 'wallet_id': walletId,
+            }),
           )
-          .timeout(const Duration(seconds: 3));
-      return response.statusCode == 201;
+          .timeout(const Duration(seconds: 5));
+
+      Map<String, dynamic> body = {};
+      try {
+        body = Map<String, dynamic>.from(json.decode(response.body));
+      } catch (_) {}
+
+      if (response.statusCode == 201) {
+        final data = body['data'];
+        final rawGoal = data is Map ? data['goal'] : null;
+        double? serverAmount;
+        bool? serverCompleted;
+        if (rawGoal is Map) {
+          serverAmount = double.tryParse('${rawGoal['current_amount']}');
+          final done = rawGoal['is_completed'];
+          serverCompleted = done == 1 || done == true;
+        }
+        final updated = await _applyLocalFund(
+          goalId: goalId,
+          amount: amount,
+          note: note,
+          forcedAmount: serverAmount,
+          completed: serverCompleted,
+        );
+        return {
+          'success': true,
+          'message': body['message'] ?? 'Setoran berhasil.',
+          'current_amount': updated,
+          'goal': rawGoal,
+        };
+      }
+
+      return {
+        'success': false,
+        'message': body['message'] ?? 'Gagal menyetor dana. Silakan coba lagi.',
+      };
     } catch (e) {
-      if (kDebugMode) debugPrint('API addGoalFund offline fallback: $e');
-      return true;
+      if (kDebugMode) debugPrint('API addGoalFund offline: $e');
+      return {
+        'success': false,
+        'message':
+            'Tidak dapat terhubung ke server. Saldo aktif hanya bisa dipotong saat online.',
+      };
     }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchGoalFunds(dynamic goalId) async {
+    final local = await _getLocalFunds(goalId);
+    if (!_isServerGoalId(goalId)) return local;
+
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/goals/$goalId/funds'), headers: headers)
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        final rawList = body['data'];
+        final remote = rawList is List
+            ? rawList
+                .whereType<Map>()
+                .map((e) => Map<String, dynamic>.from(e))
+                .toList()
+            : <Map<String, dynamic>>[];
+        final pendingLocal =
+            local.where((f) => f['pending_sync'] == true).toList();
+        final merged = [...remote, ...pendingLocal];
+        await _setLocalFunds(goalId, merged);
+        return merged;
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API fetchGoalFunds offline, using local: $e');
+    }
+    return local;
+  }
+
+  static Future<bool> deleteGoal(dynamic goalId) async {
+    if (_isServerGoalId(goalId)) {
+      try {
+        final response = await http
+            .delete(Uri.parse('$baseUrl/goals/$goalId'), headers: headers)
+            .timeout(const Duration(seconds: 3));
+        if (response.statusCode != 200 && response.statusCode != 404) {
+          return false;
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('API deleteGoal offline: $e');
+        return false;
+      }
+    }
+
+    final current = await _getLocalGoals();
+    current.removeWhere((g) => _goalIdString(g['id']) == _goalIdString(goalId));
+    await _setLocalGoals(current);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_goalFundsKey(goalId));
+    } catch (_) {}
+
+    return true;
   }
 
   // ================= INCOME SOURCES =================
