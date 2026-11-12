@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { getSummary } from '../controllers/summaryController';
+import { summaryController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
 
-router.get('/', protect, getSummary);
+router.get('/', protect, summaryController.getSummary);
 
 export default router;

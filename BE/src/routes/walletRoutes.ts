@@ -1,13 +1,5 @@
 import { Router } from 'express';
-import {
-  getWallets,
-  getWallet,
-  createWallet,
-  updateWallet,
-  deleteWallet,
-  adjustBalance,
-  setupInitialBalance,
-} from '../controllers/walletController';
+import { walletController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -15,12 +7,12 @@ const router = Router();
 // All wallet endpoints are authenticated
 router.use(protect);
 
-router.get('/', getWallets);
-router.post('/', createWallet);
-router.post('/setup-initial', setupInitialBalance);
-router.get('/:id', getWallet);
-router.put('/:id', updateWallet);
-router.delete('/:id', deleteWallet);
-router.post('/:id/adjust', adjustBalance);
+router.get('/', walletController.getWallets);
+router.post('/', walletController.createWallet);
+router.post('/setup-initial', walletController.setupInitialBalance);
+router.get('/:id', walletController.getWallet);
+router.put('/:id', walletController.updateWallet);
+router.delete('/:id', walletController.deleteWallet);
+router.post('/:id/adjust', walletController.adjustBalance);
 
 export default router;

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/constants';
-import * as userService from '../services/userService';
+import { userService } from '../services';
 
 export interface AuthRequest extends Request {
   user?: any;

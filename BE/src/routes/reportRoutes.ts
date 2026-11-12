@@ -1,17 +1,13 @@
 import { Router } from 'express';
-import {
-  getReports,
-  createReport,
-  deleteReport,
-} from '../controllers/reportController';
+import { reportController } from '../controllers';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
 
 router.use(protect);
 
-router.get('/', getReports);
-router.post('/', createReport);
-router.delete('/:id', deleteReport);
+router.get('/', reportController.getReports);
+router.post('/', reportController.createReport);
+router.delete('/:id', reportController.deleteReport);
 
 export default router;
