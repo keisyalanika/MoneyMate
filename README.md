@@ -9,7 +9,7 @@ MoneyMate adalah aplikasi pengelolaan keuangan modern yang dirancang untuk memba
 ```text
 MoneyMate/
 │
-├── FE/                         # Frontend Website Admin (React + TypeScript + Vite)
+├── FE/                         # Frontend Website Admin (Next.js 14 App Router + TypeScript)
 │   ├── src/
 │   │   ├── components/         # Reusable UI Components (StatCard, Sidebar, Modal)
 │   │   ├── pages/              # Admin Pages (Dashboard, Transactions, Budgets)
