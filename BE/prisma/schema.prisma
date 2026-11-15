@@ -82,6 +82,9 @@ model User {
   settings         UserSetting?
   auditLogs        AuditLog[]
   wallets          Wallet[]
+  aiConversations  AiConversation[]
+  aiActions        AiActionProposal[]
+  aiUsageLogs      AiUsageLog[]
 
   @@map("users")
 }
@@ -315,4 +318,67 @@ model AuditLog {
   @@index([adminId], map: "idx_audit_admin")
   @@index([action], map: "idx_audit_action")
   @@map("audit_logs")
+}
+
+// ============================================
+// AI CHAT
+// ============================================
+
+model AiConversation {
+  id        Int         @id @default(autoincrement())
+  userId    Int         @map("user_id")
+  title     String?     @db.VarChar(150)
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  @@index([userId], map: "idx_ai_conversations_user")
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             Int      @id @default(autoincrement())
+  conversationId Int      @map("conversation_id")
+  role           String   @db.VarChar(20)
+  content        String   @db.Text
+  toolName       String?  @map("tool_name") @db.VarChar(50)
+  toolPayload    Json?    @map("tool_payload")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId], map: "idx_ai_messages_conversation")
+  @@map("ai_messages")
+}
+
+model AiActionProposal {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  toolName  String   @map("tool_name") @db.VarChar(50)
+  payload   Json
+  status    String   @default("pending") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  expiresAt DateTime @map("expires_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_ai_actions_user")
+  @@map("ai_action_proposals")
+}
+
+model AiUsageLog {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @map("user_id")
+  model             String   @db.VarChar(50)
+  promptTokens      Int?     @map("prompt_tokens")
+  completionTokens  Int?     @map("completion_tokens")
+  latencyMs         Int?     @map("latency_ms")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_ai_usage_user")
+  @@map("ai_usage_logs")
 }

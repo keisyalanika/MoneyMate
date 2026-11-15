@@ -13,6 +13,7 @@ import userRoutes from './userRoutes';
 import incomeSourceRoutes from './incomeSourceRoutes';
 import insightRoutes from './insightRoutes';
 import walletRoutes from './walletRoutes';
+import aiRoutes from './aiRoutes';
 
 const apiRouter = Router();
 
@@ -30,5 +31,6 @@ apiRouter.use('/users', userRoutes);
 apiRouter.use('/income-sources', incomeSourceRoutes);
 apiRouter.use('/insights', insightRoutes);
 apiRouter.use('/wallets', walletRoutes);
+apiRouter.use('/ai', aiRoutes);
 
 export default apiRouter;

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/ai_chat_service.dart';
 import '../utils/theme.dart';
 import 'notification_screen.dart';
 import 'add_goal_screen.dart';
@@ -48,6 +49,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessageItem> _messages = [];
   bool _isTyping = false;
+  int? _aiConversationId;
 
   @override
   void initState() {
@@ -228,17 +230,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  void _sendMessage([String? presetText]) {
+  Future<void> _sendMessage([String? presetText]) async {
     final text = (presetText ?? _controller.text).trim();
     if (text.isEmpty) return;
 
     final now = DateFormat('HH:mm').format(DateTime.now());
     setState(() {
-      _messages.add(_ChatMessageItem(
-        text: text,
-        isUser: true,
-        time: now,
-      ));
+      _messages.add(_ChatMessageItem(text: text, isUser: true, time: now));
       _isTyping = true;
     });
 
@@ -247,16 +245,139 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
     _scrollToBottom();
 
-    // Delay natural simulasi asisten AI
-    Future.delayed(const Duration(milliseconds: 850), () {
-      if (!mounted) return;
+    final data = await AiChatService.sendMessage(
+      message: text,
+      conversationId: _aiConversationId,
+    );
+
+    if (!mounted) return;
+
+    // Fallback ke logika lokal bila backend/Gemini tidak tersedia.
+    if (data == null) {
       final responseItem = _generateBotResponse(text);
       setState(() {
         _isTyping = false;
         _messages.add(responseItem);
       });
       _scrollToBottom();
+      return;
+    }
+
+    _aiConversationId = data['conversation_id'] as int?;
+    final reply = (data['reply'] as String? ?? '').trim();
+    final proposal = data['proposal'] as Map<String, dynamic>?;
+
+    setState(() {
+      _isTyping = false;
+      _messages.add(_ChatMessageItem(
+        text: reply,
+        isUser: false,
+        time: now,
+        customWidget: proposal != null ? _buildAiProposalCard(proposal) : null,
+      ));
     });
+    _scrollToBottom();
+  }
+
+  Widget _buildAiProposalCard(Map<String, dynamic> proposal) {
+    final id = proposal['id'] as int?;
+    final tool = proposal['tool_name'] as String? ?? '';
+    final payload = (proposal['payload'] as Map?)?.cast<String, dynamic>() ?? {};
+
+    final labels = {
+      'propose_transaction': 'Usulan catat transaksi',
+      'propose_goal': 'Usulan buat goal',
+      'propose_goal_fund': 'Usulan setor goal',
+      'propose_budget': 'Usulan atur budget',
+    };
+
+    final amountValue = payload['amount'] ?? payload['target_amount'];
+    final amount = amountValue is num
+        ? NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amountValue)
+        : '-';
+
+    final details = <String>[
+      if (payload['title'] != null) '${payload['title']}',
+      if (payload['category_name'] != null) 'Kategori: ${payload['category_name']}',
+      if (payload['note'] != null && payload['note'].toString().isNotEmpty) 'Catatan: ${payload['note']}',
+      if (amount != '-') 'Nominal: $amount',
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.inputBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryBrown),
+              const SizedBox(width: 6),
+              Text(
+                labels[tool] ?? 'Usulan aksi',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          if (details.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              details.join(String.fromCharCode(10)),
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.5),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: id == null ? null : () => _resolveAiAction(id, confirm: false),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.inputBorder),
+                    foregroundColor: AppColors.textMuted,
+                  ),
+                  child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: id == null ? null : () => _resolveAiAction(id, confirm: true),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.primaryBrown),
+                  child: const Text('Konfirmasi', style: TextStyle(fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resolveAiAction(int proposalId, {required bool confirm}) async {
+    final ok = await AiChatService.resolveAction(proposalId, confirm: confirm);
+    if (!mounted) return;
+
+    final now = DateFormat('HH:mm').format(DateTime.now());
+    setState(() {
+      _messages.add(_ChatMessageItem(
+        text: ok
+            ? (confirm ? '✅ Aksi berhasil dikonfirmasi dan disimpan.' : 'Usulan dibatalkan.')
+            : 'Gagal memproses usulan. Coba lagi ya.',
+        isUser: false,
+        time: now,
+      ));
+    });
+    _scrollToBottom();
   }
 
   _ChatMessageItem _generateBotResponse(String query) {
