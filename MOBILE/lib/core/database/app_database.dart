@@ -137,6 +137,15 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+  Future<void> replaceAllTransactionsAtomic(List<LocalTransactionsCompanion> items) {
+    return transaction(() async {
+      await delete(localTransactions).go();
+      for (final item in items) {
+        await into(localTransactions).insertOnConflictUpdate(item);
+      }
+    });
+  }
+
   Future<void> syncCategoriesAtomic(List<LocalCategoriesCompanion> items) {
     return transaction(() async {
       for (final item in items) {

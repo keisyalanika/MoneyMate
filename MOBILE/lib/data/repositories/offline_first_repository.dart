@@ -122,8 +122,8 @@ class OfflineFirstRepository {
         );
       }).toList();
 
-      // Eksekusi Atomic Transaction multi-baris
-      await _db.syncTransactionsAtomic(companions);
+      // Eksekusi pembaruan data transaksi dari backend secara atomik
+      await _db.replaceAllTransactionsAtomic(companions);
       debugPrint('[OfflineFirstRepository] Berhasil sinkronisasi ${companions.length} transaksi ke Drift');
     } catch (e) {
       debugPrint('[OfflineFirstRepository] Gagal sinkron transaksi (Offline fallback aktif): $e');
@@ -289,9 +289,10 @@ class OfflineFirstRepository {
         'notes': notes ?? title,
       });
 
-      // 4. Setelah berhasil dikirim ke backend, refetch ringkasan saldo dari backend
-      // untuk memastikan sinkronisasi 100% dengan perhitungan backend
+      // 4. Setelah berhasil dikirim ke backend, sinkronkan transaksi dan ringkasan saldo dari backend
+      // untuk memastikan konsistensi mutlak 100% dan menghapus ID lokal sementara
       if (success) {
+        await syncTransactions();
         await syncSummary();
       }
       return success;
@@ -333,6 +334,7 @@ class OfflineFirstRepository {
       ),
     );
 
+    await syncTransactions();
     await syncSummary();
     return true;
   }
