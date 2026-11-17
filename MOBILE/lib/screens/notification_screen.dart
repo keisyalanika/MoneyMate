@@ -14,44 +14,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _notifications = [];
 
-  final List<Map<String, dynamic>> _fallbackNotifications = [
-    {
-      'id': 1,
-      'title': 'Peringatan Anggaran',
-      'body': 'Pengeluaran Kebutuhan Pokok sudah mencapai 80% dari limit bulanan.',
-      'time': '2 jam yang lalu',
-      'icon': Icons.warning_amber_rounded,
-      'color': AppColors.accentOrange,
-      'isRead': false,
-    },
-    {
-      'id': 2,
-      'title': 'Laporan Finansial Siap',
-      'body': 'Ringkasan pengeluaran & pemasukan minggu ini sudah siap dianalisis.',
-      'time': 'Kemarin, 19:30',
-      'icon': Icons.bar_chart_rounded,
-      'color': AppColors.primaryBrown,
-      'isRead': true,
-    },
-    {
-      'id': 3,
-      'title': 'Tips Hemat MoneyMate',
-      'body': 'Sisihkan minimal 20% penghasilan di awal bulan untuk dana darurat.',
-      'time': '3 hari yang lalu',
-      'icon': Icons.lightbulb_outline_rounded,
-      'color': AppColors.greenAccent,
-      'isRead': true,
-    },
-    {
-      'id': 4,
-      'title': 'Goal Tercapai! 🎯',
-      'body': 'Target menabung Anda telah mencapai 100%. Selamat!',
-      'time': '5 hari yang lalu',
-      'icon': Icons.flag_outlined,
-      'color': Colors.teal,
-      'isRead': true,
-    },
-  ];
+
 
   @override
   void initState() {
@@ -103,14 +66,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
           }).toList();
         });
       } else {
-        setState(() {
-          _notifications = List.from(_fallbackNotifications);
-        });
+        setState(() => _notifications = []);
       }
     } catch (_) {
-      setState(() {
-        _notifications = List.from(_fallbackNotifications);
-      });
+      if (mounted) {
+        setState(() => _notifications = []);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

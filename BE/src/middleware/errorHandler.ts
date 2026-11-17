@@ -39,6 +39,15 @@ export const errorHandler = (
     return AppBaseResponse.error(res, 'Format JSON pada request tidak valid.', 400, 'INVALID_JSON');
   }
 
+  if ((error as { name?: string })?.name === 'MulterError') {
+    const code = (error as { code?: string }).code ?? 'UPLOAD_ERROR';
+    const message =
+      code === 'LIMIT_FILE_SIZE'
+        ? 'Ukuran foto maksimal 5 MB.'
+        : 'Upload foto gagal. Periksa kembali file yang dipilih.';
+    return AppBaseResponse.error(res, message, 400, code);
+  }
+
   const appError: AppError | null = isAppError(error)
     ? error
     : mapPrismaError(error);

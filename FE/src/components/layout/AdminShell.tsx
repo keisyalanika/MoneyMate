@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import { SessionSync } from "@/components/providers/SessionSync";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
 export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh w-full overflow-hidden bg-canvas">
+      <SessionSync />
       <Sidebar />
       <div className="flex h-full min-w-0 flex-1 flex-col">
         <Topbar />

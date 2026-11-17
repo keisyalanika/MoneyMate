@@ -1,32 +1,68 @@
-import { categories as seedCategories } from "@/lib/mock";
+import { apiRequest } from "@/lib/api";
 import type { AdminCategory, CategoryType } from "@/types";
 
-const delay = (ms = 240) => new Promise((resolve) => setTimeout(resolve, ms));
+interface BackendCategory {
+  id: number;
+  name: string;
+  type: "income" | "expense";
+  icon?: string;
+  usage?: number;
+}
 
-let data: AdminCategory[] = [...seedCategories];
+function toType(type: string): CategoryType {
+  return type.toLowerCase() === "income" ? "Pemasukan" : "Pengeluaran";
+}
+
+function toBackendType(type: CategoryType): "income" | "expense" {
+  return type === "Pemasukan" ? "income" : "expense";
+}
+
+function toAdminCategory(category: BackendCategory): AdminCategory {
+  return {
+    id: category.id,
+    name: category.name,
+    icon: category.icon || "tag",
+    type: toType(category.type),
+    usage: Number(category.usage ?? 0),
+  };
+}
 
 export const categoryService = {
   async list(type?: string): Promise<AdminCategory[]> {
-    await delay();
-    if (!type || type === "semua") return data;
-    return data.filter((item) => item.type === type);
+    const categories = await apiRequest<BackendCategory[]>("categories");
+    const mapped = categories.map(toAdminCategory);
+    if (!type || type === "semua") return mapped;
+    return mapped.filter((item) => item.type === type);
   },
 
   async create(input: { name: string; type: CategoryType; icon?: string }): Promise<AdminCategory> {
-    await delay();
-    const created: AdminCategory = {
-      id: Date.now(),
-      name: input.name,
-      type: input.type,
-      icon: input.icon || "tag",
-      usage: 0,
-    };
-    data = [created, ...data];
-    return created;
+    const created = await apiRequest<BackendCategory>("categories", {
+      method: "POST",
+      body: JSON.stringify({
+        name: input.name,
+        type: toBackendType(input.type),
+        icon: input.icon || "tag",
+      }),
+    });
+    return toAdminCategory(created);
+  },
+
+  async update(
+    id: number,
+    input: { name: string; type: CategoryType; icon?: string }
+  ): Promise<AdminCategory> {
+    const updated = await apiRequest<BackendCategory>(`categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        name: input.name,
+        type: toBackendType(input.type),
+        icon: input.icon || "tag",
+      }),
+    });
+    return toAdminCategory(updated);
   },
 
   async remove(id: number): Promise<void> {
-    await delay(200);
-    data = data.filter((item) => item.id !== id);
+    await apiRequest(`categories/${id}`, { method: "DELETE" });
   },
 };

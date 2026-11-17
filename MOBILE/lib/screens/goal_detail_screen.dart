@@ -114,6 +114,8 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
         return Icons.savings;
       case 'diamond':
         return Icons.diamond;
+      case 'education':
+        return Icons.school;
       default:
         return Icons.flag;
     }
@@ -133,6 +135,8 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
         return 'Dana Darurat';
       case 'diamond':
         return 'Impian Lainnya';
+      case 'education':
+        return 'Pendidikan & Kursus';
       default:
         return 'Target Finansial';
     }

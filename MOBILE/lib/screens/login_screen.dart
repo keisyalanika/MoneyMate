@@ -319,35 +319,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                         fontSize: 15)),
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        const Row(
-                          children: [
-                            Expanded(
-                                child: Divider(color: AppColors.inputBorder)),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('atau masuk dengan',
-                                  style: TextStyle(
-                                      fontSize: 11, color: AppColors.textMuted)),
-                            ),
-                            Expanded(
-                                child: Divider(color: AppColors.inputBorder)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: _buildSocialButton(
-                            leading: Image.asset(
-                              'assets/google_logo.png',
-                              width: 20,
-                              height: 20,
-                              fit: BoxFit.contain,
-                            ),
-                            label: 'Google',
-                          ),
-                        ),
-                        const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -389,27 +360,5 @@ class _LoginScreenState extends State<LoginScreen> {
               color: AppColors.textDark)),
     );
   }
-
-  Widget _buildSocialButton({required Widget leading, required String label}) {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.inputBorder),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          leading,
-          const SizedBox(width: 8),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark)),
-        ],
-      ),
-    );
-  }
 }
+

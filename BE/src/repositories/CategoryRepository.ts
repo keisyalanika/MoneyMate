@@ -6,11 +6,23 @@ import { toCategory } from './mappers/CategoryMapper';
 
 export class CategoryRepository extends BaseRepository implements ICategoryRepository {
   async findAll(type?: TransactionType): Promise<Category[]> {
-    const rows = await this.db.category.findMany({
-      where: type ? { type } : undefined,
-      orderBy: { name: 'asc' },
-    });
-    return rows.map(toCategory);
+    const [rows, usageRows] = await Promise.all([
+      this.db.category.findMany({
+        where: type ? { type } : undefined,
+        orderBy: { name: 'asc' },
+      }),
+      this.db.transaction.groupBy({
+        by: ['categoryId'],
+        where: { categoryId: { not: undefined } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const usageMap = new Map(
+      usageRows.map((row) => [row.categoryId, row._count._all])
+    );
+
+    return rows.map((row) => toCategory(row, usageMap.get(row.id) ?? 0));
   }
 
   async findById(id: number): Promise<Category | null> {

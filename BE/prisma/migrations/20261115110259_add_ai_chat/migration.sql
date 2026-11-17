@@ -32,7 +32,7 @@ CREATE TABLE `ai_action_proposals` (
     `payload` JSON NOT NULL,
     `status` VARCHAR(20) NOT NULL DEFAULT 'pending',
     `created_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
-    `expires_at` TIMESTAMP(0) NOT NULL,
+    `expires_at` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
     INDEX `idx_ai_actions_user`(`user_id`),
     PRIMARY KEY (`id`)

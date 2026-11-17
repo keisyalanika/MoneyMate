@@ -526,22 +526,6 @@ class _DataManagementScreenState extends State<DataManagementScreen>
 
           const SizedBox(height: 16),
           _buildActionButton(
-            'Simpan Data Contoh Preferences',
-            Icons.save_outlined,
-            AppColors.primary,
-            () async {
-              await prefs.saveUserName('Keisya Lanika');
-              await prefs.saveUserEmail('keisya@moneymate.com');
-              await prefs.saveUserRole('user');
-              await prefs.saveCurrency('IDR');
-              await prefs.saveLanguage('id');
-              await prefs.setNotificationEnabled(true);
-              await prefs.setOnboardingComplete(true);
-              setState(() {});
-            },
-          ),
-          const SizedBox(height: 8),
-          _buildActionButton(
             'Hapus Semua Preferences',
             Icons.delete_outline,
             AppColors.errorText,
@@ -580,18 +564,6 @@ class _DataManagementScreenState extends State<DataManagementScreen>
           _buildSecureItem('Storage', 'Android Keystore / iOS Keychain', Icons.security_outlined, false),
 
           const SizedBox(height: 16),
-          _buildActionButton(
-            'Simpan Token Contoh',
-            Icons.vpn_key_outlined,
-            AppColors.primary,
-            () async {
-              final secure = SecureStorageService.getInstance();
-              await secure.saveAccessToken('token_demo_${DateTime.now().millisecondsSinceEpoch}');
-              await secure.setBiometricEnabled(true);
-              _loadData();
-            },
-          ),
-          const SizedBox(height: 8),
           _buildActionButton(
             'Hapus Semua Data Sensitif',
             Icons.delete_outline,

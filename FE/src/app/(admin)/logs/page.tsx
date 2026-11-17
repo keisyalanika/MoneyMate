@@ -14,11 +14,22 @@ import {
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/tables/DataTable";
 import { useLogs } from "@/hooks/queries/useLogs";
-import { auditLogs } from "@/lib/mock";
 import { useTableStore } from "@/stores/tableStore";
 import type { AuditLog } from "@/types";
 
-const actions = Array.from(new Set(auditLogs.map((log) => log.action)));
+const actions = [
+  "ACTIVATE_USER",
+  "DEACTIVATE_USER",
+  "DELETE_USER",
+  "CREATE_USER",
+  "CREATE_CATEGORY",
+  "UPDATE_CATEGORY",
+  "DELETE_CATEGORY",
+  "SEND_NOTIFICATION",
+  "DELETE_NOTIFICATION",
+  "UPDATE_SETTINGS",
+  "LOGIN",
+];
 
 const columns: ColumnDef<AuditLog, any>[] = [
   {
@@ -62,6 +73,21 @@ export default function LogsPage() {
 
   const { data = [], isLoading } = useLogs({ search, action });
 
+  const exportCsv = () => {
+    const header = ["Waktu", "Admin", "Aksi", "Target", "Deskripsi"];
+    const rows = data.map((log) => [log.time, log.admin, log.action, log.target, log.description]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+      .join("\\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -69,6 +95,8 @@ export default function LogsPage() {
         subtitle="Riwayat aktivitas administrator di portal"
         action={
           <Button
+            type="button"
+            onClick={exportCsv}
             variant="outline"
             className="h-10 gap-1.5 rounded-[10px] border-line bg-surface px-3.5 text-xs font-semibold text-brand"
           >

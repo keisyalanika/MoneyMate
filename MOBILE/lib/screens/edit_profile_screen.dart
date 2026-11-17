@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_provider.dart';
 import '../utils/theme.dart';
+import '../widgets/user_avatar.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -18,10 +20,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _nicknameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _birthDateController;
-  late final TextEditingController _bioController;
 
   bool _isLoading = false;
+  bool _isUploadingAvatar = false;
 
   @override
   void initState() {
@@ -30,9 +31,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: auth.userName != 'Guest' ? auth.userName : '');
     _nicknameController = TextEditingController(text: auth.userNickname != 'Guest' && auth.userNickname != 'Pengguna' ? auth.userNickname : '');
     _emailController = TextEditingController(text: auth.userEmail);
-    _phoneController = TextEditingController(text: auth.userPhone.isNotEmpty ? auth.userPhone : '081234567890');
-    _birthDateController = TextEditingController(text: '15 Agustus 2003');
-    _bioController = TextEditingController(text: 'Pengguna aktif MoneyMate');
+    _phoneController = TextEditingController(text: auth.userPhone);
   }
 
   @override
@@ -41,12 +40,81 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nicknameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _birthDateController.dispose();
-    _bioController.dispose();
     super.dispose();
   }
 
-  // Fungsi simpan perubahan (placeholder untuk integrasi API backend)
+  Future<void> _showAvatarOptions() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primaryBrown),
+              title: const Text('Ambil dari Kamera'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined, color: AppColors.primaryBrown),
+              title: const Text('Pilih dari Galeri'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.close_rounded, color: AppColors.textMuted),
+              title: const Text('Batal'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null || !mounted) return;
+
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 80,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _isUploadingAvatar = true);
+    final result = await Provider.of<AuthProvider>(context, listen: false)
+        .uploadAvatar(picked.path);
+    if (!mounted) return;
+    setState(() => _isUploadingAvatar = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result['message']?.toString() ??
+              (result['success'] == true
+                  ? 'Foto profil berhasil diperbarui.'
+                  : 'Gagal mengunggah foto profil.'),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // Simpan perubahan profil ke backend.
   Future<void> _handleSaveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -114,44 +182,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 // Avatar dengan tombol ganti foto
                 Center(
                   child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryBrown,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryBrown.withValues(alpha: 0.2),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            Provider.of<AuthProvider>(context).userInitial,
-                            style: const TextStyle(
-                              fontSize: 38,
+                      UserAvatar(
+                        size: 96,
+                        avatarUrl: Provider.of<AuthProvider>(context).avatarUrl,
+                        initial: Provider.of<AuthProvider>(context).userInitial,
+                      ),
+                      if (_isUploadingAvatar)
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
                               color: Colors.white,
-                              fontFamily: 'serif',
                             ),
                           ),
                         ),
-                      ),
                       Positioned(
                         bottom: 0,
                         right: 0,
                         child: GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Fitur ubah foto akan terhubung ke backend storage.'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
+                          onTap: _isUploadingAvatar ? null : _showAvatarOptions,
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
@@ -205,8 +262,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         hint: 'Masukkan alamat email',
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (value) =>
-                            value == null || !value.contains('@') ? 'Email tidak valid' : null,
+                        readOnly: true,
                       ),
                       const SizedBox(height: 16),
 
@@ -219,36 +275,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      _buildInputLabel('Tanggal Lahir'),
-                      _buildTextField(
-                        controller: _birthDateController,
-                        hint: 'DD MMMM YYYY',
-                        icon: Icons.calendar_today_outlined,
-                        readOnly: true,
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime(2003, 8, 15),
-                            firstDate: DateTime(1950),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) {
-                            setState(() {
-                              _birthDateController.text =
-                                  '${picked.day} ${_getMonthName(picked.month)} ${picked.year}';
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      _buildInputLabel('Bio / Catatan'),
-                      _buildTextField(
-                        controller: _bioController,
-                        hint: 'Catatan singkat tentangmu',
-                        icon: Icons.edit_note_rounded,
-                        maxLines: 2,
-                      ),
                     ],
                   ),
                 ),
@@ -349,11 +375,4 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  String _getMonthName(int month) {
-    const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    return months[month - 1];
-  }
 }

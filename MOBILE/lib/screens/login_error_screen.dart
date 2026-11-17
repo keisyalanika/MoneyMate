@@ -386,62 +386,7 @@ class _LoginErrorScreenState extends State<LoginErrorScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-
-                    // Divider Atau
-                    Row(
-                      children: const [
-                        Expanded(
-                          child: Divider(color: AppColors.inputBorder),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'atau masuk dengan',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(color: AppColors.inputBorder),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Social Media Login
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          side: const BorderSide(
-                            color: AppColors.inputBorder,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () {},
-                        icon: Image.asset(
-                          'assets/google_logo.png',
-                          width: 20,
-                          height: 20,
-                          fit: BoxFit.contain,
-                        ),
-                        label: const Text(
-                          'Google',
-                          style: TextStyle(
-                            color: AppColors.textDark,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
                     // Daftar Sekarang
                     Row(

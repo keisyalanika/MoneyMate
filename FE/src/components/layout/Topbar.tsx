@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, Menu, Search } from "lucide-react";
+import Link from "next/link";
+import { Bell, Menu } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useUIStore } from "@/stores/uiStore";
 
@@ -42,22 +43,26 @@ export function Topbar() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-        <div className="hidden h-10 w-[220px] items-center gap-2 rounded-[10px] border border-line bg-field px-3 xl:flex">
-          <Search className="size-[15px] text-subtle" />
-          <span className="text-xs text-subtle">Cari...</span>
-        </div>
-
-        <button
-          type="button"
+        <Link
+          href="/notifikasi"
           className="flex size-9 items-center justify-center rounded-[10px] bg-field text-brand sm:size-10"
           aria-label="Notifikasi"
         >
           <Bell className="size-4" />
-        </button>
+        </Link>
 
         <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-full bg-[#E6D0C7] text-xs font-bold text-brand sm:size-9">
-            {initial}
+          <span
+            className="flex size-8 items-center justify-center rounded-full bg-[#E6D0C7] bg-cover bg-center text-xs font-bold text-brand sm:size-9"
+            style={
+              user?.avatar_url
+                ? {
+                    backgroundImage: `url(${process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5000"}${user.avatar_url})`,
+                  }
+                : undefined
+            }
+          >
+            {!user?.avatar_url && initial}
           </span>
           <div className="hidden flex-col sm:flex">
             <span className="max-w-[140px] truncate text-xs font-semibold text-ink">{name}</span>

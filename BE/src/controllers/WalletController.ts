@@ -16,7 +16,7 @@ export class WalletController {
       await this.wallets.createWallet({
         user_id: req.user!.id,
         name: 'Dompet Utama',
-        balance: 2450000,
+        balance: 0,
         is_default: true,
       });
       data = await this.wallets.getWallets(req.user!.id);

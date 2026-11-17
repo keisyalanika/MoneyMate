@@ -1,42 +1,90 @@
-import { users as seedUsers } from "@/lib/mock";
+import { apiRequest } from "@/lib/api";
 import type { AdminUser, UserStatus } from "@/types";
 
-const delay = (ms = 260) => new Promise((resolve) => setTimeout(resolve, ms));
-
-let data: AdminUser[] = [...seedUsers];
+interface BackendUser {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  saldo?: number;
+  status?: string;
+  is_active?: number | boolean;
+  userId?: string;
+  created_at?: string;
+}
 
 export interface UserQuery {
   search?: string;
   status?: string;
 }
 
+function toAdminUser(user: BackendUser): AdminUser {
+  const active =
+    user.status === "Aktif" ||
+    user.is_active === true ||
+    user.is_active === 1;
+  const joinedAt = user.created_at
+    ? new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(user.created_at))
+    : "-";
+
+  return {
+    id: user.id,
+    code: user.userId ?? `USR-${String(user.id).padStart(3, "0")}`,
+    name: user.name,
+    email: user.email,
+    phone: user.phone || "-",
+    joinedAt,
+    status: active ? "Aktif" : "Nonaktif",
+  };
+}
+
 export const userService = {
   async list(query: UserQuery = {}): Promise<AdminUser[]> {
-    await delay();
+    const users = await apiRequest<BackendUser[]>("admin/users");
     const term = (query.search ?? "").trim().toLowerCase();
-    return data.filter((user) => {
-      const matchTerm =
-        !term ||
-        user.name.toLowerCase().includes(term) ||
-        user.email.toLowerCase().includes(term);
-      const matchStatus = !query.status || query.status === "all" || user.status === query.status;
-      return matchTerm && matchStatus;
-    });
+
+    return users
+      .map(toAdminUser)
+      .filter((user) => {
+        const matchTerm =
+          !term ||
+          user.name.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term);
+        const matchStatus =
+          !query.status || query.status === "all" || user.status === query.status;
+        return matchTerm && matchStatus;
+      });
   },
 
   async create(input: {
     name: string;
     email: string;
     phone?: string;
+    password: string;
     status: UserStatus;
   }): Promise<AdminUser> {
-    await delay();
-    const created: AdminUser = {
-      id: Date.now(),
-      code: `USR-${String(data.length + 1).padStart(3, "0")}`,
-      name: input.name,
-      email: input.email,
-      phone: input.phone || "-",
+    const created = await apiRequest<BackendUser>("users", {
+      method: "POST",
+      body: JSON.stringify({
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        password: input.password,
+        is_active: input.status === "Aktif",
+      }),
+    });
+
+    return {
+      id: created.id,
+      code: `USR-${String(created.id).padStart(3, "0")}`,
+      name: created.name,
+      email: created.email,
+      phone: created.phone || input.phone || "-",
       joinedAt: new Intl.DateTimeFormat("id-ID", {
         day: "2-digit",
         month: "short",
@@ -44,20 +92,17 @@ export const userService = {
       }).format(new Date()),
       status: input.status,
     };
-    data = [created, ...data];
-    return created;
   },
 
-  async setStatus(id: number, status: UserStatus): Promise<AdminUser> {
-    await delay(200);
-    data = data.map((user) => (user.id === id ? { ...user, status } : user));
-    const updated = data.find((user) => user.id === id);
-    if (!updated) throw new Error("Pengguna tidak ditemukan");
-    return updated;
+  async setStatus(id: number, status: UserStatus): Promise<{ id: number; status: UserStatus }> {
+    await apiRequest(`admin/users/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ is_active: status === "Aktif" }),
+    });
+    return { id, status };
   },
 
   async remove(id: number): Promise<void> {
-    await delay(200);
-    data = data.filter((user) => user.id !== id);
+    await apiRequest(`admin/users/${id}`, { method: "DELETE" });
   },
 };

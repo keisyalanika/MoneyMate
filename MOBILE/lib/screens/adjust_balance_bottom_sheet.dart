@@ -9,7 +9,7 @@ class AdjustBalanceBottomSheet extends StatefulWidget {
 
   const AdjustBalanceBottomSheet({
     super.key,
-    this.currentBalance = 2450000,
+    this.currentBalance = 0,
     this.initialIsAdd = true,
   });
 

@@ -85,6 +85,7 @@ model User {
   aiConversations  AiConversation[]
   aiActions        AiActionProposal[]
   aiUsageLogs      AiUsageLog[]
+  notificationCampaigns NotificationCampaign[]
 
   @@map("users")
 }
@@ -248,17 +249,36 @@ model AiInsight {
 // ============================================
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  title     String   @db.VarChar(100)
-  message   String?  @db.Text
-  isRead    Boolean? @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  campaignId Int?     @map("campaign_id")
+  title      String   @db.VarChar(100)
+  message    String?  @db.Text
+  isRead     Boolean? @default(false) @map("is_read")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "idx_notifications_user")
+  @@index([campaignId], map: "idx_notifications_campaign")
   @@map("notifications")
+}
+
+model NotificationCampaign {
+  id             Int      @id @default(autoincrement())
+  adminId        Int      @map("admin_id")
+  title          String   @db.VarChar(100)
+  message        String?  @db.Text
+  type           String   @default("Info") @db.VarChar(20)
+  audience       String   @default("Semua pengguna") @db.VarChar(50)
+  recipientCount Int      @default(0) @map("recipient_count")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  admin         User           @relation(fields: [adminId], references: [id])
+  notifications Notification[]
+
+  @@map("notification_campaigns")
 }
 
 // ============================================
@@ -360,7 +380,7 @@ model AiActionProposal {
   payload   Json
   status    String   @default("pending") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  expiresAt DateTime @map("expires_at") @db.Timestamp(0)
+  expiresAt DateTime @map("expires_at") @db.Timestamp(0) @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

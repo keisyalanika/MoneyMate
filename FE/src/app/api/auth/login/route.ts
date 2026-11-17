@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const apiBase = process.env.API_BASE_URL ?? "http://localhost:5000/api";
 
   let token: string | null = null;
-  let user: { id: number; name: string; email: string; role: string } | null = null;
+  let user: { id: number; name: string; email: string; role: string; avatar_url: string } | null = null;
 
   try {
     const res = await fetch(`${apiBase}/auth/login`, {
@@ -49,18 +49,13 @@ export async function POST(request: Request) {
       name: String(data?.name ?? "Admin"),
       email: String(data?.email ?? email),
       role: String(data?.role ?? ""),
+      avatar_url: String(data?.avatar_url ?? ""),
     };
   } catch {
-    const useMock = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
-    if (useMock && email === "admin@moneymate.com" && password === "admin123") {
-      token = "mock-admin-token";
-      user = { id: 1, name: "Admin MoneyMate", email, role: "admin" };
-    } else {
-      return NextResponse.json(
-        { message: "Tidak dapat terhubung ke server. Coba lagi." },
-        { status: 503 }
-      );
-    }
+    return NextResponse.json(
+      { message: "Tidak dapat terhubung ke server. Coba lagi." },
+      { status: 503 }
+    );
   }
 
   if (!token || !user) {

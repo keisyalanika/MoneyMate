@@ -4,6 +4,7 @@ import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
 import 'notification_screen.dart';
 import '../utils/theme.dart';
+import '../widgets/user_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -66,7 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final auth = Provider.of<AuthProvider>(context);
     final userName = _localUserName ?? (auth.userName.isNotEmpty && auth.userName != 'Guest' ? auth.userName : 'Pengguna MoneyMate');
-    final userEmail = _localUserEmail ?? (auth.userEmail.isNotEmpty ? auth.userEmail : (auth.token != null ? '${userName.toLowerCase().replaceAll(' ', '.')}@email.com' : 'Belum masuk'));
+    final userEmail = _localUserEmail ?? (auth.userEmail.isNotEmpty ? auth.userEmail : 'Belum diatur');
     final userNickname = auth.userNickname;
     final initialLetter = auth.userInitial;
 
@@ -90,30 +91,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 32),
 
               // 2. Avatar
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBrown,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryBrown.withValues(alpha: 0.2),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    initialLetter,
-                    style: const TextStyle(
-                      fontSize: 40,
-                      color: Colors.white,
-                      fontFamily: 'serif',
-                    ),
-                  ),
-                ),
+              UserAvatar(
+                size: 100,
+                avatarUrl: auth.avatarUrl,
+                initial: initialLetter,
               ),
               const SizedBox(height: 16),
 

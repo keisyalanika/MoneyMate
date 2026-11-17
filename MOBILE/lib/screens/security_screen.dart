@@ -42,8 +42,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   void _showChangePasswordModal() {
+    final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
+    bool obscureCurrent = true;
     bool obscureNew = true;
     bool obscureConfirm = true;
 
@@ -102,6 +104,37 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
                 const SizedBox(height: 20),
+
+                // Kata Sandi Saat Ini
+                const Text(
+                  'Kata Sandi Saat Ini',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: obscureCurrent,
+                  decoration: InputDecoration(
+                    hintText: 'Masukkan kata sandi saat ini',
+                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.inputBg,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.inputBorder),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
+                        color: AppColors.textMuted,
+                      ),
+                      onPressed: () => setModalState(() => obscureCurrent = !obscureCurrent),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
                 // Kata Sandi Baru
                 const Text(
@@ -175,8 +208,16 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () async {
+                      final currentPass = currentPasswordController.text.trim();
                       final newPass = newPasswordController.text.trim();
                       final confirmPass = confirmPasswordController.text.trim();
+
+                      if (currentPass.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Masukkan kata sandi saat ini.')),
+                        );
+                        return;
+                      }
 
                       if (newPass.length < 6) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -193,9 +234,21 @@ class _SecurityScreenState extends State<SecurityScreen> {
                       }
 
                       final auth = Provider.of<AuthProvider>(context, listen: false);
-                      await auth.updatePassword(newPass);
+                      final result = await auth.updatePassword(
+                        newPass,
+                        currentPassword: currentPass,
+                      );
 
                       if (!mounted) return;
+                      if (result['success'] != true) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result['message']?.toString() ?? 'Gagal mengubah kata sandi.'),
+                          ),
+                        );
+                        return;
+                      }
+
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -428,7 +481,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     _buildTileItem(
                       icon: Icons.phone_android_rounded,
                       title: 'Perangkat Ini (Mobile)',
-                      subtitle: 'Sesi aktif saat ini • Jakarta, Indonesia',
+                      subtitle: 'Sesi aktif saat ini di perangkat ini',
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
@@ -437,7 +490,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         ),
                         child: const Text('Aktif', style: TextStyle(color: Color(0xFF27AE60), fontSize: 11, fontWeight: FontWeight.bold)),
                       ),
-                      onTap: () {},
                     ),
                     const Divider(height: 1, indent: 56, color: Color(0xFFF0E5D8)),
                     _buildTileItem(
@@ -512,7 +564,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     Color? titleColor,
     required String subtitle,
     required Widget trailing,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
   }) {
     return InkWell(
       onTap: onTap,

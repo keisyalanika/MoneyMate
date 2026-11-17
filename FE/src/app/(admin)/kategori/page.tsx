@@ -28,7 +28,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTable } from "@/components/tables/DataTable";
-import { useCategories, useCreateCategory, useDeleteCategory } from "@/hooks/queries/useCategories";
+import { useCategories, useCreateCategory, useDeleteCategory, useUpdateCategory } from "@/hooks/queries/useCategories";
 import { categorySchema, type CategoryInput } from "@/lib/validators";
 import { useTableStore } from "@/stores/tableStore";
 import type { AdminCategory } from "@/types";
@@ -89,10 +89,19 @@ const columns: ColumnDef<AdminCategory, any>[] = [
     header: "Aksi",
     enableSorting: false,
     cell: ({ row, table }) => {
-      const meta = table.options.meta as { onDelete: (item: AdminCategory) => void };
+      const meta = table.options.meta as {
+        onEdit: (item: AdminCategory) => void;
+        onDelete: (item: AdminCategory) => void;
+      };
       return (
         <span className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" aria-label="Ubah kategori" className="text-subtle hover:text-brand">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Ubah kategori"
+            className="text-subtle hover:text-brand"
+            onPress={() => meta.onEdit(row.original)}
+          >
             <Pencil />
           </Button>
           <Button
@@ -115,11 +124,18 @@ export default function KategoriPage() {
   const setFilter = useTableStore((state) => state.setFilter);
 
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminCategory | null>(null);
   const { data = [], isLoading } = useCategories(type);
   const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
 
   const form = useForm<CategoryInput>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: { name: "", type: "Pengeluaran", icon: "" },
+  });
+
+  const editForm = useForm<CategoryInput>({
     resolver: zodResolver(categorySchema),
     defaultValues: { name: "", type: "Pengeluaran", icon: "" },
   });
@@ -130,11 +146,22 @@ export default function KategoriPage() {
     setOpen(false);
   });
 
+  const openEdit = (item: AdminCategory) => {
+    setEditing(item);
+    editForm.reset({ name: item.name, type: item.type, icon: item.icon });
+  };
+
+  const onEditSubmit = editForm.handleSubmit(async (values) => {
+    if (!editing) return;
+    await updateCategory.mutateAsync({ id: editing.id, input: values });
+    setEditing(null);
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Kelola Kategori"
-        subtitle="14 kategori aktif digunakan pengguna"
+        subtitle={`${data.length} kategori ditampilkan${type !== "semua" ? ` · ${type}` : ""}`}
         action={
           <DialogTrigger isOpen={open} onOpenChange={setOpen}>
             <Button className="h-10 gap-1.5 rounded-[10px] bg-brand px-3.5 text-xs font-bold text-[#FFF7F2] hover:bg-brand/90">
@@ -225,10 +252,75 @@ export default function KategoriPage() {
             isLoading={isLoading}
             searchPlaceholder="Cari kategori..."
             emptyMessage="Belum ada kategori pada filter ini."
-            meta={{ onDelete: (item: AdminCategory) => deleteCategory.mutate(item.id) }}
+            meta={{
+              onEdit: openEdit,
+              onDelete: (item: AdminCategory) => deleteCategory.mutate(item.id),
+            }}
           />
         </div>
       </Card>
+
+      <Dialog
+        isOpen={editing !== null}
+        onOpenChange={(value) => {
+          if (!value) setEditing(null);
+        }}
+        className="rounded-2xl p-0 sm:max-w-md"
+      >
+        <form onSubmit={onEditSubmit} className="flex flex-col gap-4 p-5">
+          <DialogHeader>
+            <DialogTitle className="text-base font-extrabold text-ink">
+              Ubah Kategori
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-[11px] font-semibold text-ink">Nama kategori</Label>
+            <Input {...editForm.register("name")} aria-label="Nama kategori" className="h-10 rounded-[10px] border-line bg-field text-xs" />
+            {editForm.formState.errors.name && (
+              <span className="text-[10px] text-bad">{editForm.formState.errors.name.message}</span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-[11px] font-semibold text-ink">Tipe</Label>
+            <Controller
+              control={editForm.control}
+              name="type"
+              render={({ field }) => (
+                <Select selectedKey={field.value} onSelectionChange={(key) => field.onChange(String(key))} aria-label="Tipe kategori">
+                  <SelectTrigger className="h-10 rounded-[10px] border-line bg-field px-3 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem id="Pemasukan">Pemasukan</SelectItem>
+                    <SelectItem id="Pengeluaran">Pengeluaran</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-[11px] font-semibold text-ink">Icon (opsional)</Label>
+            <Input {...editForm.register("icon")} aria-label="Nama ikon kategori" className="h-10 rounded-[10px] border-line bg-field text-xs" />
+          </div>
+
+          <DialogFooter className="mx-0 mb-0 gap-2 border-0 bg-transparent p-0">
+            <Button variant="ghost" type="button" className="h-10 rounded-[10px] text-xs text-subtle" onPress={() => setEditing(null)}>
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              isDisabled={updateCategory.isPending}
+              className="h-10 gap-1.5 rounded-[10px] bg-brand px-4 text-xs font-bold text-[#FFF7F2] hover:bg-brand/90"
+            >
+              <Pencil className="size-3.5" />
+              {updateCategory.isPending ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
     </div>
   );
 }

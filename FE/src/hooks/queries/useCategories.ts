@@ -33,6 +33,26 @@ export function useCreateCategory() {
   });
 }
 
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  const toast = useToastStore((state) => state.push);
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: number;
+      input: { name: string; type: CategoryType; icon?: string };
+    }) => categoryService.update(id, input),
+    onSuccess: (category) => {
+      queryClient.invalidateQueries({ queryKey: categoryKeys.all });
+      toast(`Kategori ${category.name} diperbarui`, "success");
+    },
+    onError: (error: Error) => toast(error.message, "error"),
+  });
+}
+
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
   const toast = useToastStore((state) => state.push);

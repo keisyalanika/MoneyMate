@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/transaction_model.dart';
+import '../services/api_service.dart';
+import '../utils/budget_icons.dart';
+import '../utils/currency_formatter.dart';
 
 class DetailAnggaranScreen extends StatefulWidget {
   final Map<String, dynamic> category;
@@ -19,11 +23,59 @@ class DetailAnggaranScreen extends StatefulWidget {
 
 class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
   late Map<String, dynamic> _category;
+  List<TransactionModel> _transactions = [];
+  bool _isLoadingTransactions = true;
 
   @override
   void initState() {
     super.initState();
     _category = Map<String, dynamic>.from(widget.category);
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    final categoryId = _category['categoryId']?.toString();
+    if (categoryId == null || categoryId.isEmpty) {
+      setState(() => _isLoadingTransactions = false);
+      return;
+    }
+
+    final now = DateTime.now();
+    final month = _toInt(_category['month']) > 0 ? _toInt(_category['month']) : now.month;
+    final year = _toInt(_category['year']) > 0 ? _toInt(_category['year']) : now.year;
+
+    final items = await ApiService.fetchCategoryTransactions(
+      categoryId: categoryId,
+      month: month,
+      year: year,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _transactions = items;
+      _isLoadingTransactions = false;
+    });
+  }
+
+  String get _periodLabel {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final now = DateTime.now();
+    final month = _toInt(_category['month']) > 0 ? _toInt(_category['month']) : now.month;
+    final year = _toInt(_category['year']) > 0 ? _toInt(_category['year']) : now.year;
+    return '${months[month - 1]} $year';
+  }
+
+  String _formatTransactionDate(String raw) {
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return raw;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    return '${parsed.day} ${months[parsed.month - 1]} ${parsed.year}';
   }
 
   int _toInt(dynamic value) {
@@ -40,6 +92,12 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
   }
 
   void _showDeleteModal() {
+    if (_category['id'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kategori ini belum memiliki budget untuk dihapus.')),
+      );
+      return;
+    }
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -111,9 +169,10 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          _category['iconText']?.toString() ?? '🍔',
-                          style: const TextStyle(fontSize: 20),
+                        child: Icon(
+                          resolveBudgetIcon(_category),
+                          color: const Color(0xFF592314),
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -205,9 +264,18 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
+                        final ok = await ApiService.deleteBudget(_category['id']?.toString() ?? '');
+                        if (!ctx.mounted) return;
+                        if (!ok) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(content: Text('Gagal menghapus anggaran. Periksa koneksi ke server.')),
+                          );
+                          return;
+                        }
                         widget.onDelete(_category['id']?.toString() ?? '');
                         Navigator.pop(ctx); // Close sheet
+                        if (!mounted) return;
                         Navigator.pop(context); // Back to budget list
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -248,9 +316,13 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
   }
 
   void _showEditModal() {
-    int targetAmount = _toInt(_category['limit']) < 1800000 ? 1800000 : _toInt(_category['limit']);
+    final int currentLimit = _toInt(_category['limit']);
+    final targetController = TextEditingController(
+      text: currentLimit > 0 ? CurrencyFormatter.formatDots(currentLimit) : '',
+    );
     double alertPercent = 85;
-    final noteController = TextEditingController(text: 'Penyesuaian kebutuhan makan siang kantor');
+    int parseTarget() =>
+        int.tryParse(targetController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
 
     showModalBottomSheet(
       context: context,
@@ -306,19 +378,20 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                           ),
                         ],
                       ),
-                      Container(
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF5F1EB),
-                          shape: BoxShape.circle,
+                      if (_category['id'] != null)
+                        Container(
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF5F1EB),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF8C827A), size: 20),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _showDeleteModal();
+                            },
+                          ),
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF8C827A), size: 20),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _showDeleteModal();
-                          },
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 18),
@@ -341,9 +414,10 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
-                          child: Text(
-                            _category['iconText']?.toString() ?? '🍔',
-                            style: const TextStyle(fontSize: 22),
+                          child: Icon(
+                            resolveBudgetIcon(_category),
+                            color: const Color(0xFF592314),
+                            size: 22,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -416,40 +490,6 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Rekomendasi AI Box
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF7ED),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFFFEDD5)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.lightbulb_outline_rounded, color: Color(0xFFD95B27), size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text.rich(
-                            TextSpan(
-                              style: const TextStyle(color: Color(0xFF7A2711), fontSize: 11, height: 1.4),
-                              children: const [
-                                TextSpan(
-                                  text: 'Rekomendasi MoneyMate AI: ',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                TextSpan(
-                                  text: 'Rata-rata 3 bln terakhir Rp 1.750.000. Limit disarankan Rp 1.800.000.',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
                   const Text(
                     'LIMIT ANGGARAN BULANAN BARU',
                     style: TextStyle(
@@ -487,35 +527,33 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                                 color: Color(0xFF2E150D),
                               ),
                             ),
-                            Text(
-                              NumberFormat('#,###', 'id_ID').format(targetAmount),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E150D),
+                            Expanded(
+                              child: TextField(
+                                controller: targetController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [ThousandsSeparatorInputFormatter()],
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E150D),
+                                ),
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  hintText: '0',
+                                  hintStyle: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFD8CFC7),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  Row(
-                    children: [
-                      _buildQuickChip('+100 rb', () {
-                        setSheetState(() => targetAmount += 100000);
-                      }, false),
-                      const SizedBox(width: 10),
-                      _buildQuickChip('+250 rb', () {
-                        setSheetState(() => targetAmount += 250000);
-                      }, true),
-                      const SizedBox(width: 10),
-                      _buildQuickChip('+500 rb', () {
-                        setSheetState(() => targetAmount += 500000);
-                      }, false),
-                    ],
                   ),
                   const SizedBox(height: 18),
 
@@ -578,27 +616,6 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 18),
-
-                  const Text(
-                    'Catatan Revisi (Opsional)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF2E150D)),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: noteController,
-                    decoration: InputDecoration(
-                      hintText: 'Tulis catatan...',
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: Color(0xFFE5DDD5)),
-                      ),
-                    ),
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF2E150D)),
-                  ),
                   const SizedBox(height: 24),
 
                   SizedBox(
@@ -610,21 +627,55 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 0,
                       ),
-                      onPressed: () {
+                      onPressed: () async {
+                        final int newLimit = parseTarget();
+                        if (newLimit <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Nominal anggaran harus lebih besar dari 0')),
+                          );
+                          return;
+                        }
+
+                        final String? budgetId = _category['id']?.toString();
+                        final bool isNewBudget =
+                            budgetId == null || budgetId.isEmpty || budgetId == 'null';
+                        final bool ok;
+                        if (isNewBudget) {
+                          ok = await ApiService.addBudget({
+                            'category_id': int.tryParse(_category['categoryId']?.toString() ?? '') ?? 0,
+                            'amount': newLimit,
+                            'month': _toInt(_category['month']),
+                            'year': _toInt(_category['year']),
+                          });
+                        } else {
+                          ok = await ApiService.updateBudget(
+                            budgetId,
+                            amount: newLimit,
+                          );
+                        }
+                        if (!ctx.mounted) return;
+                        if (!ok) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(content: Text('Gagal menyimpan anggaran. Periksa koneksi ke server.')),
+                          );
+                          return;
+                        }
+                        if (!mounted) return;
+
                         setState(() {
-                          _category['limit'] = targetAmount;
-                          final double pct = (_toInt(_category['spent']) / targetAmount) * 100;
+                          _category['limit'] = newLimit;
+                          final double pct = (_toInt(_category['spent']) / newLimit) * 100;
                           _category['percent'] = pct.toInt();
                           if (pct > 100) {
                             _category['isOver'] = true;
-                            final overDiff = _toInt(_category['spent']) - targetAmount;
+                            final overDiff = _toInt(_category['spent']) - newLimit;
                             _category['tag'] = 'Over ${(pct - 100).toInt()}% (+${_formatRupiah(overDiff)})';
                             _category['statusText'] = 'Melebihi kuota ${_formatRupiah(overDiff)}';
                             _category['statusColor'] = const Color(0xFFD32F2F);
                             _category['borderColor'] = const Color(0xFFFFCDC3);
                           } else {
                             _category['isOver'] = false;
-                            final rem = targetAmount - _toInt(_category['spent']);
+                            final rem = newLimit - _toInt(_category['spent']);
                             _category['tag'] = 'Tersisa ${_formatRupiah(rem)}';
                             _category['statusText'] = 'Sisa ${(100 - pct).toInt()}% sebelum batas habis';
                             _category['statusColor'] = const Color(0xFFB78103);
@@ -636,7 +687,11 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                         Navigator.pop(ctx);
 
                         // Show Success Modal
-                        _showSuccessSheet(_category['title']?.toString() ?? 'Kategori', targetAmount);
+                        _showSuccessSheet(
+                          _category['title']?.toString() ?? 'Kategori',
+                          newLimit,
+                          alertPercent: alertPercent,
+                        );
                       },
                       icon: const Icon(Icons.check_rounded, color: Colors.white, size: 18),
                       label: const Text(
@@ -667,7 +722,22 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
     );
   }
 
-  void _showSuccessSheet(String categoryName, int newLimit) {
+  String _currentPeriodLabel() {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+    ];
+    final now = DateTime.now();
+    final lastDay = DateTime(now.year, now.month + 1, 0).day;
+    final month = months[now.month - 1];
+    return '1 $month – $lastDay $month ${now.year}';
+  }
+
+  void _showSuccessSheet(
+    String categoryName,
+    int newLimit, {
+    double alertPercent = 80,
+  }) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -736,7 +806,7 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
               ],
             ),
             const SizedBox(height: 18),
-            const Text('Budget Berhasil Dibuat!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E150D))),
+            const Text('Anggaran Berhasil Diperbarui!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2E150D))),
             const SizedBox(height: 8),
             Text(
               'Limit anggaran baru untuk kategori $categoryName telah aktif. MoneyMate akan memantau pengeluaranmu secara otomatis.',
@@ -753,7 +823,7 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
               ),
               child: Column(
                 children: [
-                  _receiptRow('Kategori', '${_category['iconText'] ?? '🍔'} $categoryName'),
+                  _receiptRow('Kategori', categoryName),
                   const Divider(color: Color(0xFFF0E5DF), height: 20),
                   _receiptRow('Limit Baru', '${_formatRupiah(newLimit)} /bln'),
                   const Divider(color: Color(0xFFF0E5DF), height: 20),
@@ -764,12 +834,12 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: const Color(0xFFF5EBE6), borderRadius: BorderRadius.circular(8)),
-                        child: const Text('Saat mencapai 80% & 100%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E150D))),
+                        child: Text('Saat mencapai ${alertPercent.toInt()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E150D))),
                       ),
                     ],
                   ),
                   const Divider(color: Color(0xFFF0E5DF), height: 20),
-                  _receiptRow('Periode', '1 Sep – 30 Sep 2026'),
+                  _receiptRow('Periode', _currentPeriodLabel()),
                   const Divider(color: Color(0xFFF0E5DF), height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -835,25 +905,6 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
         Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF8C827A))),
         Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E150D))),
       ],
-    );
-  }
-
-  Widget _buildQuickChip(String label, VoidCallback onTap, bool isHighlight) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isHighlight ? const Color(0xFFF9EFE7) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isHighlight ? const Color(0xFFD9B9A6) : const Color(0xFFE5DDD5)),
-          ),
-          alignment: Alignment.center,
-          child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E150D))),
-        ),
-      ),
     );
   }
 
@@ -1005,7 +1056,7 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  isOver ? 'OVERBUDGET' : 'AMAN',
+                                  limit <= 0 ? 'BELUM DIANGGARKAN' : (isOver ? 'OVERBUDGET' : 'AMAN'),
                                   style: TextStyle(
                                     color: isOver ? const Color(0xFFFF9E91) : const Color(0xFF81C784),
                                     fontSize: 10,
@@ -1030,7 +1081,9 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Dibatasi hingga ${_formatRupiah(limit)}/bln',
+                            limit > 0
+                                ? 'Dibatasi hingga ${_formatRupiah(limit)}/bln'
+                                : 'Belum ada budget bulan ini',
                             style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
                           ),
                           const SizedBox(height: 18),
@@ -1068,7 +1121,7 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Terpakai $percent%',
+                                limit > 0 ? 'Terpakai $percent%' : 'Pengeluaran tercatat',
                                 style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600),
                               ),
                               Text(
@@ -1106,7 +1159,7 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            'Bulan Ini',
+                            _periodLabel,
                             style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -1114,12 +1167,41 @@ class _DetailAnggaranScreenState extends State<DetailAnggaranScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Sample category transactions
-                    _buildTransactionItem('Makan Siang Resto', 'Hari ini • 13:20', '- Rp 45.000'),
-                    const SizedBox(height: 8),
-                    _buildTransactionItem('Kopi & Cemilan', 'Kemarin • 16:45', '- Rp 28.000'),
-                    const SizedBox(height: 8),
-                    _buildTransactionItem('Makan Malam Spesial', '22 Okt • 19:30', '- Rp 115.000'),
+                    if (_isLoadingTransactions)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: CircularProgressIndicator(color: Color(0xFF4A2518))),
+                      )
+                    else if (_transactions.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF0EBE1)),
+                        ),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.receipt_long_outlined, size: 30, color: Color(0xFFB9A99E)),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Belum ada transaksi $_periodLabel untuk kategori ini.',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF8C827A)),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      for (final tx in _transactions) ...[
+                        _buildTransactionItem(
+                          tx.title,
+                          _formatTransactionDate(tx.date),
+                          '- ${_formatRupiah(tx.amount)}',
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     const SizedBox(height: 24),
 
                     // Action Buttons (Sesuaikan & Hapus)

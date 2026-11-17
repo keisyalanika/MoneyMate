@@ -143,9 +143,9 @@ export default function NotifikasiPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem id="Semua pengguna">Semua pengguna (1.248)</SelectItem>
-                          <SelectItem id="Pengguna terpilih">Pengguna terpilih</SelectItem>
-                          <SelectItem id="Pengguna baru">Pengguna baru</SelectItem>
+                          <SelectItem id="Semua pengguna">Semua pengguna</SelectItem>
+                          <SelectItem id="Pengguna aktif">Pengguna aktif</SelectItem>
+                          <SelectItem id="Pengguna baru">Pengguna baru (30 hari)</SelectItem>
                         </SelectContent>
                       </Select>
                     )}

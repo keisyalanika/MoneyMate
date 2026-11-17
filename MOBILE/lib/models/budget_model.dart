@@ -5,6 +5,9 @@ class BudgetModel {
   final double limitAmount;
   final double spentAmount;
   final double percentage;
+  final String categoryIcon;
+  final int month;
+  final int year;
 
   BudgetModel({
     required this.id,
@@ -13,6 +16,9 @@ class BudgetModel {
     required this.limitAmount,
     required this.spentAmount,
     required this.percentage,
+    this.categoryIcon = '',
+    this.month = 0,
+    this.year = 0,
   });
 
   factory BudgetModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +29,9 @@ class BudgetModel {
       limitAmount: ((json['amount'] ?? json['limitAmount'] ?? 0) as num).toDouble(),
       spentAmount: ((json['spent_amount'] ?? json['spentAmount'] ?? 0) as num).toDouble(),
       percentage: ((json['percentage'] ?? 0) as num).toDouble(),
+      categoryIcon: (json['category_icon'] ?? json['categoryIcon'])?.toString() ?? '',
+      month: (json['month'] as num?)?.toInt() ?? 0,
+      year: (json['year'] as num?)?.toInt() ?? 0,
     );
   }
 }

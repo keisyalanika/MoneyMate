@@ -35,6 +35,12 @@ export default function DashboardPage() {
   const distribution = data?.distribution ?? [];
   const growth = data?.growth ?? [];
   const latest = data?.latest ?? [];
+  const growthPercent =
+    growth.length >= 2 && growth[0].count > 0
+      ? Math.round(
+          ((growth[growth.length - 1].count - growth[0].count) / growth[0].count) * 100
+        )
+      : 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,7 +51,12 @@ export default function DashboardPage() {
         </div>
         <span className="flex items-center gap-2 rounded-[10px] border border-line bg-surface px-3.5 py-2 text-[11px] font-semibold text-ink">
           <CalendarDays className="size-3.5 text-subtle" />
-          Jumat, 13 November 2026
+          {new Intl.DateTimeFormat("id-ID", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }).format(new Date())}
         </span>
       </div>
 
@@ -73,14 +84,14 @@ export default function DashboardPage() {
             <StatCard
               label="Pengguna Nonaktif"
               value={formatNumber(stats.inactive)}
-              note="12% perlu ditinjau"
+              note={`${stats.total > 0 ? Math.round((stats.inactive / stats.total) * 100) : 0}% dari total pengguna`}
               icon={UserX}
               tone="accent"
             />
             <StatCard
               label="Pendaftar 30 Hari"
               value={formatNumber(stats.newLast30Days)}
-              note="+18% dibanding bulan lalu"
+              note="30 hari terakhir"
               icon={UserPlus}
               tone="gold"
             />
@@ -125,7 +136,8 @@ export default function DashboardPage() {
               </div>
               <span className="flex items-center gap-1 rounded-lg bg-tint px-2 py-1 text-[10px] font-semibold text-orange">
                 <TrendingUp className="size-3" />
-                +24%
+                {growthPercent >= 0 ? "+" : ""}
+                {growthPercent}%
               </span>
             </div>
 

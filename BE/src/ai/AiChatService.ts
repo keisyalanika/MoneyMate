@@ -1,6 +1,6 @@
 import { aiChatRepository, type ProposalRecord } from "../repositories/AiChatRepository";
 import { isGeminiEnabled, runGemini } from "./GeminiProvider";
-import { WRITE_TOOLS, executeReadTool, executeWriteTool } from "./tools";
+import { WRITE_TOOLS, executeReadTool, executeWriteTool, guessCategoryName } from "./tools";
 import { AppError } from "../errors/AppError";
 import { budgetService, goalService, transactionService } from "../services";
 
@@ -37,22 +37,65 @@ function parseAmount(text: string): number | null {
   return null;
 }
 
-const CATEGORY_HINTS: Array<{ keywords: string[]; id: number }> = [
-  { keywords: ["makan", "minum", "kantin", "kopi", "jajan"], id: 7 },
-  { keywords: ["transport", "ojek", "bensin", "bus", "grab", "gojek"], id: 8 },
-  { keywords: ["belanja", "baju", "sepatu"], id: 9 },
-  { keywords: ["tagihan", "listrik", "kuota", "internet"], id: 10 },
-  { keywords: ["pendidikan", "buku", "kursus"], id: 11 },
-  { keywords: ["hiburan", "nonton", "game", "musik"], id: 12 },
-  { keywords: ["kesehatan", "obat", "dokter"], id: 13 },
+const GOAL_TITLE_HINTS: Array<{ keywords: string[]; title: string }> = [
+  { keywords: ["laptop", "komputer", "notebook", "pc"], title: "Laptop Baru" },
+  { keywords: ["iphone"], title: "iPhone Baru" },
+  { keywords: ["hp", "handphone", "smartphone", "ponsel"], title: "Smartphone Baru" },
+  { keywords: ["motor", "motorcycle"], title: "Motor Baru" },
+  { keywords: ["mobil", "car"], title: "Mobil Baru" },
+  { keywords: ["rumah", "kos", "hunian"], title: "Rumah / Hunian" },
+  { keywords: ["kamera"], title: "Kamera Baru" },
+  { keywords: ["liburan", "wisata", "travel"], title: "Dana Liburan" },
+  { keywords: ["nikah", "menikah", "pernikahan"], title: "Dana Pernikahan" },
+  { keywords: ["darurat"], title: "Dana Darurat" },
+  { keywords: ["bisnis", "usaha", "modal"], title: "Modal Usaha/Bisnis" },
+  { keywords: ["kuliah", "sekolah", "pendidikan", "kursus"], title: "Dana Pendidikan" },
+  { keywords: ["buku"], title: "Dana Buku & Alat Tulis" },
+  { keywords: ["gadget"], title: "Gadget Baru" },
+  { keywords: ["gaming", "konsol"], title: "Perangkat Gaming" },
 ];
 
-function guessCategory(text: string): number {
-  const lowered = text.toLowerCase();
-  for (const item of CATEGORY_HINTS) {
-    if (item.keywords.some((keyword) => lowered.includes(keyword))) return item.id;
+function extractGoalTitle(message: string): string {
+  const lowered = message.toLowerCase();
+  for (const hint of GOAL_TITLE_HINTS) {
+    if (hint.keywords.some((keyword) => lowered.includes(keyword))) return hint.title;
   }
-  return 14;
+
+  const cleaned = message
+    .replace(/\b(buatkan|buat|bikin|goal|target|nabung|tabung|beli|untuk|dana|saya|aku|mau|ingin)\b/gi, " ")
+    .replace(/\d+(?:[.,]\d+)?\s*(?:juta|jt|ribu|rb|k)\b/gi, " ")
+    .replace(/\d+\s*(?:bulan|tahun|hari)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return "Target baru";
+  const title = cleaned.slice(0, 60);
+  return title.charAt(0).toUpperCase() + title.slice(1);
+}
+
+function parseGoalDeadline(message: string): string | undefined {
+  const now = new Date();
+  const deadline = new Date(now);
+
+  const months = message.match(/(\d+)\s*bulan/i);
+  if (months) {
+    deadline.setMonth(deadline.getMonth() + Number(months[1]));
+    return deadline.toISOString().slice(0, 10);
+  }
+
+  const years = message.match(/(\d+)\s*tahun/i);
+  if (years) {
+    deadline.setFullYear(deadline.getFullYear() + Number(years[1]));
+    return deadline.toISOString().slice(0, 10);
+  }
+
+  const days = message.match(/(\d+)\s*hari/i);
+  if (days) {
+    deadline.setDate(deadline.getDate() + Number(days[1]));
+    return deadline.toISOString().slice(0, 10);
+  }
+
+  return undefined;
 }
 
 function formatRupiah(value: number) {
@@ -165,41 +208,44 @@ export class AiChatService {
   ): Promise<string> {
     const text = message.toLowerCase();
     const amount = parseAmount(message);
+    const wantsGoal = /goal|target|nabung|tabung/.test(text);
 
     const wantsTransaction =
       amount !== null &&
+      !wantsGoal &&
       /catat|pengeluaran|pemasukan|beli|bayar|gaji|masuk|makan|minum|kopi|jajan|transport|ojek|bensin|belanja|tagihan|nonton|obat|kantin/.test(
         text
       );
-    const wantsGoal = /goal|target|nabung|tabung/.test(text);
     const wantsBudget = /budget|anggaran/.test(text);
+
+    if (wantsGoal && amount) {
+      try {
+        const proposal = await executeWriteTool("propose_goal", userId, {
+          title: extractGoalTitle(message),
+          target_amount: amount,
+          deadline: parseGoalDeadline(message),
+        });
+        proposals.push(proposal);
+        return describeProposal(proposal);
+      } catch {
+        return "Target goal-nya belum jelas. Sebutkan nama target dan nominalnya ya.";
+      }
+    }
 
     if (wantsTransaction) {
       const type = /pemasukan|gaji|masuk|terima/.test(text) ? "income" : "expense";
       try {
+        const categoryName = await guessCategoryName(message, type);
         const proposal = await executeWriteTool("propose_transaction", userId, {
           type,
           amount,
-          category_id: type === "income" ? 1 : guessCategory(text),
+          category_name: categoryName,
           note: message.slice(0, 80),
         });
         proposals.push(proposal);
         return describeProposal(proposal);
       } catch {
         return "Nominalnya kurang jelas. Bisa sebutkan angkanya, misal “makan siang 25rb”?";
-      }
-    }
-
-    if (wantsGoal && amount) {
-      try {
-        const proposal = await executeWriteTool("propose_goal", userId, {
-          title: message.replace(/buat|goal|target|nabung|tabung/gi, "").trim().slice(0, 60) || "Target baru",
-          target_amount: amount,
-        });
-        proposals.push(proposal);
-        return describeProposal(proposal);
-      } catch {
-        return "Target goal-nya belum jelas. Sebutkan nama target dan nominalnya ya.";
       }
     }
 
@@ -236,6 +282,9 @@ export class AiChatService {
   async confirmAction(userId: number, proposalId: number) {
     const proposal = await this.repo.findProposal(proposalId, userId);
     if (!proposal) throw AppError.notFound("Usulan tidak ditemukan.", "PROPOSAL_NOT_FOUND");
+    if (proposal.status === "confirmed") {
+      return { proposal_id: proposal.id, status: "confirmed" };
+    }
     if (proposal.status !== "pending") {
       throw AppError.badRequest("Usulan ini sudah diproses.", "PROPOSAL_NOT_PENDING");
     }

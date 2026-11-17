@@ -14,11 +14,12 @@ class AuthProvider with ChangeNotifier {
   String _userNickname = '';
   String _userEmail = '';
   String _userPhone = '';
+  String _avatarUrl = '';
   String _role = 'user';
   String? _token;
   
-  double _saldo = 2450000.0;
-  double _sisaBudget = 850000.0;
+  double _saldo = 0;
+  double _sisaBudget = 0;
 
   String? _errorMessage;
 
@@ -37,6 +38,7 @@ class AuthProvider with ChangeNotifier {
   String get userEmail => _userEmail;
   String get currentUserEmail => _userEmail;
   String get userPhone => _userPhone;
+  String get avatarUrl => _avatarUrl;
   String get userInitial => (userNickname.isNotEmpty 
       ? userNickname[0] 
       : (userName.isNotEmpty && userName != 'Guest' ? userName[0] : 'U')).toUpperCase();
@@ -45,24 +47,6 @@ class AuthProvider with ChangeNotifier {
   double get saldo => _saldo;
   double get sisaBudget => _sisaBudget;
   String? get errorMessage => _errorMessage;
-
-  // Simpan akun pengguna yang terdaftar secara lokal untuk pengujian / offline fallback
-  final Map<String, Map<String, String>> _registeredUsers = {
-    'keisyaexahaniyah@gmail.com': {
-      'name': 'Keisya Lanika',
-      'nickname': 'Keisya',
-      'password': 'Admin123',
-      'role': 'user',
-      'phone': '081234567890',
-    },
-    'admin@moneymate.com': {
-      'name': 'Admin MoneyMate',
-      'nickname': 'Admin',
-      'password': 'admin123',
-      'role': 'admin',
-      'phone': '081234567891',
-    },
-  };
 
   Future<void> _loadFromPreferences() async {
     try {
@@ -75,23 +59,27 @@ class AuthProvider with ChangeNotifier {
       if (_token != null && _token!.isNotEmpty) {
         ApiService.token = _token;
       }
-      // Sesi dianggap valid selama flag tersimpan / nama user tersimpan.
-      // Tidak ada pengecekan kedaluwarsa: sesi bertahan sampai user logout.
-      final hasSavedSession =
-          prefs.isSessionActive() || (savedName != 'Guest' && savedName.isNotEmpty);
+      // Sesi hanya dianggap valid jika token akses ada.
+      final hasToken = _token != null && _token!.isNotEmpty;
+      final hasSavedSession = hasToken &&
+          (prefs.isSessionActive() || (savedName != 'Guest' && savedName.isNotEmpty));
       if (hasSavedSession && savedName != 'Guest' && savedName.isNotEmpty) {
         _userName = savedName;
         _userNickname = prefs.getUserNickname();
         _userEmail = prefs.getUserEmail();
         _userPhone = prefs.getUserPhone();
+        _avatarUrl = prefs.getUserAvatar();
         _role = prefs.getUserRole();
         _isLoggedIn = true;
+        _saldo = prefs.getSaldoSnapshot();
+        _sisaBudget = prefs.getSisaBudgetSnapshot();
         await prefs.saveSessionActive(true);
         if (_token != null && _token!.isNotEmpty) {
           await SecureStorageService.getInstance().saveAccessToken(_token!);
         }
-        // Background sync wallet saldo from backend
-        fetchWallets();
+        // Background sync profil, wallet, budget, dan transaksi dari backend
+        refreshProfile();
+        refreshFinance();
       }
     } catch (e) {
       debugPrint('[AuthProvider] loadFromPreferences error: $e');
@@ -108,6 +96,7 @@ class AuthProvider with ChangeNotifier {
       await prefs.saveUserNickname(_userNickname);
       await prefs.saveUserEmail(_userEmail);
       await prefs.saveUserPhone(_userPhone);
+      await prefs.saveUserAvatar(_avatarUrl);
       await prefs.saveUserRole(_role);
       if (_token != null && _token!.isNotEmpty) {
         await prefs.saveAuthToken(_token!);
@@ -129,20 +118,8 @@ class AuthProvider with ChangeNotifier {
     _errorMessage = null;
     final normalizedEmail = email.trim().toLowerCase();
     final cleanName = name.trim();
-    final cleanNickname = (nickname != null && nickname.trim().isNotEmpty)
-        ? nickname.trim()
-        : cleanName.split(' ').first;
 
-    // Simpan selalu ke memory cache lokal agar akun baru langsung bisa login
-    _registeredUsers[normalizedEmail] = {
-      'name': cleanName,
-      'nickname': cleanNickname,
-      'password': password,
-      'role': 'user',
-      'phone': phone?.trim() ?? '',
-    };
-
-    // 1. Coba kirim ke Backend API
+    // Kirim ke Backend API
     try {
       final response = await http
           .post(
@@ -155,7 +132,7 @@ class AuthProvider with ChangeNotifier {
               'phone': phone?.trim(),
             }),
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {'success': true, 'message': 'Pendaftaran berhasil! Silakan masuk.'};
@@ -169,11 +146,9 @@ class AuthProvider with ChangeNotifier {
         return {'success': false, 'message': _errorMessage};
       }
     } catch (e) {
-      debugPrint('Register with API failed/offline, registered locally: $e');
-      return {
-        'success': true,
-        'message': 'Akun berhasil dibuat! Silakan masuk dengan email dan kata sandi Anda.',
-      };
+      debugPrint('Register API error: $e');
+      _errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
+      return {'success': false, 'message': _errorMessage};
     }
   }
 
@@ -181,7 +156,6 @@ class AuthProvider with ChangeNotifier {
     _errorMessage = null;
     final normalizedEmail = email.trim().toLowerCase();
 
-    // 1. Coba login ke Backend API
     try {
       final response = await http
           .post(
@@ -189,78 +163,65 @@ class AuthProvider with ChangeNotifier {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'email': normalizedEmail, 'password': password}),
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 8));
+
+      final Map<String, dynamic> data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         _isLoggedIn = true;
-        _userName = data['name'] ?? (_registeredUsers[normalizedEmail]?['name'] ?? 'Pengguna');
-        _userNickname = _registeredUsers[normalizedEmail]?['nickname'] ??
-            (data['nickname'] ?? _userName.split(' ').first);
-        _userEmail = data['email'] ?? normalizedEmail;
-        _userPhone = data['phone'] ?? (_registeredUsers[normalizedEmail]?['phone'] ?? '');
-        _role = data['role'] ?? 'user';
-        _token = data['token'];
+        _userName = (data['name'] ?? 'Pengguna').toString();
+        _userNickname = (data['nickname'] ?? _userName.split(' ').first).toString();
+        _userEmail = (data['email'] ?? normalizedEmail).toString();
+        _userPhone = (data['phone'] ?? '').toString();
+        _avatarUrl = (data['avatar_url'] ?? '').toString();
+        _role = (data['role'] ?? 'user').toString();
+        _token = data['token']?.toString();
         ApiService.token = _token;
 
-        // Sync local cache with current valid credentials
-        _registeredUsers[normalizedEmail] = {
-          'name': _userName,
-          'nickname': _userNickname,
-          'password': password,
-          'role': _role,
-          'phone': _userPhone,
-        };
-
         await _saveSessionToPrefs();
+        await refreshFinance();
         notifyListeners();
         return {'success': true, 'message': 'Login berhasil'};
-      } else {
-        try {
-          final data = jsonDecode(response.body);
-          if (data['message'] != null) {
-            _errorMessage = data['message'];
-            notifyListeners();
-            return {'success': false, 'message': _errorMessage};
-          }
-        } catch (_) {}
-        return await _fallbackLocalLogin(normalizedEmail, password);
       }
+
+      _errorMessage = data['message']?.toString() ?? 'Email atau kata sandi salah.';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
     } catch (e) {
-      debugPrint('Login with API failed/offline, checking registered users: $e');
-      return await _fallbackLocalLogin(normalizedEmail, password);
+      debugPrint('Login API error: $e');
+      _errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
     }
   }
 
-  Future<Map<String, dynamic>> _fallbackLocalLogin(String email, String password) async {
-    if (_registeredUsers.containsKey(email)) {
-      final userData = _registeredUsers[email]!;
-      if (userData['password'] == password) {
-        _isLoggedIn = true;
-        _userName = userData['name'] ?? 'Pengguna';
-        _userNickname = userData['nickname'] ?? _userName.split(' ').first;
-        _userEmail = email;
-        _userPhone = userData['phone'] ?? '';
-        _role = userData['role'] ?? 'user';
-        _token = 'token_local_${DateTime.now().millisecondsSinceEpoch}';
-        ApiService.token = _token;
+  Future<void> refreshProfile() async {
+    final data = await ApiService.fetchProfile();
+    if (data == null) return;
 
-        await _saveSessionToPrefs();
-        notifyListeners();
-        return {
-          'success': true,
-          'message': 'Login berhasil! Selamat datang, $_userNickname.',
-        };
-      } else {
-        _errorMessage = 'Kata sandi yang Anda masukkan salah.';
-        notifyListeners();
-        return {'success': false, 'message': _errorMessage};
-      }
+    if (data['name'] != null && data['name'].toString().isNotEmpty) {
+      _userName = data['name'].toString();
     }
+    if (data['email'] != null && data['email'].toString().isNotEmpty) {
+      _userEmail = data['email'].toString();
+    }
+    if (data['phone'] != null) {
+      _userPhone = data['phone'].toString();
+    }
+    _avatarUrl = (data['avatar_url'] ?? '').toString();
 
-    _errorMessage = 'Akun dengan email ini belum terdaftar. Silakan daftar akun terlebih dahulu!';
+    await _saveSessionToPrefs();
     notifyListeners();
-    return {'success': false, 'message': _errorMessage};
+  }
+
+  Future<Map<String, dynamic>> uploadAvatar(String filePath) async {
+    final result = await ApiService.uploadAvatar(filePath);
+    if (result['success'] == true) {
+      _avatarUrl = result['avatar_url']?.toString() ?? _avatarUrl;
+      await _saveSessionToPrefs();
+      notifyListeners();
+    }
+    return result;
   }
 
   Future<void> updateProfileData({
@@ -284,12 +245,6 @@ class AuthProvider with ChangeNotifier {
       _userPhone = phone.trim();
     }
 
-    if (_userEmail.isNotEmpty && _registeredUsers.containsKey(_userEmail.toLowerCase())) {
-      _registeredUsers[_userEmail.toLowerCase()]!['name'] = _userName;
-      _registeredUsers[_userEmail.toLowerCase()]!['nickname'] = _userNickname;
-      _registeredUsers[_userEmail.toLowerCase()]!['phone'] = _userPhone;
-    }
-
     // Sinkronisasi update profil langsung ke Backend API
     try {
       await ApiService.updateProfile({
@@ -310,6 +265,7 @@ class AuthProvider with ChangeNotifier {
     _userNickname = '';
     _userEmail = '';
     _userPhone = '';
+    _avatarUrl = '';
     _role = 'user';
     _token = null;
     ApiService.token = null;
@@ -343,9 +299,47 @@ class AuthProvider with ChangeNotifier {
           _saldo = total;
         }
         notifyListeners();
+        final prefs = await PreferencesService.getInstance();
+        await prefs.saveSaldoSnapshot(_saldo);
       }
     } catch (e) {
       debugPrint('[AuthProvider] fetchWallets error: $e');
+    }
+  }
+
+  /// Sisa budget = total sisa limit kategori pada bulan berjalan.
+  Future<void> fetchBudgetRemaining() async {
+    try {
+      final now = DateTime.now();
+      final budgets = await ApiService.fetchBudgets(month: now.month, year: now.year);
+      if (budgets == null) return;
+
+      double remaining = 0;
+      for (final budget in budgets) {
+        final sisa = budget.limitAmount - budget.spentAmount;
+        if (sisa > 0) remaining += sisa;
+      }
+      _sisaBudget = remaining;
+      notifyListeners();
+
+      final prefs = await PreferencesService.getInstance();
+      await prefs.saveSisaBudgetSnapshot(_sisaBudget);
+    } catch (e) {
+      debugPrint('[AuthProvider] fetchBudgetRemaining error: $e');
+    }
+  }
+
+  /// Tarik ulang saldo, sisa budget, dan transaksi supaya semua tampilan sinkron.
+  Future<void> refreshFinance() async {
+    ApiService.lastAuthFailed = false;
+    await Future.wait([
+      fetchWallets(),
+      fetchBudgetRemaining(),
+      fetchTransactions(),
+    ]);
+
+    if (ApiService.lastAuthFailed) {
+      await logout();
     }
   }
 
@@ -393,6 +387,7 @@ class AuthProvider with ChangeNotifier {
         if (res['data']['balance'] != null) {
           _saldo = (res['data']['balance'] as num).toDouble();
         }
+        await refreshFinance();
         notifyListeners();
         return {
           'success': true,
@@ -400,19 +395,22 @@ class AuthProvider with ChangeNotifier {
           'message': res['message'] ?? 'Saldo berhasil diperbarui',
         };
       } else {
-        // Jika API gagal tapi terhubung
+        _saldo = prevSaldo;
+        notifyListeners();
         return {
-          'success': true,
+          'success': false,
           'balance': _saldo,
-          'message': 'Saldo lokal berhasil diperbarui',
+          'message': res['message'] ?? 'Gagal menyimpan saldo ke server.',
         };
       }
     } catch (e) {
-      debugPrint('[AuthProvider] adjustBalance API sync error (fallback to local): $e');
+      debugPrint('[AuthProvider] adjustBalance API error: $e');
+      _saldo = prevSaldo;
+      notifyListeners();
       return {
-        'success': true,
+        'success': false,
         'balance': _saldo,
-        'message': 'Saldo berhasil diperbarui (mode offline)',
+        'message': 'Gagal menyimpan saldo. Periksa koneksi ke server.',
       };
     }
   }
@@ -428,58 +426,16 @@ class AuthProvider with ChangeNotifier {
     final normalized = email.trim().toLowerCase();
     _recoveryEmail = normalized;
 
-    // 1. Coba hubungi Backend API
     final res = await ApiService.sendForgotPasswordOtp(normalized);
     if (res['success'] == true) {
       _lastGeneratedOtp = res['otp']?.toString();
-      return res;
     }
-
-    // 2. Fallback offline: jika user terdaftar di cache lokal
-    if (_registeredUsers.containsKey(normalized)) {
-      _lastGeneratedOtp = '123456';
-      return {
-        'success': true,
-        'message': 'Kode OTP pemulihan: 123456 (Mode Offline)',
-        'otp': '123456',
-      };
-    }
-
-    // 3. Fallback jika backend belum terhubung/offline agar proses testing tidak terhenti
-    if (res['message']?.toString().contains('Tidak dapat terhubung') == true ||
-        res['message']?.toString().contains('Gagal menghubungi') == true) {
-      _lastGeneratedOtp = '123456';
-      return {
-        'success': true,
-        'message': 'Backend offline. Menggunakan kode OTP demo: 123456',
-        'otp': '123456',
-      };
-    }
-
-    return {
-      'success': false,
-      'message': res['message'] ?? 'Alamat email tidak terdaftar di sistem.',
-    };
+    return res;
   }
 
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     final normalized = email.trim().toLowerCase();
-    
-    // 1. Coba hubungi Backend API
-    final res = await ApiService.verifyOtp(normalized, otp);
-    if (res['success'] == true) {
-      return res;
-    }
-
-    // 2. Fallback offline
-    if (otp == _lastGeneratedOtp || otp == '123456' || otp == '937100') {
-      return {'success': true, 'message': 'Kode OTP valid.'};
-    }
-
-    return {
-      'success': false,
-      'message': res['message'] ?? 'Kode OTP salah atau telah kedaluwarsa.',
-    };
+    return ApiService.verifyOtp(normalized, otp);
   }
 
   Future<Map<String, dynamic>> resetPassword({
@@ -487,68 +443,23 @@ class AuthProvider with ChangeNotifier {
     required String newPassword,
     required String otp,
   }) async {
-    final normalized = email.trim().toLowerCase();
-
-    // 1. Coba hubungi Backend API
-    final res = await ApiService.resetPassword(
-      email: normalized,
+    return ApiService.resetPassword(
+      email: email.trim().toLowerCase(),
       newPassword: newPassword,
       otp: otp,
     );
-
-    // 2. Selalu sinkronkan perubahan kata sandi ke cache lokal
-    if (_registeredUsers.containsKey(normalized)) {
-      _registeredUsers[normalized]!['password'] = newPassword;
-    } else {
-      _registeredUsers[normalized] = {
-        'name': normalized.split('@')[0],
-        'nickname': normalized.split('@')[0],
-        'password': newPassword,
-        'role': 'user',
-        'phone': '',
-      };
-    }
-
-    if (res['success'] == true) {
-      return res;
-    }
-
-    // Fallback jika backend offline tapi kata sandi lokal berhasil diubah
-    if (_registeredUsers.containsKey(normalized)) {
-      return {
-        'success': true,
-        'message': 'Kata sandi berhasil diperbarui (Mode Offline).',
-      };
-    }
-
-    return {
-      'success': false,
-      'message': res['message'] ?? 'Gagal memperbarui kata sandi.',
-    };
   }
 
-  Future<bool> updatePassword(String newPassword) async {
-    final email = _userEmail.isNotEmpty ? _userEmail.toLowerCase() : 'user@moneymate.com';
-    if (_registeredUsers.containsKey(email)) {
-      _registeredUsers[email]!['password'] = newPassword;
-    } else {
-      _registeredUsers[email] = {
-        'name': _userName,
-        'nickname': _userNickname,
-        'password': newPassword,
-        'role': _role,
-        'phone': _userPhone,
-      };
-    }
-    try {
-      await ApiService.resetPassword(
-        email: email,
-        newPassword: newPassword,
-        otp: '123456',
-      );
-    } catch (_) {}
+  Future<Map<String, dynamic>> updatePassword(
+    String newPassword, {
+    required String currentPassword,
+  }) async {
+    final res = await ApiService.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
     notifyListeners();
-    return true;
+    return res;
   }
 
   // ================= TRANSACTIONS INTEGRATION =================
@@ -563,7 +474,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
     try {
       final list = await ApiService.fetchTransactions();
-      if (list.isNotEmpty) {
+      if (ApiService.lastTransactionsOk) {
         _transactions = list.map((tx) => {
           'id': tx.id,
           'title': tx.title,
@@ -592,6 +503,9 @@ class AuthProvider with ChangeNotifier {
     String? note,
   }) async {
     final bool isExpense = type.toLowerCase() == 'expense';
+    final double prevSaldo = _saldo;
+    final double prevSisaBudget = _sisaBudget;
+    final prevTransactions = List<Map<String, dynamic>>.from(_transactions);
 
     // 1. Optimistic UI: Update saldo dan sisa budget lokal secara instan
     if (isExpense) {
@@ -618,40 +532,32 @@ class AuthProvider with ChangeNotifier {
 
     // 3. Kirim ke Backend API
     try {
-      final categoryMap = {
-        'Makanan & Minuman': 1,
-        'Restoran': 1,
-        'Transportasi': 2,
-        'Belanja': 3,
-        'Tagihan & Utilitas': 4,
-        'Pendidikan': 5,
-        'Hiburan & Nongkrong': 6,
-        'Kesehatan': 7,
-        'Gaji': 8,
-        'Freelance': 9,
-        'Uang Saku / Ortu': 10,
-        'Beasiswa': 11,
-        'Investasi': 12,
-        'Lainnya': 13,
-      };
-      final int categoryId = categoryMap[category] ?? (isExpense ? 1 : 8);
-
       final success = await ApiService.addTransaction({
         'type': type.toLowerCase(),
         'amount': amount,
-        'category_id': categoryId,
         'category_name': category,
         'date': date,
         'note': note ?? '',
       });
-      // Sinkronkan saldo dompet real-time dari backend
+
       if (success) {
-        await fetchWallets();
+        await refreshFinance();
+        return true;
       }
-      return success;
+
+      // Gagal tersimpan di server -> kembalikan state optimistis.
+      _saldo = prevSaldo;
+      _sisaBudget = prevSisaBudget;
+      _transactions = prevTransactions;
+      notifyListeners();
+      return false;
     } catch (e) {
       debugPrint('[AuthProvider] addTransaction error: $e');
-      return true;
+      _saldo = prevSaldo;
+      _sisaBudget = prevSisaBudget;
+      _transactions = prevTransactions;
+      notifyListeners();
+      return false;
     }
   }
 }

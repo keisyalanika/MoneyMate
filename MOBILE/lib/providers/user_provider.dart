@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../services/database_service.dart';
 
 /// ============================================================
@@ -15,22 +16,17 @@ class UserProvider extends ChangeNotifier {
 
   // Fetch data dari Backend lalu simpan ke DB lokal (Database Transaction)
   Future<void> fetchAndSaveUsers() async {
-    final fetchedDataFromApi = [
-      AppUser(
-        id: 1,
-        name: 'Keisya Lanika',
-        email: 'keisya@moneymate.com',
+    final users = await ApiService.fetchUsers();
+    final fetchedDataFromApi = users.map((user) {
+      return AppUser(
+        id: (user['id'] as num?)?.toInt() ?? 0,
+        name: (user['name'] ?? '-').toString(),
+        email: (user['email'] ?? '-').toString(),
         lastFetched: DateTime.now().millisecondsSinceEpoch,
-      ),
-      AppUser(
-        id: 2,
-        name: 'Budi Santoso',
-        email: 'budi@moneymate.com',
-        lastFetched: DateTime.now().millisecondsSinceEpoch,
-      ),
-    ];
+      );
+    }).toList();
 
+    await _db.clearUsers();
     await _db.saveUsersFromApi(fetchedDataFromApi);
-    // Karena .watch() dari Drift, tidak perlu notifyListeners()
   }
 }

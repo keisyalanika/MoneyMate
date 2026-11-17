@@ -241,7 +241,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Demo OTP: ${widget.serverOtp}',
+                        'Kode OTP: ${widget.serverOtp}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.accentOrange,

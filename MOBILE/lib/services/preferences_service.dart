@@ -71,6 +71,14 @@ class PreferencesService {
     return _prefs?.getString('user_phone') ?? '';
   }
 
+  Future<void> saveUserAvatar(String avatarUrl) async {
+    await _prefs?.setString('user_avatar_url', avatarUrl);
+  }
+
+  String getUserAvatar() {
+    return _prefs?.getString('user_avatar_url') ?? '';
+  }
+
   Future<void> saveUserRole(String role) async {
     await _prefs?.setString('user_role', role);
   }
@@ -160,6 +168,14 @@ class PreferencesService {
 
   double getSaldoSnapshot() {
     return _prefs?.getDouble('saldo_snapshot') ?? 0.0;
+  }
+
+  Future<void> saveSisaBudgetSnapshot(double sisaBudget) async {
+    await _prefs?.setDouble('sisa_budget_snapshot', sisaBudget);
+  }
+
+  double getSisaBudgetSnapshot() {
+    return _prefs?.getDouble('sisa_budget_snapshot') ?? 0.0;
   }
 
   Future<void> saveIncomeSnapshot(double income) async {

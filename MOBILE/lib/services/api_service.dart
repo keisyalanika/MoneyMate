@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction_model.dart';
 import '../models/category_model.dart';
@@ -28,10 +29,82 @@ class ApiService {
     return map;
   }
 
+  static String get origin {
+    if (baseUrl.endsWith('/api')) {
+      return baseUrl.substring(0, baseUrl.length - 4);
+    }
+    return baseUrl;
+  }
+
+  static String resolveMediaUrl(String? value) {
+    final path = (value ?? '').trim();
+    if (path.isEmpty) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return path.startsWith('/') ? '$origin$path' : '$origin/$path';
+  }
+
+  static MediaType _imageMediaType(String filePath) {
+    final lower = filePath.toLowerCase();
+    if (lower.endsWith('.png')) return MediaType('image', 'png');
+    if (lower.endsWith('.webp')) return MediaType('image', 'webp');
+    return MediaType('image', 'jpeg');
+  }
+
+  static Future<Map<String, dynamic>> uploadAvatar(String filePath) async {
+    try {
+      if (token == null || token!.isEmpty) {
+        return {'success': false, 'message': 'Sesi login tidak valid. Silakan login ulang.'};
+      }
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/users/me/avatar'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'avatar',
+          filePath,
+          contentType: _imageMediaType(filePath),
+        ),
+      );
+
+      final streamed = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamed);
+      final body = json.decode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200) {
+        final data = body['data'] as Map<String, dynamic>?;
+        return {
+          'success': true,
+          'message': body['message'] ?? 'Foto profil berhasil diperbarui',
+          'avatar_url': data?['avatar_url']?.toString() ?? '',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': body['message']?.toString() ?? 'Gagal mengunggah foto profil.',
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error uploadAvatar: $e');
+      return {
+        'success': false,
+        'message': 'Gagal mengunggah foto. Periksa koneksi ke server.',
+      };
+    }
+  }
+
+  static bool lastSummaryOk = false;
+  static bool lastAuthFailed = false;
+
   static Future<Map<String, dynamic>> fetchSummary() async {
+    lastSummaryOk = false;
     try {
       final response = await http.get(Uri.parse('$baseUrl/summary'), headers: headers);
+      if (response.statusCode == 401) lastAuthFailed = true;
       if (response.statusCode == 200) {
+        lastSummaryOk = true;
         final data = json.decode(response.body);
         return data['data'];
       }
@@ -41,16 +114,43 @@ class ApiService {
       }
     }
     return {
-      'totalBalance': 12500000,
-      'totalIncome': 18000000,
-      'totalExpense': 5500000,
+      'totalBalance': 0,
+      'totalIncome': 0,
+      'totalExpense': 0,
     };
   }
 
-  static Future<List<TransactionModel>> fetchTransactions() async {
+  static bool lastTransactionsOk = false;
+
+  static Future<List<TransactionModel>> fetchTransactions({
+    String? categoryId,
+    DateTime? startDate,
+    DateTime? endDate,
+    int? limit,
+  }) async {
+    lastTransactionsOk = false;
+    final hasFilters =
+        categoryId != null || startDate != null || endDate != null || limit != null;
+
     try {
-      final response = await http.get(Uri.parse('$baseUrl/transactions'), headers: headers);
+      String dateParam(DateTime value) {
+        final m = value.month.toString().padLeft(2, '0');
+        final d = value.day.toString().padLeft(2, '0');
+        return '${value.year}-$m-$d';
+      }
+
+      final uri = Uri.parse('$baseUrl/transactions').replace(
+        queryParameters: {
+          if (categoryId != null) 'category_id': categoryId,
+          if (startDate != null) 'start_date': dateParam(startDate),
+          if (endDate != null) 'end_date': dateParam(endDate),
+          if (limit != null) 'limit': '$limit',
+        },
+      );
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 401) lastAuthFailed = true;
       if (response.statusCode == 200) {
+        lastTransactionsOk = true;
         final Map<String, dynamic> body = json.decode(response.body);
         final List<dynamic> list = body['data'];
         return list.map((e) => TransactionModel.fromJson(e)).toList();
@@ -60,30 +160,45 @@ class ApiService {
         debugPrint('API Error fetchTransactions: $e');
       }
     }
-    return [
-      TransactionModel(
-        id: 'tx-001',
-        title: 'Gaji Bulanan Software Engineer',
-        amount: 15000000,
-        type: 'INCOME',
-        categoryId: 'cat-inc-1',
-        categoryName: 'Gaji',
-        categoryIcon: 'wallet',
-        date: DateTime.now().toIso8601String(),
-        notes: 'Transfer Gaji Pokok',
-      ),
-      TransactionModel(
-        id: 'tx-002',
-        title: 'Makan Siang Resto SE',
-        amount: 125000,
-        type: 'EXPENSE',
-        categoryId: 'cat-exp-1',
-        categoryName: 'Makanan & Minuman',
-        categoryIcon: 'utensils',
-        date: DateTime.now().toIso8601String(),
-        notes: 'Makan bersama tim',
-      ),
-    ];
+    if (hasFilters) return [];
+    return [];
+  }
+
+  static Future<List<TransactionModel>> fetchCategoryTransactions({
+    required String categoryId,
+    required int month,
+    required int year,
+  }) async {
+    try {
+      String dateParam(DateTime value) {
+        final m = value.month.toString().padLeft(2, '0');
+        final d = value.day.toString().padLeft(2, '0');
+        return '${value.year}-$m-$d';
+      }
+
+      final start = DateTime(year, month, 1);
+      final end = DateTime(year, month + 1, 0);
+      final uri = Uri.parse('$baseUrl/transactions').replace(
+        queryParameters: {
+          'category_id': categoryId,
+          'type': 'expense',
+          'start_date': dateParam(start),
+          'end_date': dateParam(end),
+          'limit': '30',
+        },
+      );
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'] ?? [];
+        return list.map((e) => TransactionModel.fromJson(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('API Error fetchCategoryTransactions: $e');
+      }
+    }
+    return [];
   }
 
   static Future<bool> addTransaction(Map<String, dynamic> payload) async {
@@ -102,9 +217,12 @@ class ApiService {
     }
   }
 
-  static Future<List<CategoryModel>> fetchCategories() async {
+  static Future<List<CategoryModel>> fetchCategories({String? type}) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/categories'), headers: headers);
+      final uri = Uri.parse('$baseUrl/categories').replace(
+        queryParameters: type != null ? {'type': type} : null,
+      );
+      final response = await http.get(uri, headers: headers);
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
         final List<dynamic> list = body['data'];
@@ -115,18 +233,105 @@ class ApiService {
         debugPrint('API Error fetchCategories: $e');
       }
     }
-    return [
-      CategoryModel(id: 'cat-inc-1', name: 'Gaji', type: 'INCOME', icon: 'wallet', color: '#10B981'),
-      CategoryModel(id: 'cat-exp-1', name: 'Makanan & Minuman', type: 'EXPENSE', icon: 'utensils', color: '#EF4444'),
-    ];
+    return [];
   }
 
-  static Future<List<BudgetModel>> fetchBudgets() async {
+  static String? lastCategoryError;
+
+  static Future<CategoryModel?> createCategory({
+    required String name,
+    String type = 'expense',
+    String? icon,
+  }) async {
+    lastCategoryError = null;
     try {
-      final response = await http.get(Uri.parse('$baseUrl/budgets'), headers: headers);
+      final response = await http.post(
+        Uri.parse('$baseUrl/categories'),
+        headers: headers,
+        body: json.encode({
+          'name': name,
+          'type': type,
+          if (icon != null) 'icon': icon,
+        }),
+      );
+      final body = json.decode(response.body);
+      if (response.statusCode == 201) {
+        return CategoryModel.fromJson(body['data']);
+      }
+      lastCategoryError = body['message']?.toString();
+    } catch (e) {
+      lastCategoryError = 'Gagal menambahkan kategori. Periksa koneksi ke server.';
+      if (kDebugMode) {
+        debugPrint('API Error createCategory: $e');
+      }
+    }
+    return null;
+  }
+
+  static Future<bool> updateCategory(
+    String id, {
+    String? name,
+    String? type,
+    String? icon,
+  }) async {
+    lastCategoryError = null;
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/categories/$id'),
+        headers: headers,
+        body: json.encode({
+          if (name != null) 'name': name,
+          if (type != null) 'type': type,
+          if (icon != null) 'icon': icon,
+        }),
+      );
+      if (response.statusCode == 200) return true;
+      final body = json.decode(response.body);
+      lastCategoryError = body['message']?.toString();
+    } catch (e) {
+      lastCategoryError = 'Gagal menyimpan kategori. Periksa koneksi ke server.';
+      if (kDebugMode) {
+        debugPrint('API Error updateCategory: $e');
+      }
+    }
+    return false;
+  }
+
+  static Future<bool> deleteCategory(String id) async {
+    lastCategoryError = null;
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/categories/$id'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) return true;
+      final body = json.decode(response.body);
+      lastCategoryError = body['message']?.toString();
+    } catch (e) {
+      lastCategoryError = 'Gagal menghapus kategori. Periksa koneksi ke server.';
+      if (kDebugMode) {
+        debugPrint('API Error deleteCategory: $e');
+      }
+    }
+    return false;
+  }
+
+  /// Mengembalikan `null` bila request gagal, sehingga pemanggil bisa
+  /// mempertahankan data terakhir alih-alih mereset tampilan ke kosong.
+  static Future<List<BudgetModel>?> fetchBudgets({int? month, int? year}) async {
+    try {
+      final query = <String, String>{
+        if (month != null) 'month': '$month',
+        if (year != null) 'year': '$year',
+      };
+      final uri = Uri.parse('$baseUrl/budgets').replace(
+        queryParameters: query.isEmpty ? null : query,
+      );
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 401) lastAuthFailed = true;
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = json.decode(response.body);
-        final List<dynamic> list = body['data'];
+        final List<dynamic> list = body['data'] ?? [];
         return list.map((e) => BudgetModel.fromJson(e)).toList();
       }
     } catch (e) {
@@ -134,9 +339,54 @@ class ApiService {
         debugPrint('API Error fetchBudgets: $e');
       }
     }
-    return [
-      BudgetModel(id: 'bg-001', categoryId: 'cat-exp-1', categoryName: 'Makanan & Minuman', limitAmount: 3000000, spentAmount: 125000, percentage: 4.17),
-    ];
+    return null;
+  }
+
+  static Future<bool> addBudget(Map<String, dynamic> payload) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/budgets'),
+        headers: headers,
+        body: json.encode(payload),
+      );
+      return response.statusCode == 201;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('API Error addBudget: $e');
+      }
+      return false;
+    }
+  }
+
+  static Future<bool> updateBudget(String id, {required int amount}) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/budgets/$id'),
+        headers: headers,
+        body: json.encode({'amount': amount}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('API Error updateBudget: $e');
+      }
+      return false;
+    }
+  }
+
+  static Future<bool> deleteBudget(String id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/budgets/$id'),
+        headers: headers,
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('API Error deleteBudget: $e');
+      }
+      return false;
+    }
   }
 
   // ================= GOALS (OFFLINE-FIRST DENGAN LOCAL STORAGE & SYNC API) =================
@@ -496,6 +746,21 @@ class ApiService {
     return true;
   }
 
+  // ================= USERS (ADMIN) =================
+  static Future<List<Map<String, dynamic>>> fetchUsers() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/users'), headers: headers);
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = json.decode(response.body);
+        final List<dynamic> list = body['data'] ?? [];
+        return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error fetchUsers: $e');
+    }
+    return [];
+  }
+
   // ================= INCOME SOURCES =================
   static Future<List<Map<String, dynamic>>> fetchIncomeSources() async {
     try {
@@ -508,11 +773,7 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) debugPrint('API Error fetchIncomeSources: $e');
     }
-    return [
-      {'id': 1, 'source_name': 'Transfer Orang Tua'},
-      {'id': 2, 'source_name': 'Beasiswa KIP-K'},
-      {'id': 3, 'source_name': 'Gaji Magang / Freelance'},
-    ];
+    return [];
   }
 
   static Future<bool> addIncomeSource(String sourceName) async {
@@ -541,20 +802,7 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) debugPrint('API Error fetchAiInsights: $e');
     }
-    return [
-      {
-        'id': 1,
-        'insight_type': 'spending_habit',
-        'content': 'Pengeluaran nongkrong/kopi minggu ini mencapai Rp 185.000. Coba kurangi 1 gelas seminggu untuk hemat Rp 80.000.',
-        'created_at': DateTime.now().toIso8601String()
-      },
-      {
-        'id': 2,
-        'insight_type': 'saving_streak',
-        'content': 'Hebat! Anda konsisten menabung selama 3 minggu berturut-turut untuk target Dana Darurat.',
-        'created_at': DateTime.now().toIso8601String()
-      }
-    ];
+    return [];
   }
 
   // ================= REPORTS =================
@@ -569,15 +817,7 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) debugPrint('API Error fetchReports: $e');
     }
-    return [
-      {
-        'id': 1,
-        'title': 'Laporan Arus Kas Oktober 2026',
-        'report_type': 'monthly',
-        'period_start': '2026-10-01',
-        'period_end': '2026-10-31'
-      }
-    ];
+    return [];
   }
 
   // ================= SETTINGS =================
@@ -617,13 +857,14 @@ class ApiService {
   static Future<Map<String, dynamic>> fetchWallets() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/wallets'), headers: headers);
+      if (response.statusCode == 401) lastAuthFailed = true;
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('API Error fetchWallets: $e');
     }
-    return {'success': false, 'data': [], 'totalBalance': 2450000};
+    return {'success': false, 'data': [], 'totalBalance': 0};
   }
 
   static Future<Map<String, dynamic>> adjustWalletBalance({
@@ -754,6 +995,36 @@ class ApiService {
       return {
         'success': false,
         'message': 'Gagal memperbarui sandi ke server backend.',
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/auth/change-password'),
+            headers: headers,
+            body: json.encode({
+              'currentPassword': currentPassword,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 8));
+
+      final body = json.decode(response.body);
+      return {
+        'success': response.statusCode == 200,
+        'message': body['message'] ?? 'Kata sandi berhasil diperbarui.',
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error changePassword: $e');
+      return {
+        'success': false,
+        'message': 'Gagal menghubungi server untuk mengubah kata sandi.',
       };
     }
   }

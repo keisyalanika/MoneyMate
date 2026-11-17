@@ -41,7 +41,7 @@ export function useSetUserStatus() {
       userService.setStatus(id, status),
     onSuccess: (user) => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });
-      toast(`Status ${user.name} diubah menjadi ${user.status}`, "success");
+      toast(`Status pengguna diubah menjadi ${user.status}`, "success");
     },
     onError: (error: Error) => toast(error.message, "error"),
   });

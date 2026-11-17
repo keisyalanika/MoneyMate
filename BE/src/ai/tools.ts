@@ -115,6 +115,51 @@ function numberArg(value: unknown): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/** Tebak nama kategori dari teks bebas, memakai kategori yang benar-benar ada di DB. */
+export async function guessCategoryName(
+  text: string,
+  type: TransactionType = "expense"
+): Promise<string | undefined> {
+  const list = await categoryRepository.findAll(type);
+  if (list.length === 0) return undefined;
+
+  const lowered = text.toLowerCase();
+  const synonyms: Record<string, string[]> = {
+    makanan: ["makan", "minum", "kopi", "jajan", "kantin", "resto"],
+    transportasi: ["transport", "ojek", "bensin", "bus", "grab", "gojek", "parkir"],
+    belanja: ["belanja", "supermarket", "baju", "sepatu"],
+    tagihan: ["tagihan", "listrik", "kuota", "internet", "air"],
+    pendidikan: ["pendidikan", "buku", "kursus", "kuliah", "sekolah"],
+    hiburan: ["hiburan", "nonton", "game", "musik", "streaming"],
+    kesehatan: ["kesehatan", "obat", "dokter", "medis"],
+    laundry: ["laundry", "cuci"],
+    gaji: ["gaji", "upah", "honor"],
+    freelance: ["freelance", "proyek"],
+    beasiswa: ["beasiswa"],
+    investasi: ["investasi", "saham", "reksadana"],
+  };
+
+  for (const category of list) {
+    const name = category.name.toLowerCase();
+    for (const [target, words] of Object.entries(synonyms)) {
+      if (name.includes(target) && words.some((word) => lowered.includes(word))) {
+        return category.name;
+      }
+    }
+  }
+
+  const tokenMatch = list.find((category) =>
+    category.name
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .some((token) => token.length > 2 && lowered.includes(token))
+  );
+  if (tokenMatch) return tokenMatch.name;
+
+  const fallback = list.find((category) => category.name.toLowerCase().includes("lain"));
+  return (fallback ?? list[0]).name;
+}
+
 export async function executeReadTool(
   name: string,
   userId: number,
@@ -252,6 +297,16 @@ export async function executeWriteTool(
     if (!amount || amount <= 0) throw AppError.badRequest("Target goal tidak valid.", "INVALID_TARGET");
     payload.target_amount = amount;
     payload.title = String(args.title ?? "Target baru");
+
+    const rawDeadline = String(args.deadline ?? "").trim();
+    const parsedDeadline = rawDeadline ? new Date(rawDeadline) : null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (parsedDeadline && !Number.isNaN(parsedDeadline.getTime()) && parsedDeadline >= today) {
+      payload.deadline = rawDeadline;
+    } else {
+      delete payload.deadline;
+    }
   }
 
   if (name === "propose_goal_fund") {

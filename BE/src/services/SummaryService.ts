@@ -10,6 +10,10 @@ export class SummaryService {
   getAdminSummary() {
     return this.summary.adminSummary();
   }
+
+  getAdminDashboard() {
+    return this.summary.adminDashboard();
+  }
 }
 
 export const summaryService = new SummaryService();

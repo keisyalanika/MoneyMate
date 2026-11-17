@@ -110,6 +110,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
         return Icons.savings;
       case 'diamond':
         return Icons.diamond;
+      case 'education':
+        return Icons.school;
       default:
         return Icons.flag;
     }

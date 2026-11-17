@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_PROMPT } from "./prompts";
 import { TOOL_DECLARATIONS } from "./tools";
 
-export const geminiModel = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+export const geminiModel = process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite";
 
 export function isGeminiEnabled(): boolean {
   return Boolean(process.env.GEMINI_API_KEY) && process.env.AI_MOCK !== "true";
@@ -22,6 +22,14 @@ export async function runGemini(params: {
   if (!apiKey) throw new Error("GEMINI_API_KEY belum diset");
 
   const ai = new GoogleGenAI({ apiKey });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const systemInstruction = `${SYSTEM_PROMPT}
+
+INFORMASI KONTEKS:
+- Tanggal hari ini: ${today}.
+- Saat pengguna menyebut durasi relatif (misal "6 bulan", "2 tahun"), hitung deadline dari tanggal hari ini.
+- Jangan pernah membuat deadline di masa lalu.`;
 
   const contents: any[] = params.history
     .filter((item) => item.role === "user" || item.role === "assistant")
@@ -47,7 +55,7 @@ export async function runGemini(params: {
       model: geminiModel,
       contents,
       config: {
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction,
         tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
         temperature: 0.4,
         maxOutputTokens: 700,

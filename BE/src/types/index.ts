@@ -32,6 +32,7 @@ export interface Category {
   name: string;
   type: TransactionType;
   icon: string;
+  usage: number;
   created_at: Date;
 }
 
@@ -130,9 +131,21 @@ export interface AiInsight {
 export interface Notification {
   id: number;
   user_id: number;
+  campaign_id?: number;
   title: string;
   message?: string;
   is_read: DbBool;
+  created_at: Date;
+}
+
+export interface NotificationCampaign {
+  id: number;
+  admin_id: number;
+  title: string;
+  message?: string;
+  type: string;
+  audience: string;
+  recipient_count: number;
   created_at: Date;
 }
 

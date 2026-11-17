@@ -37,7 +37,10 @@ class AiChatService {
     return null;
   }
 
+  static String? lastActionError;
+
   static Future<bool> resolveAction(int proposalId, {required bool confirm}) async {
+    lastActionError = null;
     try {
       final path = confirm ? 'confirm' : 'cancel';
       final response = await http
@@ -47,8 +50,18 @@ class AiChatService {
           )
           .timeout(const Duration(seconds: 15));
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) return true;
+
+      try {
+        final body = json.decode(response.body) as Map<String, dynamic>;
+        lastActionError = body['message']?.toString();
+      } catch (_) {}
+      if (kDebugMode) {
+        debugPrint('AI action gagal (${response.statusCode}): ${response.body}');
+      }
+      return false;
     } catch (error) {
+      lastActionError = 'Tidak bisa menghubungi server AI. Periksa koneksi.';
       if (kDebugMode) debugPrint('AI action error: $error');
       return false;
     }

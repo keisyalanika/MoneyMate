@@ -1,10 +1,11 @@
-import { walletRepository } from '../repositories';
+import { categoryRepository, walletRepository } from '../repositories';
 import { TransactionService, transactionService } from './TransactionService';
 
 export class WalletService {
   constructor(
     private readonly wallets = walletRepository,
-    private readonly transactions: TransactionService = transactionService
+    private readonly transactions: TransactionService = transactionService,
+    private readonly categories = categoryRepository
   ) {}
 
   async getWallets(userId: number) {
@@ -19,18 +20,48 @@ export class WalletService {
     return this.wallets.findById(id);
   }
 
-  createWallet(data: {
+  async createWallet(data: {
     user_id: number;
     name: string;
     balance?: number;
     currency?: string;
     is_default?: boolean;
   }) {
-    return this.wallets.create(data);
+    const balance = Number(data.balance ?? 0);
+    const wallet = await this.wallets.create({ ...data, balance });
+
+    if (balance > 0) {
+      await this.transactions.recordSystemTransaction({
+        user_id: data.user_id,
+        type: 'income',
+        amount: balance,
+        note: 'Saldo awal dompet',
+      });
+    }
+
+    return wallet;
   }
 
-  updateWallet(id: number, data: { name?: string; balance?: number; currency?: string }) {
-    return this.wallets.update(id, data);
+  async updateWallet(id: number, data: { name?: string; balance?: number; currency?: string }) {
+    const existing = await this.wallets.findById(id);
+    if (!existing) return null;
+
+    const updated = await this.wallets.update(id, data);
+    if (!updated) return null;
+
+    if (data.balance !== undefined) {
+      const delta = Number(data.balance) - existing.balance;
+      if (Math.abs(delta) > 0.01) {
+        await this.transactions.recordSystemTransaction({
+          user_id: existing.user_id,
+          type: delta > 0 ? 'income' : 'expense',
+          amount: Math.abs(delta),
+          note: 'Penyesuaian saldo dompet',
+        });
+      }
+    }
+
+    return updated;
   }
 
   deleteWallet(id: number) {
@@ -51,29 +82,28 @@ export class WalletService {
         wallet = await this.wallets.create({
           user_id: userId,
           name: 'Dompet Utama',
-          balance: 2450000,
+          balance: 0,
           is_default: true,
         });
       }
     }
 
     walletId = wallet.id;
-    const currentBalance = wallet.balance;
     const amount = Number(adjustment.amount) || 0;
     const isAdd = adjustment.type === 'add';
-    const newBalance = isAdd
-      ? currentBalance + amount
-      : Math.max(0, currentBalance - amount);
-
-    await this.wallets.setBalance(walletId, newBalance);
 
     try {
+      const categoryType = isAdd ? 'income' : 'expense';
+      const categories = await this.categories.findAll(categoryType);
+      const fallbackCategory =
+        categories.find((item) => item.name.toLowerCase().includes('lain')) ?? categories[0];
+
       await this.transactions.createTransaction({
         user_id: userId,
         wallet_id: walletId,
-        type: isAdd ? 'income' : 'expense',
+        type: categoryType,
         amount,
-        category_id: isAdd ? 6 : 14,
+        category_id: fallbackCategory?.id ?? 1,
         date: new Date().toISOString().slice(0, 10),
         note:
           adjustment.note ||
@@ -83,25 +113,53 @@ export class WalletService {
       });
     } catch (error) {
       console.warn('[Wallet] Could not log adjustment transaction:', (error as Error).message);
+      const newBalance = isAdd
+        ? wallet.balance + amount
+        : Math.max(0, wallet.balance - amount);
+      await this.wallets.setBalance(walletId, newBalance);
     }
 
     return this.wallets.findById(walletId);
   }
 
   async setupInitialBalance(userId: number, initialBalance: number, walletName = 'Dompet Utama') {
+    const balance = Number(initialBalance) || 0;
     const wallets = await this.wallets.findByUser(userId);
+
     if (wallets.length > 0) {
       const defaultWallet = wallets.find((wallet) => wallet.is_default === 1) ?? wallets[0];
-      await this.wallets.setBalance(defaultWallet.id, initialBalance);
+      const delta = balance - defaultWallet.balance;
+      await this.wallets.setBalance(defaultWallet.id, balance);
+
+      if (Math.abs(delta) > 0.01) {
+        await this.transactions.recordSystemTransaction({
+          user_id: userId,
+          type: delta > 0 ? 'income' : 'expense',
+          amount: Math.abs(delta),
+          note: 'Saldo awal / penyesuaian dompet',
+        });
+      }
+
       return this.wallets.findById(defaultWallet.id);
     }
 
-    return this.wallets.create({
+    const wallet = await this.wallets.create({
       user_id: userId,
       name: walletName,
-      balance: initialBalance,
+      balance,
       is_default: true,
     });
+
+    if (balance > 0) {
+      await this.transactions.recordSystemTransaction({
+        user_id: userId,
+        type: 'income',
+        amount: balance,
+        note: 'Saldo awal dompet',
+      });
+    }
+
+    return wallet;
   }
 }
 

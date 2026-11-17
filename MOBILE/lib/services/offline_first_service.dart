@@ -28,6 +28,10 @@ class OfflineFirstService {
       final apiTransactions = await ApiService.fetchTransactions();
       final now = DateTime.now().millisecondsSinceEpoch;
 
+      // Hapus sisa data demo lama agar tidak muncul lagi di cache.
+      await _db.deleteTransaction('tx-001');
+      await _db.deleteTransaction('tx-002');
+
       final cachedList = apiTransactions.map((tx) => CachedTransaction(
             id: tx.id,
             title: tx.title,
@@ -75,6 +79,7 @@ class OfflineFirstService {
   Future<void> syncBudgets() async {
     try {
       final apiBudgets = await ApiService.fetchBudgets();
+      if (apiBudgets == null) return;
       final now = DateTime.now().millisecondsSinceEpoch;
 
       final cachedList = apiBudgets.map((b) => CachedBudget(
@@ -98,6 +103,7 @@ class OfflineFirstService {
   Future<void> syncSummary() async {
     try {
       final summary = await ApiService.fetchSummary();
+      if (!ApiService.lastSummaryOk) return;
       await _prefs.saveSaldoSnapshot((summary['totalBalance'] ?? 0).toDouble());
       await _prefs.saveIncomeSnapshot((summary['totalIncome'] ?? 0).toDouble());
       await _prefs.saveExpenseSnapshot((summary['totalExpense'] ?? 0).toDouble());

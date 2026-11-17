@@ -96,6 +96,8 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         return Icons.savings;
       case 'diamond':
         return Icons.diamond;
+      case 'education':
+        return Icons.school;
       default:
         return Icons.laptop_mac;
     }
@@ -147,6 +149,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     if (icon == Icons.home) return 'home';
     if (icon == Icons.savings) return 'savings';
     if (icon == Icons.diamond) return 'diamond';
+    if (icon == Icons.school) return 'education';
     return 'flag';
   }
 

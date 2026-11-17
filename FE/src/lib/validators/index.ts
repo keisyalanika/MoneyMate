@@ -10,6 +10,7 @@ export const userSchema = z.object({
   name: z.string().min(3, "Nama minimal 3 karakter"),
   email: z.email("Email tidak valid"),
   phone: z.string().min(9, "Nomor telepon minimal 9 digit").optional().or(z.literal("")),
+  password: z.string().min(6, "Kata sandi minimal 6 karakter"),
   status: z.enum(["Aktif", "Nonaktif"]),
 });
 export type UserInput = z.infer<typeof userSchema>;
@@ -22,7 +23,7 @@ export const categorySchema = z.object({
 export type CategoryInput = z.infer<typeof categorySchema>;
 
 export const notificationSchema = z.object({
-  audience: z.enum(["Semua pengguna", "Pengguna terpilih", "Pengguna baru"]),
+  audience: z.enum(["Semua pengguna", "Pengguna aktif", "Pengguna baru"]),
   title: z.string().min(3, "Judul minimal 3 karakter"),
   message: z.string().min(10, "Pesan minimal 10 karakter"),
   type: z.enum(["Info", "Peringatan", "Promo"]),

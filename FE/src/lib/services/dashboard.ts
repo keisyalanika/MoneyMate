@@ -1,12 +1,5 @@
-import {
-  categoryUsage,
-  dashboardStats,
-  latestUsers,
-  userGrowth,
-} from "@/lib/mock";
-import type { CategoryUsage, DashboardStats, UserGrowthPoint, AdminUser } from "@/types";
-
-const delay = (ms = 260) => new Promise((resolve) => setTimeout(resolve, ms));
+import { apiRequest } from "@/lib/api";
+import type { AdminUser, CategoryUsage, DashboardStats, UserGrowthPoint } from "@/types";
 
 export interface DashboardPayload {
   stats: DashboardStats;
@@ -17,12 +10,6 @@ export interface DashboardPayload {
 
 export const dashboardService = {
   async get(): Promise<DashboardPayload> {
-    await delay();
-    return {
-      stats: dashboardStats,
-      distribution: categoryUsage,
-      growth: userGrowth,
-      latest: latestUsers,
-    };
+    return apiRequest<DashboardPayload>("admin/dashboard");
   },
 };

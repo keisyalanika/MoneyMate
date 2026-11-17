@@ -112,12 +112,12 @@ export default function UsersPage() {
 
   const form = useForm<UserInput>({
     resolver: zodResolver(userSchema),
-    defaultValues: { name: "", email: "", phone: "", status: "Aktif" },
+    defaultValues: { name: "", email: "", phone: "", password: "", status: "Aktif" },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
     await createUser.mutateAsync(values);
-    form.reset({ name: "", email: "", phone: "", status: "Aktif" });
+    form.reset({ name: "", email: "", phone: "", password: "", status: "Aktif" });
     setOpen(false);
   });
 
@@ -125,7 +125,7 @@ export default function UsersPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title="Daftar Pengguna"
-        subtitle="1.248 akun terdaftar di MoneyMate"
+        subtitle={`${data.length} akun ditampilkan${status !== "all" ? ` · filter ${status}` : ""}`}
         action={
           <DialogTrigger isOpen={open} onOpenChange={setOpen}>
             <Button className="h-10 gap-1.5 rounded-[10px] bg-brand px-3.5 text-xs font-bold text-[#FFF7F2] hover:bg-brand/90">
@@ -160,6 +160,14 @@ export default function UsersPage() {
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[11px] font-semibold text-ink">Nomor telepon</Label>
                   <Input {...form.register("phone")} placeholder="0812-3456-7890" aria-label="Nomor telepon" className="h-10 rounded-[10px] border-line bg-field text-xs" />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-[11px] font-semibold text-ink">Kata sandi awal</Label>
+                  <Input {...form.register("password")} type="password" placeholder="Minimal 6 karakter" aria-label="Kata sandi awal" className="h-10 rounded-[10px] border-line bg-field text-xs" />
+                  {form.formState.errors.password && (
+                    <span className="text-[10px] text-bad">{form.formState.errors.password.message}</span>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">

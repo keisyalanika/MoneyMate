@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { auditService, userService } from '../services';
+import { auditService, notificationService, summaryService, userService } from '../services';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../errors/AppError';
@@ -8,12 +8,20 @@ import { AppBaseResponse } from '../responses/AppBaseResponse';
 export class AdminController {
   constructor(
     private readonly users = userService,
-    private readonly audits = auditService
+    private readonly audits = auditService,
+    private readonly summary = summaryService,
+    private readonly notifications = notificationService
   ) {}
+
+  // ---- GET admin dashboard ----
+  getDashboard = asyncHandler(async (_req: AuthRequest, res: Response) => {
+    const dashboard = await this.summary.getAdminDashboard();
+    return AppBaseResponse.success(res, dashboard);
+  });
 
   // ---- GET all users (admin) ----
   getAllUsers = asyncHandler(async (_req: AuthRequest, res: Response) => {
-    const users = await this.users.getAllUsers();
+    const users = (await this.users.getAllUsers()).filter((user) => user.role === 'student');
     return AppBaseResponse.success(res, users);
   });
 
@@ -62,6 +70,56 @@ export class AdminController {
     });
 
     return AppBaseResponse.deleted(res, 'User deleted successfully');
+  });
+
+  // ---- GET notification campaigns ----
+  getCampaigns = asyncHandler(async (_req: AuthRequest, res: Response) => {
+    const list = await this.notifications.listCampaigns();
+    return AppBaseResponse.success(res, list);
+  });
+
+  // ---- SEND notification campaign ----
+  sendCampaign = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { title, message, type, audience } = req.body;
+    if (!title) {
+      throw AppError.badRequest('title is required', 'VALIDATION_ERROR');
+    }
+
+    const created = await this.notifications.broadcast({
+      admin_id: req.user!.id,
+      title,
+      message,
+      type,
+      audience,
+    });
+
+    await this.audits.logAction({
+      admin_id: req.user!.id,
+      action: 'SEND_NOTIFICATION',
+      target_table: 'notification_campaigns',
+      target_id: created.id,
+      description: `Mengirim notifikasi "${title}" ke ${created.audience} (${created.recipient_count} pengguna)`,
+    });
+
+    return AppBaseResponse.created(res, created, 'Notifikasi berhasil dikirim');
+  });
+
+  // ---- DELETE notification campaign ----
+  deleteCampaign = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const deleted = await this.notifications.deleteCampaign(Number(req.params.id));
+    if (!deleted) {
+      throw AppError.notFound('Notifikasi tidak ditemukan', 'CAMPAIGN_NOT_FOUND');
+    }
+
+    await this.audits.logAction({
+      admin_id: req.user!.id,
+      action: 'DELETE_NOTIFICATION',
+      target_table: 'notification_campaigns',
+      target_id: Number(req.params.id),
+      description: `Menghapus riwayat notifikasi #${req.params.id}`,
+    });
+
+    return AppBaseResponse.deleted(res, 'Notifikasi berhasil dihapus');
   });
 
   // ---- GET audit logs (admin) ----

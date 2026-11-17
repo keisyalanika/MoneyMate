@@ -114,7 +114,7 @@ void showPasswordResetSuccessModal(BuildContext context) {
                   ),
                   SizedBox(width: 6),
                   Text(
-                    'Hari ini, 14:32 WIB • Perangkat: iPhone 15',
+                    'Keamanan akun berhasil diperbarui di perangkat ini.',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,

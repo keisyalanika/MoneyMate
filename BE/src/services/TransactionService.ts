@@ -1,5 +1,6 @@
 import {
   budgetRepository,
+  categoryRepository,
   notificationRepository,
   transactionRepository,
   walletRepository,
@@ -16,8 +17,52 @@ export class TransactionService {
     private readonly transactions = transactionRepository,
     private readonly wallets = walletRepository,
     private readonly budgets = budgetRepository,
-    private readonly notifications = notificationRepository
+    private readonly notifications = notificationRepository,
+    private readonly categories = categoryRepository
   ) {}
+
+  async resolveCategoryId(categoryName?: string, type: string = 'expense'): Promise<number | undefined> {
+    const name = categoryName?.trim();
+    if (!name) return undefined;
+
+    const list = await this.categories.findAll(type as TransactionType);
+    const normalized = name.toLowerCase();
+    const match =
+      list.find((item) => item.name.toLowerCase() === normalized) ??
+      list.find((item) => item.name.toLowerCase().includes(normalized) || normalized.includes(item.name.toLowerCase()));
+    return match?.id;
+  }
+
+  /**
+   * Mencatat transaksi penyesuaian (saldo awal / perubahan saldo manual)
+   * TANPA menyentuh saldo dompet, karena saldo sudah diubah oleh pemanggil.
+   */
+  async recordSystemTransaction(data: {
+    user_id: number;
+    type: TransactionType;
+    amount: number;
+    note?: string;
+    date?: string;
+  }) {
+    const amount = Number(data.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+
+    const list = await this.categories.findAll(data.type);
+    const category =
+      list.find((item) => item.name.toLowerCase().includes('lain')) ?? list[0];
+    if (!category) return null;
+
+    const id = await this.transactions.create({
+      user_id: data.user_id,
+      type: data.type,
+      amount,
+      category_id: category.id,
+      date: data.date ?? new Date().toISOString().slice(0, 10),
+      note: data.note ?? null,
+    });
+
+    return this.transactions.findById(id);
+  }
 
   getAllTransactions(filters: {
     user_id?: number;
@@ -61,7 +106,7 @@ export class TransactionService {
       receipt_image_url: data.receipt_image_url ?? null,
     });
 
-    await this.syncWalletBalance(data.user_id, data.type, Number(data.amount));
+    await this.syncWalletBalance(data.user_id, data.type, Number(data.amount), true, data.wallet_id);
     await this.notifyBudgetThreshold(data);
 
     return this.transactions.findById(id);
@@ -77,26 +122,39 @@ export class TransactionService {
       note?: string;
     }
   ) {
-    return this.transactions.update(id, {
+    const existing = await this.transactions.findById(id);
+    if (!existing) return null;
+
+    const updated = await this.transactions.update(id, {
       type: data.type as TransactionType | undefined,
       amount: data.amount,
       category_id: data.category_id,
       date: data.date,
       note: data.note,
     });
+    if (!updated) return null;
+
+    const oldDelta =
+      existing.type?.toLowerCase() === 'income' ? Number(existing.amount) : -Number(existing.amount);
+    const newDelta =
+      updated.type?.toLowerCase() === 'income' ? Number(updated.amount) : -Number(updated.amount);
+    const delta = newDelta - oldDelta;
+
+    if (delta !== 0) {
+      await this.applyWalletDelta(existing.user_id, delta);
+    }
+
+    return updated;
   }
 
   async deleteTransaction(id: number) {
     const transaction = await this.transactions.findById(id);
     if (transaction) {
-      const isIncome = transaction.type?.toLowerCase() === 'income';
-      const reverseDelta = isIncome ? -Number(transaction.amount) : Number(transaction.amount);
-      await this.syncWalletBalance(
-        transaction.user_id,
-        isIncome ? 'expense' : 'income',
-        Math.abs(reverseDelta),
-        false
-      );
+      const oldDelta =
+        transaction.type?.toLowerCase() === 'income'
+          ? Number(transaction.amount)
+          : -Number(transaction.amount);
+      await this.applyWalletDelta(transaction.user_id, -oldDelta);
     }
 
     return this.transactions.remove(id);
@@ -115,22 +173,35 @@ export class TransactionService {
     userId: number,
     type: string,
     amount: number,
-    createIfMissing = true
+    createIfMissing = true,
+    walletId?: number
   ) {
     const isIncome = type.toLowerCase() === 'income';
     const delta = isIncome ? amount : -amount;
+    await this.applyWalletDelta(userId, delta, { createIfMissing, walletId });
+  }
+
+  /** Menerapkan perubahan saldo (positif/negatif) ke satu dompet user. */
+  private async applyWalletDelta(
+    userId: number,
+    delta: number,
+    options: { createIfMissing?: boolean; walletId?: number } = {}
+  ) {
+    const { createIfMissing = true, walletId } = options;
 
     try {
       const wallets = await this.wallets.findByUser(userId);
-      if (wallets.length > 0) {
-        const currentBalance = wallets[0].balance;
-        const newBalance = Math.max(0, currentBalance + delta);
-        await this.wallets.setBalance(wallets[0].id, newBalance);
-      } else if (createIfMissing) {
+      let wallet = walletId != null ? wallets.find((item) => item.id === walletId) : undefined;
+      wallet ??= wallets[0];
+
+      if (wallet) {
+        const newBalance = Math.max(0, wallet.balance + delta);
+        await this.wallets.setBalance(wallet.id, newBalance);
+      } else if (createIfMissing && delta > 0) {
         await this.wallets.create({
           user_id: userId,
           name: 'Dompet Utama',
-          balance: isIncome ? amount : 0,
+          balance: delta,
           currency: 'IDR',
           is_default: true,
         });

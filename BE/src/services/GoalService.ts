@@ -1,6 +1,9 @@
 import { BaseRepository, goalRepository } from '../repositories';
 import { GoalRepository } from '../repositories/GoalRepository';
 import { NotificationRepository } from '../repositories/NotificationRepository';
+import { TransactionRepository } from '../repositories/TransactionRepository';
+import { CategoryRepository } from '../repositories/CategoryRepository';
+import { DbClient } from '../repositories/base/BaseRepository';
 import { AppError } from '../errors/AppError';
 
 interface FundInput {
@@ -58,7 +61,7 @@ export class GoalService {
           amount: initialDeposit,
           note: 'Setoran awal goal',
           wallet_id: data.wallet_id,
-        });
+        }, tx);
       }
 
       return id;
@@ -106,7 +109,7 @@ export class GoalService {
 
   addFund(data: FundInput) {
     return BaseRepository.runInTransaction(async (tx) =>
-      this.applyFund(new GoalRepository(tx), new NotificationRepository(tx), data)
+      this.applyFund(new GoalRepository(tx), new NotificationRepository(tx), data, tx)
     );
   }
 
@@ -123,7 +126,8 @@ export class GoalService {
   private async applyFund(
     goals: GoalRepository,
     notifications: NotificationRepository,
-    data: FundInput
+    data: FundInput,
+    tx?: DbClient
   ) {
     const amount = Number(data.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -172,6 +176,28 @@ export class GoalService {
       if (deduction > 0) {
         await goals.deductWalletBalance(wallet.id, data.user_id, deduction);
         remaining -= deduction;
+      }
+    }
+
+    // Catat setoran sebagai transaksi agar riwayat dan saldo tetap sinkron.
+    if (tx) {
+      try {
+        const categories = await new CategoryRepository(tx).findAll('expense');
+        const category =
+          categories.find((item) => item.name.toLowerCase().includes('lain')) ?? categories[0];
+
+        if (category) {
+          await new TransactionRepository(tx).create({
+            user_id: data.user_id,
+            type: 'expense',
+            amount,
+            category_id: category.id,
+            date: new Date().toISOString().slice(0, 10),
+            note: `Setoran goal: ${goal.title}`,
+          });
+        }
+      } catch (error) {
+        console.warn('[Goal] Gagal mencatat transaksi setoran goal:', (error as Error).message);
       }
     }
 

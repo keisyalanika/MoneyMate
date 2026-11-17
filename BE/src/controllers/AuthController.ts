@@ -51,6 +51,7 @@ export class AuthController {
       nickname: user.name ? user.name.split(' ')[0] : '',
       email: user.email,
       phone: user.phone || '',
+      avatar_url: user.avatar_url || '',
       role: user.role,
       token: generateToken(String(user.id), user.role),
     });
@@ -154,26 +155,23 @@ export class AuthController {
     const normalizedEmail = email.trim().toLowerCase();
     const stored = otpStore[normalizedEmail];
 
-    const isDemoOtp = otp === '123456' || otp === '937100';
-    if (!isDemoOtp) {
-      if (!stored) {
-        throw AppError.badRequest(
-          'Kode OTP tidak ditemukan atau sudah kedaluwarsa. Silakan minta kode baru.',
-          'OTP_NOT_FOUND'
-        );
-      }
+    if (!stored) {
+      throw AppError.badRequest(
+        'Kode OTP tidak ditemukan atau sudah kedaluwarsa. Silakan minta kode baru.',
+        'OTP_NOT_FOUND'
+      );
+    }
 
-      if (Date.now() > stored.expiresAt) {
-        delete otpStore[normalizedEmail];
-        throw AppError.badRequest(
-          'Kode OTP telah kedaluwarsa. Silakan minta kode baru.',
-          'OTP_EXPIRED'
-        );
-      }
+    if (Date.now() > stored.expiresAt) {
+      delete otpStore[normalizedEmail];
+      throw AppError.badRequest(
+        'Kode OTP telah kedaluwarsa. Silakan minta kode baru.',
+        'OTP_EXPIRED'
+      );
+    }
 
-      if (stored.otp !== otp.trim()) {
-        throw AppError.badRequest('Kode OTP yang Anda masukkan salah', 'OTP_INVALID');
-      }
+    if (stored.otp !== otp.trim()) {
+      throw AppError.badRequest('Kode OTP yang Anda masukkan salah', 'OTP_INVALID');
     }
 
     return AppBaseResponse.raw(res, {
@@ -196,17 +194,14 @@ export class AuthController {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await this.users.getUserByEmail(normalizedEmail);
     if (!user) {
-      const defaultName = normalizedEmail.split('@')[0];
-      await this.users.createUser({
-        name: defaultName,
-        email: normalizedEmail,
-        password: newPassword,
-      });
-      console.log(`[AUTH] User baru otomatis dibuat untuk ${normalizedEmail}`);
-    } else {
-      await this.users.changePassword(user.id, newPassword);
-      console.log(`[AUTH] Kata sandi berhasil diperbarui untuk ${normalizedEmail}`);
+      throw AppError.notFound(
+        'Akun dengan email tersebut tidak ditemukan.',
+        'USER_NOT_FOUND'
+      );
     }
+
+    await this.users.changePassword(user.id, newPassword);
+    console.log(`[AUTH] Kata sandi berhasil diperbarui untuk ${normalizedEmail}`);
 
     delete otpStore[normalizedEmail];
 

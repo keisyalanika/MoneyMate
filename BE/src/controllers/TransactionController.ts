@@ -38,13 +38,21 @@ export class TransactionController {
 
   // ---- CREATE transaction ----
   addTransaction = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { type, amount, category_id, income_source_id, date, note, receipt_image_url } = req.body;
+    const { type, amount, category_id, category_name, income_source_id, date, note, receipt_image_url } =
+      req.body;
     if (!amount) {
       throw AppError.badRequest('amount is required', 'VALIDATION_ERROR');
     }
 
     const txType = (type || 'expense').toLowerCase();
     let catId = Number(category_id);
+
+    const resolvedCategoryId = await this.transactions.resolveCategoryId(
+      category_name ? String(category_name) : undefined,
+      txType
+    );
+    if (resolvedCategoryId) catId = resolvedCategoryId;
+
     if (!catId || isNaN(catId)) {
       catId = txType === 'income' ? 8 : 1;
     }

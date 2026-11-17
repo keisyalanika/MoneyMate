@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/api_service.dart';
+import '../services/auth_provider.dart';
 
 class ConnectBankScreen extends StatefulWidget {
   final bool isNewUser; // True jika pengguna baru set saldo awal
@@ -14,13 +17,33 @@ class _ConnectBankScreenState extends State<ConnectBankScreen> {
   final TextEditingController _amountController = TextEditingController();
   String _selectedType = 'Tambah'; // 'Tambah' atau 'Kurang' (untuk user lama)
   String _selectedWallet = 'Dompet Utama';
+  int? _selectedWalletId;
+  List<Map<String, dynamic>> _wallets = [];
+  bool _isLoadingWallets = true;
+  bool _isSubmitting = false;
 
-  final List<String> _wallets = [
-    'Dompet Utama',
-    'Rekening Bank',
-    'E-Wallet',
-    'Tabungan'
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadWallets();
+  }
+
+  Future<void> _loadWallets() async {
+    final result = await ApiService.fetchWallets();
+    if (!mounted) return;
+    final list = (result['data'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    setState(() {
+      _wallets = list;
+      if (list.isNotEmpty) {
+        _selectedWalletId = list.first['id'] as int?;
+        _selectedWallet = (list.first['name'] ?? 'Dompet Utama').toString();
+      } else {
+        _selectedWalletId = null;
+        _selectedWallet = 'Dompet Utama';
+      }
+      _isLoadingWallets = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,17 +92,30 @@ class _ConnectBankScreenState extends State<ConnectBankScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                items: _wallets.map((wallet) {
-                  return DropdownMenuItem(
-                    value: wallet,
-                    child: Text(wallet),
+                items: (_wallets.isEmpty
+                        ? [
+                            {'id': null, 'name': 'Dompet Utama'}
+                          ]
+                        : _wallets)
+                    .map((wallet) {
+                  final name = (wallet['name'] ?? 'Dompet Utama').toString();
+                  return DropdownMenuItem<String>(
+                    value: name,
+                    child: Text(name),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedWallet = value!;
-                  });
-                },
+                onChanged: _isLoadingWallets
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _selectedWallet = value ?? 'Dompet Utama';
+                          final match = _wallets.cast<Map<String, dynamic>?>().firstWhere(
+                                (wallet) => wallet?['name'] == value,
+                                orElse: () => null,
+                              );
+                          _selectedWalletId = match?['id'] as int?;
+                        });
+                      },
               ),
               const SizedBox(height: 16),
 
@@ -145,34 +181,83 @@ class _ConnectBankScreenState extends State<ConnectBankScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      final amount = _amountController.text;
-                      final actionText = widget.isNewUser
-                          ? 'Saldo awal sebesar Rp $amount berhasil diatur!'
-                          : 'Saldo $_selectedWallet berhasil di${_selectedType.toLowerCase()}kan sebesar Rp $amount';
+                  onPressed: _isSubmitting
+                      ? null
+                      : () async {
+                          if (!_formKey.currentState!.validate()) return;
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(actionText)),
-                      );
+                          final amount = double.tryParse(
+                                _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                              ) ??
+                              0;
+                          if (amount <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Nominal saldo tidak valid.')),
+                            );
+                            return;
+                          }
 
-                      if (widget.isNewUser) {
-                        // Navigate ke Home / Dashboard
-                        Navigator.pushReplacementNamed(context, '/home');
-                      } else {
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
+                          setState(() => _isSubmitting = true);
+                          final auth = Provider.of<AuthProvider>(context, listen: false);
+                          bool success = false;
+                          String message = '';
+
+                          if (widget.isNewUser) {
+                            final result = await ApiService.setupInitialWalletBalance(amount);
+                            success = result['success'] == true;
+                            message = result['message']?.toString() ?? '';
+                          } else if (_selectedWalletId != null) {
+                            final result = await ApiService.adjustWalletBalance(
+                              walletId: _selectedWalletId!,
+                              type: _selectedType == 'Tambah' ? 'add' : 'subtract',
+                              amount: amount,
+                            );
+                            success = result['success'] == true;
+                            message = result['message']?.toString() ?? '';
+                          } else {
+                            final result = await ApiService.setupInitialWalletBalance(amount);
+                            success = result['success'] == true;
+                            message = result['message']?.toString() ?? '';
+                          }
+
+                          if (!mounted) return;
+                          setState(() => _isSubmitting = false);
+
+                          if (!success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  message.isNotEmpty
+                                      ? message
+                                      : 'Gagal menyimpan saldo. Periksa koneksi ke server.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          await auth.refreshFinance();
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Saldo berhasil disimpan.')),
+                          );
+                          Navigator.pop(context);
+                        },
                   style: ElevatedButton.styleFrom(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    widget.isNewUser ? 'Mulai Kelola Budget' : 'Simpan Saldo',
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          widget.isNewUser ? 'Mulai Kelola Budget' : 'Simpan Saldo',
+                          style: const TextStyle(fontSize: 16),
+                        ),
                 ),
               ),
             ],

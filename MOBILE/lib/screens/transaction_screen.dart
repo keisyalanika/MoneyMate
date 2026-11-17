@@ -5,7 +5,7 @@ import '../utils/theme.dart';
 import '../services/auth_provider.dart';
 import 'add_transaction_screen.dart';
 
-// Global state sementara untuk mensimulasikan penambahan transaksi
+// Notifier transaksi terakhir (dipakai untuk refresh daftar setelah tambah transaksi)
 final ValueNotifier<Map<String, dynamic>?> newTransactionNotifier = ValueNotifier(null);
 
 class TransactionScreen extends StatefulWidget {
@@ -17,8 +17,7 @@ class TransactionScreen extends StatefulWidget {
 }
 
 class _TransactionScreenState extends State<TransactionScreen> {
-  // Ganti ini menjadi 'true' jika ingin melihat daftar transaksi yang berisi data
-  bool hasData = false; 
+  bool hasData = false;
 
   @override
   void initState() {
@@ -89,17 +88,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: AppColors.textDark, size: 22),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune, color: AppColors.textDark, size: 22),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -107,31 +95,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const SizedBox(height: 16),
-            // Header Filters (Bulan Ini & Ekspor Data)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: AppColors.inputBorder),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primaryBrown),
-                      SizedBox(width: 6),
-                      Text('Bulan Ini', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                      SizedBox(width: 4),
-                      Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textDark),
-                    ],
-                  ),
-                ),
-
-              ],
-            ),
-            const SizedBox(height: 24),
             // Summary Box (Ringkasan Arus Kas)
             Container(
               padding: const EdgeInsets.all(16),
@@ -314,49 +277,22 @@ class _TransactionScreenState extends State<TransactionScreen> {
   // 2. TAMPILAN JIKA ADA TRANSAKSI (FILLED STATE)
   // ==========================================
   Widget _buildFilledState(BuildContext context, AuthProvider auth, Map<String, dynamic>? newTx) {
-    int totalIncome = 0;
-    int totalExpense = 0;
-    int txMasuk = 0;
-    int txKeluar = 0;
+    final txs = auth.transactions;
+    final totals = _sumByType(txs, txs.isEmpty ? newTx : null);
 
-    final dynamicTxs = auth.transactions;
-
-    if (dynamicTxs.isNotEmpty) {
-      for (final tx in dynamicTxs) {
-        final amt = (tx['amount'] is num)
-            ? (tx['amount'] as num).round()
-            : (double.tryParse(tx['amount']?.toString() ?? '0')?.round() ?? 0);
-        final bool isExp = tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
-        if (isExp) {
-          totalExpense += amt;
-          txKeluar++;
-        } else {
-          totalIncome += amt;
-          txMasuk++;
-        }
-      }
-    } else {
-      const int baseIncome = 8500000;
-      const int baseExpense = 3420000;
-      int newAmount = 0;
-      if (newTx != null) {
-        final raw = newTx['amount'].toString().replaceAll(RegExp(r'[^0-9]'), '');
-        newAmount = int.tryParse(raw) ?? 0;
-      }
-      totalIncome = newTx != null && !(newTx['isExpense'] as bool)
-          ? baseIncome + newAmount
-          : baseIncome;
-      totalExpense = newTx != null && (newTx['isExpense'] as bool)
-          ? baseExpense + newAmount
-          : baseExpense;
-      txMasuk = newTx != null && !(newTx['isExpense'] as bool) ? 4 : 3;
-      txKeluar = newTx != null && (newTx['isExpense'] as bool) ? 22 : 21;
+    final grouped = <DateTime, List<Map<String, dynamic>>>{};
+    for (final tx in txs) {
+      final date = DateTime.tryParse(tx['date']?.toString() ?? '');
+      if (date == null) continue;
+      final day = DateTime(date.year, date.month, date.day);
+      grouped.putIfAbsent(day, () => []).add(tx);
     }
+    if (grouped.isEmpty && newTx != null) {
+      final date = DateTime.tryParse(newTx['date']?.toString() ?? '') ?? DateTime.now();
+      grouped[DateTime(date.year, date.month, date.day)] = [newTx];
+    }
+    final days = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    final int netHariIni = totalIncome - totalExpense;
-    final String netHariIniStr = netHariIni < 0
-        ? '-Rp ${_formatAmount(-netHariIni)}'
-        : '+Rp ${_formatAmount(netHariIni)}';
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -367,432 +303,239 @@ class _TransactionScreenState extends State<TransactionScreen> {
             ? IconButton(
                 icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
                 onPressed: () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  }
+                  if (Navigator.canPop(context)) Navigator.pop(context);
                 },
               )
             : null,
-        title: Column(
+        title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Semua Transaksi',
-              style: TextStyle(
-                color: AppColors.textDark,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+              style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 18),
             ),
             Text(
               'Catatan Keuangan Terorganisir',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),
         actions: [
-          Container(
-            height: 32,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.inputBorder),
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.white,
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.download_outlined, size: 16, color: AppColors.textDark),
-                SizedBox(width: 4),
-                Text(
-                  'Export',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            height: 32,
-            width: 32,
-            margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.inputBorder),
-              shape: BoxShape.circle,
-              color: Colors.white,
-            ),
-            child: const Icon(Icons.tune, size: 16, color: AppColors.textDark),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textDark, size: 22),
+            onPressed: () => auth.fetchTransactions(),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            // Search Bar
-            Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.inputBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
+      body: RefreshIndicator(
+        color: AppColors.primaryBrown,
+        onRefresh: auth.fetchTransactions,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: _buildTotalCard('Pemasukan', totals['income']!, totals['incomeCount']!, true)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildTotalCard('Pengeluaran', totals['expense']!, totals['expenseCount']!, false)),
                 ],
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: AppColors.textMuted, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Cari transaksi, toko, atau kategori...',
-                        hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13),
-                        border: InputBorder.none,
-                      ),
-                    ),
+              const SizedBox(height: 20),
+              const Text(
+                'RIWAYAT TRANSAKSI',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.6, color: AppColors.textDark),
+              ),
+              const SizedBox(height: 12),
+              if (days.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFF0E5D8)),
                   ),
-                  const Icon(Icons.mic_none, color: AppColors.textMuted, size: 20),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Rekap Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFF0E5D8)),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      Row(
-                        children: const [
-                          Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primaryBrown),
-                          SizedBox(width: 6),
-                          Text(
-                            'Rekap 1 – 7 Sep 2026',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.textDark,
-                            ),
-                          ),
-                        ],
+                      const Icon(Icons.receipt_long_outlined, size: 34, color: AppColors.textMuted),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Belum ada transaksi.',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textDark),
                       ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Transaksi yang kamu catat akan muncul di sini beserta saldo terbaru.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 11, color: AppColors.textMuted, height: 1.4),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...days.map((day) {
+                  final items = grouped[day]!;
+                  final dayTotals = _sumByType(items, null);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDateHeader(day, dayTotals),
+                      const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF0E6),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF0E5D8)),
                         ),
-                        child: const Text(
-                          '7 Hari Terakhir',
-                          style: TextStyle(
-                            color: AppColors.accentOrange,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF9FAFB),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFF3F4F6)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFDCFCE7),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.arrow_downward, color: Color(0xFF16A34A), size: 12),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text('Pemasukan', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '+Rp ${_formatAmount(totalIncome.toString())}',
-                                style: const TextStyle(
-                                  color: Color(0xFF16A34A),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                        child: Column(
+                          children: items.asMap().entries.map((entry) {
+                            final i = entry.key;
+                            final tx = entry.value;
+                            final bool isExp = tx['isExpense'] == true ||
+                                tx['type']?.toString().toLowerCase() == 'expense';
+                            final String cat = tx['category']?.toString() ??
+                                tx['title']?.toString() ??
+                                'Lainnya';
+                            final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
+                                ? tx['note'].toString()
+                                : cat;
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildTransactionItem(
+                                  icon: _getCategoryIcon(cat),
+                                  iconBg: isExp ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
+                                  iconColor: isExp ? AppColors.primaryBrown : const Color(0xFF16A34A),
+                                  title: cat,
+                                  hasReceipt: tx['receipt_image_url'] != null,
+                                  subtitle1: note,
+                                  subtitle2: isExp ? 'Pengeluaran' : 'Pemasukan',
+                                  amount: '${isExp ? '-' : '+'}Rp ${_formatAmount(tx['amount'])}',
+                                  isExpense: isExp,
+                                  time: _formatTimeLabel(day),
+                                  badgeText: isExp ? null : 'Pemasukan',
+                                  badgeColor: const Color(0xFFDCFCE7),
+                                  badgeTextColor: const Color(0xFF16A34A),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text('$txMasuk transaksi masuk', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
-                            ],
-                          ),
+                                if (i < items.length - 1)
+                                  const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
+                              ],
+                            );
+                          }).toList(),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF9FAFB),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFF3F4F6)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFFEE2E2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.arrow_upward, color: Color(0xFFDC2626), size: 12),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text('Pengeluaran', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '-Rp ${_formatAmount(totalExpense.toString())}',
-                                style: const TextStyle(
-                                  color: Color(0xFFDC2626),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text('$txKeluar transaksi keluar', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
-                            ],
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 20),
                     ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Hari Ini Group
-            _buildDateHeader('Hari Ini', '7 Sep 2026 • $netHariIniStr'),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFFF0E5D8)),
-              ),
-              child: Column(
-                children: [
-                  if (dynamicTxs.isNotEmpty)
-                    ...dynamicTxs.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final tx = entry.value;
-                      final bool isExp = tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
-                      final String cat = tx['category']?.toString() ?? tx['title']?.toString() ?? 'Lainnya';
-                      final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
-                          ? tx['note'].toString()
-                          : cat;
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTransactionItem(
-                            icon: _getCategoryIcon(cat),
-                            iconBg: isExp ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
-                            iconColor: isExp ? AppColors.primaryBrown : const Color(0xFF16A34A),
-                            title: cat,
-                            hasReceipt: tx['receipt_image_url'] != null,
-                            subtitle1: note,
-                            subtitle2: isExp ? 'Pengeluaran' : 'Pemasukan',
-                            amount: '${isExp ? '-' : '+'}Rp ${_formatAmount(tx['amount'])}',
-                            isExpense: isExp,
-                            time: tx['time']?.toString() ?? 'Hari ini',
-                            badgeText: isExp ? null : 'Pemasukan',
-                            badgeColor: const Color(0xFFDCFCE7),
-                            badgeTextColor: const Color(0xFF16A34A),
-                          ),
-                          if (i < dynamicTxs.length - 1)
-                            const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                        ],
-                      );
-                    }) else ...[
-                    if (newTx != null) ...[
-                      _buildTransactionItem(
-                        icon: _getCategoryIcon(newTx['category']),
-                        iconBg: newTx['isExpense'] ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
-                        iconColor: newTx['isExpense'] ? AppColors.primaryBrown : const Color(0xFF16A34A),
-                        title: newTx['category'],
-                        hasReceipt: false,
-                        subtitle1: (newTx['note'] != null && newTx['note'].toString().isNotEmpty)
-                            ? newTx['note'].toString()
-                            : newTx['category'],
-                        subtitle2: newTx['isExpense'] ? 'Pengeluaran' : 'Pemasukan',
-                        amount: '${newTx['isExpense'] ? '-' : '+'}Rp ${_formatAmount(newTx['amount'])}',
-                        isExpense: newTx['isExpense'],
-                        time: '${DateFormat('HH:mm').format(DateTime.now())} WIB',
-                      ),
-                      const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                    ],
-                    _buildTransactionItem(
-                      icon: Icons.restaurant,
-                      iconBg: const Color(0xFFF5F0EB),
-                      iconColor: const Color(0xFF592314),
-                      title: 'Restoran & Makan Siang',
-                      hasReceipt: true,
-                      subtitle1: 'Ayam Geprek Bu Sri',
-                      subtitle2: 'Dompet Utama',
-                      amount: '-Rp 25.000',
-                      isExpense: true,
-                      time: '12:45 WIB',
-                    ),
-                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                    _buildTransactionItem(
-                      icon: Icons.coffee,
-                      iconBg: const Color(0xFFF5F0EB),
-                      iconColor: const Color(0xFF8C796E),
-                      title: 'Kopi Janji Jiwa',
-                      hasReceipt: false,
-                      subtitle1: 'Iced Caramel Macchiato',
-                      subtitle2: 'QRIS BCA',
-                      amount: '-Rp 22.000',
-                      isExpense: true,
-                      time: '08:15 WIB',
-                    ),
-                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                    _buildTransactionItem(
-                      icon: Icons.local_gas_station,
-                      iconBg: const Color(0xFFF5F0EB),
-                      iconColor: const Color(0xFF8C796E),
-                      title: 'Bensin Pertamax',
-                      hasReceipt: false,
-                      subtitle1: 'SPBU Pertamina',
-                      subtitle2: 'Tunai',
-                      amount: '-Rp 50.000',
-                      isExpense: true,
-                      time: '07:10 WIB',
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (dynamicTxs.isEmpty) ...[
-              const SizedBox(height: 24),
-              // Kemarin Group
-              _buildDateHeader('Kemarin', '6 Sep 2026 • Net +Rp 974.000'),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFF0E5D8)),
-                ),
-                child: Column(
-                  children: [
-                    _buildTransactionItem(
-                      icon: Icons.payments_outlined,
-                      iconBg: const Color(0xFFE8F5E9),
-                      iconColor: const Color(0xFF16A34A),
-                      title: 'Freelance Project Logo UI',
-                      badgeText: 'Gaji / Fee',
-                      badgeColor: const Color(0xFFDCFCE7),
-                      badgeTextColor: const Color(0xFF16A34A),
-                      subtitle1: 'Klien Studio Kreatif',
-                      subtitle2: 'Transfer BCA',
-                      amount: '+Rp 1.500.000',
-                      isExpense: false,
-                      time: '19:30 WIB',
-                    ),
-                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                    _buildTransactionItem(
-                      icon: Icons.shopping_basket_outlined,
-                      iconBg: const Color(0xFFF5F0EB),
-                      iconColor: const Color(0xFF8C796E),
-                      title: 'Belanja Mingguan',
-                      hasReceipt: true,
-                      subtitle1: 'Superindo Kebutuhan Pokok',
-                      subtitle2: 'Debit Mandiri',
-                      amount: '-Rp 340.000',
-                      isExpense: true,
-                      time: '17:45 WIB',
-                    ),
-                    const Divider(color: Color(0xFFF0E5D8), height: 1, indent: 64),
-                    _buildTransactionItem(
-                      icon: Icons.movie_creation_outlined,
-                      iconBg: const Color(0xFFF5F0EB),
-                      iconColor: const Color(0xFF8C796E),
-                      title: 'Netflix & Spotify Duo',
-                      hasReceipt: false,
-                      subtitle1: 'Hiburan Bulanan',
-                      subtitle2: 'Kartu Kredit',
-                      amount: '-Rp 186.000',
-                      isExpense: true,
-                      time: '10:00 WIB',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // 4 Sep 2026 Group
-              _buildDateHeader('4 Sep 2026', 'Rabu • -Rp 450.000'),
-              const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFF0E5D8)),
-                ),
-                child: _buildTransactionItem(
-                  icon: Icons.shopping_bag_outlined,
-                  iconBg: const Color(0xFFF5F0EB),
-                  iconColor: const Color(0xFF8C796E),
-                  title: 'Sepatu Olahraga',
-                  hasReceipt: true,
-                  subtitle1: 'Toko Olahraga',
-                  subtitle2: 'Debit Mandiri',
-                  amount: '-Rp 450.000',
-                  isExpense: true,
-                  time: '14:20 WIB',
-                ),
-              ),
+                  );
+                }),
+              const SizedBox(height: 80),
             ],
-            const SizedBox(height: 100), // spacing for bottom nav
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Map<String, dynamic> _sumByType(
+    List<Map<String, dynamic>> txs,
+    Map<String, dynamic>? extra,
+  ) {
+    double income = 0;
+    double expense = 0;
+    int incomeCount = 0;
+    int expenseCount = 0;
+
+    final all = [...txs, if (extra != null) extra];
+    for (final tx in all) {
+      final amount = (tx['amount'] is num)
+          ? (tx['amount'] as num).toDouble()
+          : double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
+      final isExpense =
+          tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
+      if (isExpense) {
+        expense += amount;
+        expenseCount++;
+      } else {
+        income += amount;
+        incomeCount++;
+      }
+    }
+
+    return {
+      'income': income,
+      'expense': expense,
+      'incomeCount': incomeCount,
+      'expenseCount': expenseCount,
+    };
+  }
+
+  Widget _buildTotalCard(String label, double amount, int count, bool isIncome) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF0E5D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isIncome ? Icons.south_west_rounded : Icons.north_east_rounded,
+                size: 14,
+                color: isIncome ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              ),
+              const SizedBox(width: 4),
+              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${isIncome ? '+' : '-'}Rp ${_formatAmount(amount)}',
+            style: TextStyle(
+              color: isIncome ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text('$count transaksi', style: const TextStyle(color: AppColors.textMuted, fontSize: 10)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateHeader(DateTime day, Map<String, dynamic> totals) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    String label;
+
+    if (day == today) {
+      label = 'Hari Ini';
+    } else if (day == yesterday) {
+      label = 'Kemarin';
+    } else {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      label = '${day.day} ${months[day.month - 1]} ${day.year}';
+    }
+
+    final net = (totals['income'] as double) - (totals['expense'] as double);
+    return Text(
+      '$label • ${net >= 0 ? '+' : '-'}Rp ${_formatAmount(net.abs())}',
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark),
+    );
+  }
+
+  String _formatTimeLabel(DateTime day) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return '${day.day} ${months[day.month - 1]} ${day.year}';
   }
 
   /// Format angka menjadi format ribuan Indonesia, contoh: "50000" → "50.000"
@@ -848,29 +591,6 @@ class _TransactionScreenState extends State<TransactionScreen> {
     }
   }
 
-  Widget _buildDateHeader(String title, String subtitle) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: AppColors.textDark,
-          ),
-        ),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.textMuted,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildTransactionItem({
     required IconData icon,

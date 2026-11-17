@@ -1,15 +1,41 @@
-import { notifications as seedNotifications } from "@/lib/mock";
+import { apiRequest } from "@/lib/api";
 import type { AdminNotification, NotificationType } from "@/types";
 
-const delay = (ms = 240) => new Promise((resolve) => setTimeout(resolve, ms));
+interface BackendCampaign {
+  id: number;
+  title: string;
+  message?: string;
+  type?: string;
+  audience?: string;
+  recipient_count?: number;
+  created_at?: string;
+}
 
-let data: AdminNotification[] = [...seedNotifications];
+function toAdminNotification(campaign: BackendCampaign): AdminNotification {
+  const sentAt = campaign.created_at
+    ? new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(campaign.created_at))
+    : "-";
+
+  return {
+    id: campaign.id,
+    title: campaign.title,
+    message: campaign.message ?? "",
+    audience: campaign.audience || "Semua pengguna",
+    type: (campaign.type as NotificationType) || "Info",
+    sentAt,
+  };
+}
 
 export const notificationService = {
   async list(query: { search?: string; type?: string } = {}): Promise<AdminNotification[]> {
-    await delay();
+    const campaigns = await apiRequest<BackendCampaign[]>("admin/notifications");
     const term = (query.search ?? "").trim().toLowerCase();
-    return data.filter((item) => {
+
+    return campaigns.map(toAdminNotification).filter((item) => {
       const matchTerm =
         !term ||
         item.title.toLowerCase().includes(term) ||
@@ -25,25 +51,14 @@ export const notificationService = {
     message: string;
     type: NotificationType;
   }): Promise<AdminNotification> {
-    await delay(320);
-    const created: AdminNotification = {
-      id: Date.now(),
-      title: input.title,
-      message: input.message,
-      audience: input.audience,
-      type: input.type,
-      sentAt: new Intl.DateTimeFormat("id-ID", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }).format(new Date()),
-    };
-    data = [created, ...data];
-    return created;
+    const campaign = await apiRequest<BackendCampaign>("admin/notifications", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    return toAdminNotification(campaign);
   },
 
   async remove(id: number): Promise<void> {
-    await delay(200);
-    data = data.filter((item) => item.id !== id);
+    await apiRequest(`admin/notifications/${id}`, { method: "DELETE" });
   },
 };

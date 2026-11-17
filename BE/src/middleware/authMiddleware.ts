@@ -14,7 +14,7 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded: any = jwt.verify(token, JWT_SECRET);
-      
+
       // Decoded id can be string or number
       const user = await userService.getUserById(Number(decoded.id));
       if (!user) {
@@ -28,15 +28,11 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       req.user = { id: user.id, role: user.role, email: user.email, name: user.name };
       return next();
     } catch (error) {
-      // In dev mode fallback to admin user
-      req.user = { id: 1, role: 'admin', email: 'admin@moneymate.com', name: 'Admin Master' };
-      return next();
+      return res.status(401).json({ message: 'Not authorized, token tidak valid' });
     }
   }
 
-  // If no bearer token sent, fallback to admin in development
-  req.user = { id: 1, role: 'admin', email: 'admin@moneymate.com', name: 'Admin Master' };
-  return next();
+  return res.status(401).json({ message: 'Not authorized, token tidak ditemukan' });
 };
 
 export const admin = (req: AuthRequest, res: Response, next: NextFunction) => {

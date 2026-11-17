@@ -20,7 +20,7 @@ export default function LoginPage() {
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@moneymate.com", password: "admin123" },
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -74,7 +74,7 @@ export default function LoginPage() {
           </p>
 
           <div className="mt-2 flex flex-wrap gap-3">
-            {["1.248 pengguna", "14 kategori", "Akses aman"].map((item) => (
+            {["Kelola pengguna", "Kelola kategori", "Audit log"].map((item) => (
               <span key={item} className="rounded-xl bg-[#6E3320] px-3.5 py-2.5 text-[11px] text-[#FFF7F2]">
                 {item}
               </span>

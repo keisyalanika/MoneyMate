@@ -1,7 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:moneymate_mobile/main.dart';
-
 import 'package:provider/provider.dart';
 import 'package:moneymate_mobile/services/auth_provider.dart';
 
@@ -15,47 +15,37 @@ Future<void> tapText(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
 }
 
+Widget buildApp() {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => AuthProvider()),
+    ],
+    child: const MoneyMateApp(),
+  );
+}
+
 void main() {
   setUpAll(() {
     GoogleFonts.config.allowRuntimeFetching = false;
   });
 
-  testWidgets('flow: splash -> login -> lupa sandi -> OTP -> reset -> sukses -> login',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ],
-        child: const MoneyMateApp(),
-      ),
-    );
+  testWidgets('splash tampil lalu masuk ke halaman login', (tester) async {
+    await tester.pumpWidget(buildApp());
 
-    // Splash -> Login (setelah timer 2 detik)
     expect(find.text('MoneyMate'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
+
     expect(find.text('Selamat datang kembali '), findsOneWidget);
+    expect(find.text('Masuk'), findsWidgets);
+  });
 
-    // Login -> Lupa Kata Sandi
-    await tapText(tester, 'Lupa kata sandi?');
-    expect(find.text('Kirim Kode Pemulihan'), findsOneWidget);
+  testWidgets('login dapat membuka halaman daftar akun', (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
 
-    // Lupa Kata Sandi -> Verifikasi Kode (OTP)
-    await tapText(tester, 'Kirim Kode Pemulihan');
-    expect(find.text('Verifikasi Kode Reset'), findsOneWidget);
-
-    // OTP -> Ganti Kata Sandi
-    await tapText(tester, 'Lanjutkan ke Sandi Baru');
-    expect(find.text('Simpan Kata Sandi Baru'), findsOneWidget);
-
-    // Ganti Kata Sandi -> Modal Sukses
-    await tapText(tester, 'Simpan Kata Sandi Baru');
-    expect(find.text('Kata Sandi Berhasil Diubah!'), findsOneWidget);
-
-    // Sukses -> Login lagi
-    await tapText(tester, 'Masuk Sekarang');
-    expect(find.text('Selamat datang kembali '), findsOneWidget);
-    expect(find.text('Kirim Kode Pemulihan'), findsNothing);
+    await tapText(tester, 'Daftar sekarang');
+    expect(find.text('Buat Akun Baru'), findsOneWidget);
   });
 }

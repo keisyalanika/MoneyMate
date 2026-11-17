@@ -11,6 +11,8 @@ import 'laporan_screen.dart';
 import 'ai_insight_screen.dart';
 import 'notification_screen.dart';
 import '../services/api_service.dart';
+import '../utils/currency_formatter.dart';
+import '../widgets/user_avatar.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -24,7 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AuthProvider>(context, listen: false).fetchWallets();
+      Provider.of<AuthProvider>(context, listen: false).refreshFinance();
     });
   }
 
@@ -87,17 +89,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Row(
       children: [
-        CircleAvatar(
-          radius: 22,
+        UserAvatar(
+          size: 44,
+          avatarUrl: auth.avatarUrl,
+          initial: avatarLetter,
           backgroundColor: AppColors.primary,
-          child: Text(
-            avatarLetter,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -335,17 +331,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: actions.map((item) {
         return GestureDetector(
           onTap: () async {
+            final auth = Provider.of<AuthProvider>(context, listen: false);
             if (item['label'] == 'Goals') {
               await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const GoalsScreen()),
               );
-              if (mounted) setState(() {});
+              if (mounted) {
+                await auth.refreshFinance();
+              }
             } else if (item['label'] == 'Budget') {
-              Navigator.push(
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const BudgetScreen()),
               );
+              if (mounted) {
+                await auth.refreshFinance();
+              }
             }
           },
           child: Column(
@@ -386,7 +388,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
   }
 
+  Map<String, double> _expensesByCategory(
+    List<Map<String, dynamic>> transactions,
+    DateTime start,
+    DateTime end,
+  ) {
+    final result = <String, double>{};
+    for (final tx in transactions) {
+      final isExpense =
+          tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
+      if (!isExpense) continue;
+
+      final date = DateTime.tryParse(tx['date']?.toString() ?? '');
+      if (date == null) continue;
+      if (date.isBefore(start) || date.isAfter(end)) continue;
+
+      final amount = (tx['amount'] is num)
+          ? (tx['amount'] as num).toDouble()
+          : double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
+      final category =
+          tx['category']?.toString() ?? tx['title']?.toString() ?? 'Lainnya';
+      result[category] = (result[category] ?? 0) + amount;
+    }
+    return result;
+  }
+
+  String _buildInsightText(AuthProvider auth) {
+    final now = DateTime.now();
+    final current = _expensesByCategory(
+      auth.transactions,
+      DateTime(now.year, now.month, 1),
+      DateTime(now.year, now.month + 1, 0),
+    );
+    final previous = _expensesByCategory(
+      auth.transactions,
+      DateTime(now.year, now.month - 1, 1),
+      DateTime(now.year, now.month, 0),
+    );
+
+    if (current.isEmpty) {
+      return 'Belum ada pengeluaran bulan ini. Catat transaksi agar MoneyMate bisa '
+          'menganalisis pola pengeluaranmu.';
+    }
+
+    final top = current.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final previousAmount = previous[top.key] ?? 0;
+    final String trend;
+    if (previousAmount <= 0) {
+      trend = 'bulan ini';
+    } else {
+      final change = ((top.value - previousAmount) / previousAmount) * 100;
+      trend = change >= 0
+          ? 'naik ${change.abs().toStringAsFixed(0)}% dari bulan lalu'
+          : 'turun ${change.abs().toStringAsFixed(0)}% dari bulan lalu';
+    }
+
+    return 'Pengeluaran terbesar bulan ini ada di ${top.key} '
+        '(${CurrencyFormatter.formatRupiah(top.value)}), $trend. '
+        'Sisa budget bulan ini ${CurrencyFormatter.formatRupiah(auth.sisaBudget)}.';
+  }
+
   Widget _buildInsightCard(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -439,22 +502,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                  color: Colors.black87, fontSize: 12, height: 1.4),
-              children: [
-                const TextSpan(text: 'Pengeluaran Makananmu meningkat '),
-                TextSpan(
-                  text: '20%',
-                  style: TextStyle(
-                      color: AppColors.secondary, fontWeight: FontWeight.bold),
-                ),
-                const TextSpan(
-                    text:
-                        ' minggu ini. Ada risiko budget habis sebelum akhir bulan.'),
-              ],
-            ),
+          Text(
+            _buildInsightText(auth),
+            style: const TextStyle(color: Colors.black87, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 10),
           GestureDetector(
@@ -697,62 +747,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  String _formatTransactionDate(String? raw) {
+    final parsed = DateTime.tryParse(raw ?? '');
+    if (parsed == null) return '';
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(parsed.year, parsed.month, parsed.day);
+    if (date == today) return 'Hari Ini';
+    if (date == today.subtract(const Duration(days: 1))) return 'Kemarin';
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
   Widget _buildRecentTransactionsCard(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context);
-    final List<Map<String, dynamic>> transactions = auth.transactions.isNotEmpty
-        ? auth.transactions.take(3).map((tx) {
-            final isExpense = tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
-            final amt = (tx['amount'] is num)
-                ? (tx['amount'] as num).round()
-                : (double.tryParse(tx['amount']?.toString() ?? '0')?.round() ?? 0);
-            final formattedAmt = NumberFormat('#,###', 'id_ID').format(amt).replaceAll(',', '.');
-            final String cat = tx['category']?.toString() ?? tx['title']?.toString() ?? 'Transaksi';
-            final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
-                ? tx['note'].toString()
-                : (isExpense ? 'Pengeluaran' : 'Pemasukan');
-            return {
-              'icon': _getCategoryIcon(cat),
-              'title': cat,
-              'subtitle': note,
-              'amount': '${isExpense ? '- ' : '+ '}Rp $formattedAmt',
-              'time': tx['time']?.toString() ?? 'Hari ini',
-              'isExpense': isExpense,
-              'bgColor': isExpense ? const Color(0xFFFFF0E6) : const Color(0xFFE8F8F0),
-              'iconColor': isExpense ? AppColors.secondary : Colors.teal,
-            };
-          }).toList()
-        : [
-            {
-              'icon': Icons.restaurant_outlined,
-              'title': 'Restoran',
-              'subtitle': 'Ayam Geprek',
-              'amount': '- Rp 22.000',
-              'time': 'Hari ini',
-              'isExpense': true,
-              'bgColor': const Color(0xFFFFF0E6),
-              'iconColor': AppColors.secondary,
-            },
-            {
-              'icon': Icons.shopping_bag_outlined,
-              'title': 'Belanja',
-              'subtitle': 'Minimarket',
-              'amount': '- Rp 35.000',
-              'time': 'Kemarin',
-              'isExpense': true,
-              'bgColor': const Color(0xFFFFF0E6),
-              'iconColor': AppColors.secondary,
-            },
-            {
-              'icon': Icons.chair_outlined,
-              'title': 'Freelance',
-              'subtitle': 'Desain Logo',
-              'amount': '+ Rp 350.000',
-              'time': '22 Okt',
-              'isExpense': false,
-              'bgColor': const Color(0xFFE8F8F0),
-              'iconColor': Colors.teal,
-            },
-          ];
+    final List<Map<String, dynamic>> transactions = auth.transactions.take(3).map((tx) {
+      final isExpense = tx['isExpense'] == true || tx['type']?.toString().toLowerCase() == 'expense';
+      final amt = (tx['amount'] is num)
+          ? (tx['amount'] as num).round()
+          : (double.tryParse(tx['amount']?.toString() ?? '0')?.round() ?? 0);
+      final formattedAmt = NumberFormat('#,###', 'id_ID').format(amt).replaceAll(',', '.');
+      final String cat = tx['category']?.toString() ?? tx['title']?.toString() ?? 'Transaksi';
+      final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
+          ? tx['note'].toString()
+          : (isExpense ? 'Pengeluaran' : 'Pemasukan');
+      return {
+        'icon': _getCategoryIcon(cat),
+        'title': cat,
+        'subtitle': note,
+        'amount': '${isExpense ? '- ' : '+ '}Rp $formattedAmt',
+        'time': _formatTransactionDate(tx['date']?.toString()),
+        'isExpense': isExpense,
+        'bgColor': isExpense ? const Color(0xFFFFF0E6) : const Color(0xFFE8F8F0),
+        'iconColor': isExpense ? AppColors.secondary : Colors.teal,
+      };
+    }).toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -795,6 +826,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 12),
+          if (transactions.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.receipt_long_outlined, size: 18, color: Colors.grey),
+                  SizedBox(width: 8),
+                  Text(
+                    'Belum ada transaksi.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
+          else
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
