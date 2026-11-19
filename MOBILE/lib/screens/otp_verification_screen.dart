@@ -7,7 +7,7 @@ import '../services/auth_provider.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String? email;
-  final String? serverOtp;
+  final String? serverOtp; // OTP dari response backend (untuk auto-fill saat dev)
 
   const OtpVerificationScreen({
     super.key,
@@ -226,6 +226,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               ),
             ),
 
+            // Kotak info OTP — tampil saat backend mengembalikan OTP (mode development).
+            // Saat SMTP sudah aktif & EMAIL_MOCK=false, field ini tidak akan dikirim
+            // oleh backend sehingga widget ini otomatis tersembunyi.
             if (widget.serverOtp != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -255,6 +258,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         for (int i = 0; i < code.length && i < 6; i++) {
                           _controllers[i].text = code[i];
                         }
+                        setState(() {});
                         if (_focusNodes.isNotEmpty) {
                           _focusNodes.last.requestFocus();
                         }

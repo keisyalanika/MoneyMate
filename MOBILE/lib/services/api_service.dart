@@ -914,6 +914,50 @@ class ApiService {
     return {'success': false};
   }
 
+  // ================= GOOGLE SIGN-IN =================
+  static Future<Map<String, dynamic>> loginWithGoogle({
+    String? idToken,
+    required String email,
+    required String name,
+    String? avatarUrl,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/google'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              if (idToken != null && idToken.isNotEmpty) 'idToken': idToken,
+              'email': email.trim().toLowerCase(),
+              'name': name.trim(),
+              if (avatarUrl != null && avatarUrl.isNotEmpty) 'avatarUrl': avatarUrl,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final Map<String, dynamic> body = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'data': body,
+          'message': body['message'] ?? 'Login dengan Google berhasil',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': body['message'] ?? 'Gagal login dengan akun Google.',
+      };
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error loginWithGoogle: $e');
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server backend. Periksa koneksi internet Anda.',
+      };
+    }
+  }
+
   // ================= LUPA KATA SANDI & OTP =================
   static Future<Map<String, dynamic>> sendForgotPasswordOtp(String email) async {
     try {

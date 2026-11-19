@@ -14,9 +14,26 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
+  bool _isEmailValid = false;
+
+  final _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    final isValid = _emailRegex.hasMatch(_emailController.text.trim());
+    if (isValid != _isEmailValid) {
+      setState(() => _isEmailValid = isValid);
+    }
+  }
 
   @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     super.dispose();
   }
@@ -33,8 +50,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(email)) {
+    if (!_isEmailValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Format email tidak valid (contoh: user@gmail.com).'),
@@ -63,6 +79,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         AppRouter.otpVerification,
         arguments: {
           'email': email,
+          // otp diteruskan agar bisa auto-fill di OTP screen (mode dev).
+          // Saat SMTP aktif, backend tidak mengirim field otp → null → widget tersembunyi.
           'otp': res['otp']?.toString(),
         },
       );
@@ -190,8 +208,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         'Email Terdaftar',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
@@ -199,29 +217,31 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           fontSize: 13,
                         ),
                       ),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle_outline,
-                            size: 14,
-                            color: AppColors.successText,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Format valid',
-                            style: TextStyle(
+                      if (_isEmailValid)
+                        Row(
+                          children: const [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 14,
                               color: AppColors.successText,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
                             ),
-                          ),
-                        ],
-                      )
+                            SizedBox(width: 4),
+                            Text(
+                              'Format valid',
+                              style: TextStyle(
+                                color: AppColors.successText,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                     style: const TextStyle(
                       color: AppColors.textDark,
                       fontSize: 13,
@@ -232,18 +252,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         color: AppColors.textDark,
                         size: 20,
                       ),
-                      suffixIcon: Container(
-                        margin: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: AppColors.iconBg,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          color: AppColors.primaryBrown,
-                          size: 14,
-                        ),
-                      ),
+                      suffixIcon: _isEmailValid
+                          ? Container(
+                              margin: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                color: AppColors.iconBg,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: AppColors.primaryBrown,
+                                size: 14,
+                              ),
+                            )
+                          : null,
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(

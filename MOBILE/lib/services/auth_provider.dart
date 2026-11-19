@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:io';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -190,6 +193,102 @@ class AuthProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Login API error: $e');
       _errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
+    }
+  }
+
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    _errorMessage = null;
+
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: const String.fromEnvironment(
+          'GOOGLE_SERVER_CLIENT_ID',
+          defaultValue: '232019089703-d2879d4vns88hou8sh5q1hddonbb6m0e.apps.googleusercontent.com',
+        ),
+        scopes: ['email', 'profile'],
+      );
+
+      // Sign out akun sebelumnya agar pemilih akun Google selalu muncul
+      try {
+        await googleSignIn.signOut();
+      } catch (_) {}
+
+      final GoogleSignInAccount? account = await googleSignIn.signIn();
+
+      if (account == null) {
+        // User membatalkan proses sign-in
+        return {
+          'success': false,
+          'cancelled': true,
+          'message': 'Login dengan Google dibatalkan.',
+        };
+      }
+
+      final GoogleSignInAuthentication auth = await account.authentication;
+      final String? idToken = auth.idToken;
+      final String email = account.email;
+      final String name = account.displayName ?? 'Pengguna Google';
+      final String? photoUrl = account.photoUrl;
+
+      final res = await ApiService.loginWithGoogle(
+        idToken: idToken,
+        email: email,
+        name: name,
+        avatarUrl: photoUrl,
+      );
+
+      if (res['success'] == true && res['data'] != null) {
+        final Map<String, dynamic> data = res['data'];
+        _isLoggedIn = true;
+        _userName = (data['name'] ?? name).toString();
+        _userNickname = (data['nickname'] ?? _userName.split(' ').first).toString();
+        _userEmail = (data['email'] ?? email).toString();
+        _userPhone = (data['phone'] ?? '').toString();
+        _avatarUrl = (data['avatar_url'] ?? photoUrl ?? '').toString();
+        _role = (data['role'] ?? 'user').toString();
+        _token = data['token']?.toString();
+        ApiService.token = _token;
+
+        await _saveSessionToPrefs();
+        await refreshFinance();
+        notifyListeners();
+
+        return {
+          'success': true,
+          'isNewUser': data['isNewUser'] == true,
+          'message': res['message'] ?? 'Login dengan Google berhasil',
+        };
+      }
+
+      _errorMessage = res['message']?.toString() ?? 'Gagal masuk dengan Google.';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
+    } on PlatformException catch (e) {
+      debugPrint('[AuthProvider] Google Sign-In PlatformException: ${e.code} - ${e.message}');
+      String userMsg = 'Gagal masuk dengan Google (${e.code}).';
+      if (e.code == 'sign_in_canceled' || e.code == 'canceled') {
+        return {
+          'success': false,
+          'cancelled': true,
+          'message': 'Login dengan Google dibatalkan.',
+        };
+      } else if (e.code == 'network_error') {
+        userMsg = 'Koneksi internet bermasalah saat menghubungkan ke Google.';
+      } else if (e.code == 'sign_in_failed') {
+        userMsg = 'Konfigurasi Google Sign-In (SHA-1 / Client ID) belum cocok di project.';
+      }
+      _errorMessage = userMsg;
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
+    } on SocketException catch (_) {
+      _errorMessage = 'Tidak dapat terhubung ke internet. Periksa koneksi Anda.';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage};
+    } catch (e) {
+      debugPrint('[AuthProvider] Google Sign-In error: $e');
+      _errorMessage = 'Terjadi kendala saat login dengan Google. Silakan coba lagi.';
       notifyListeners();
       return {'success': false, 'message': _errorMessage};
     }
@@ -425,10 +524,10 @@ class AuthProvider with ChangeNotifier {
   Future<Map<String, dynamic>> sendForgotPasswordOtp(String email) async {
     final normalized = email.trim().toLowerCase();
     _recoveryEmail = normalized;
-
     final res = await ApiService.sendForgotPasswordOtp(normalized);
-    if (res['success'] == true) {
-      _lastGeneratedOtp = res['otp']?.toString();
+    // Simpan OTP jika backend mengembalikannya (mode dev / EMAIL_MOCK=true).
+    if (res['success'] == true && res['otp'] != null) {
+      _lastGeneratedOtp = res['otp'].toString();
     }
     return res;
   }

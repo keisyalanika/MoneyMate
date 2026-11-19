@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage;
 
   @override
@@ -66,6 +67,52 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       setState(() {
         _errorMessage = result['message'] ?? 'Login gagal. Periksa kembali email dan kata sandi.';
+      });
+    }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.loginWithGoogle();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isGoogleLoading = false;
+    });
+
+    if (result['success'] == true) {
+      final isNew = result['isNewUser'] == true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isNew
+                ? 'Selamat datang di MoneyMate! Akun Google berhasil didaftarkan.'
+                : (result['message'] ?? 'Selamat datang kembali!'),
+          ),
+          backgroundColor: AppColors.greenAccent,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      Navigator.pushReplacementNamed(context, AppRouter.mainNav);
+    } else if (result['cancelled'] == true) {
+      // User membatalkan dialog akun Google
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login dengan Google dibatalkan.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      setState(() {
+        _errorMessage = result['message'] ?? 'Gagal masuk dengan akun Google.';
       });
     }
   }
@@ -319,6 +366,81 @@ class _LoginScreenState extends State<LoginScreen> {
                                         fontSize: 15)),
                           ),
                         ),
+                        const SizedBox(height: 18),
+
+                        // Divider atau masuk dengan
+                        const Row(
+                          children: [
+                            Expanded(child: Divider(color: AppColors.inputBorder)),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'atau masuk dengan',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: AppColors.inputBorder)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Tombol Masuk dengan Google
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: AppColors.inputBorder),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: (_isLoading || _isGoogleLoading)
+                                ? null
+                                : _handleGoogleLogin,
+                            child: _isGoogleLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppColors.primaryBrown),
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        'assets/google_logo.png',
+                                        width: 20,
+                                        height: 20,
+                                        errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.g_mobiledata,
+                                          size: 26,
+                                          color: Color(0xFF4285F4),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Lanjutkan dengan Google',
+                                        style: TextStyle(
+                                          color: AppColors.textDark,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
