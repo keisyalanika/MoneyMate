@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
@@ -20,6 +21,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+
+    // Hapus native splash screen secara mulus begitu widget splash Flutter mulai siap
+    FlutterNativeSplash.remove();
 
     // Sembunyikan status bar agar splash full-screen
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
@@ -68,6 +72,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // === Logo MoneyMate ===
+<<<<<<< HEAD
                 Container(
                   width: 88,
                   height: 88,
@@ -90,13 +95,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       fit: BoxFit.cover,
                     ),
                   ),
+=======
+                Image.asset(
+                  'assets/logo_moneymate.png',
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.contain,
+>>>>>>> origin/main
                 ),
                 const SizedBox(height: 20),
 
                 // === Brand Name ===
-                Text.rich(
+                const Text.rich(
                   TextSpan(
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.5,
