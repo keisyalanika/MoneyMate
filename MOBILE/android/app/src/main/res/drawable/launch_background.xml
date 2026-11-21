@@ -1,14 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MoneyMate Custom Splash Screen - Background cokelat hangat -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Warna latar: Warm Beige MoneyMate (#FAF6F0) -->
     <item>
-        <color android:color="#FAF6F0"/>
+        <bitmap android:gravity="fill" android:src="@drawable/background"/>
     </item>
-    <!-- Lingkaran ikon di tengah -->
     <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/ic_launcher" />
+        <bitmap android:gravity="center" android:src="@drawable/splash"/>
     </item>
 </layer-list>
