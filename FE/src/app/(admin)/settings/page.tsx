@@ -59,6 +59,7 @@ export default function SettingsPage() {
           email: data.email,
           role: data.role,
           avatar_url: data.avatar_url ?? "",
+          phone: data.phone ?? undefined,
         });
       })
       .catch((error: Error) => toast(error.message, "error"))
@@ -119,6 +120,7 @@ export default function SettingsPage() {
           email: profile.email,
           role: profile.role,
           avatar_url: updated.avatar_url,
+          phone: profile.phone ?? undefined,
         });
       }
       toast("Foto profil berhasil diperbarui", "success");
