@@ -71,41 +71,43 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // === Logo MoneyMate ===
-<<<<<<< HEAD
+                // === Logo MoneyMate Squircle ===
                 Container(
-                  width: 88,
-                  height: 88,
+                  width: 96,
+                  height: 96,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(26),
+                    color: AppColors.primaryBrown,
+                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryBrown.withOpacity(0.25),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
+                        color: AppColors.primaryBrown.withValues(alpha: 0.35),
+                        blurRadius: 28,
+                        offset: const Offset(0, 12),
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
+                  child: Center(
                     child: Image.asset(
-                      'assets/moneymate_logo.png',
-                      width: 88,
-                      height: 88,
-                      fit: BoxFit.cover,
+                      'assets/logo_moneymate.png',
+                      width: 96,
+                      height: 96,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Text(
+                          'M',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 44,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-=======
-                Image.asset(
-                  'assets/logo_moneymate.png',
-                  width: 96,
-                  height: 96,
-                  fit: BoxFit.contain,
->>>>>>> origin/main
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // === Brand Name ===
+                // === Brand Name MoneyMate ===
                 const Text.rich(
                   TextSpan(
                     style: TextStyle(
@@ -123,27 +125,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         style: TextStyle(color: AppColors.accentOrange),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Kelola keuanganmu dengan cerdas',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                // === Loading Indicator Minimal ===
-                SizedBox(
-                  width: 32,
-                  height: 3,
-                  child: LinearProgressIndicator(
-                    backgroundColor: AppColors.inputBorder,
-                    color: AppColors.primaryBrown,
-                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ],
