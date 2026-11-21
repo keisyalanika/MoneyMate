@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../utils/theme.dart';
 import '../utils/notification_helper.dart';
@@ -8,6 +11,7 @@ import '../utils/currency_formatter.dart';
 import '../models/category_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
+import '../services/receipt_scanner_service.dart';
 import '../utils/budget_icons.dart';
 import 'transaction_screen.dart';
 
@@ -24,6 +28,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _selectedDate = DateTime.now();
   List<CategoryModel> _categories = [];
   bool _isLoadingCategories = true;
+
+  File? _receiptImage;
+  bool _isScanningReceipt = false;
+  final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _nominalController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -350,6 +358,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+
+                  // 5. Scan Struk Belanja
+                  _buildReceiptSection(),
                 ],
               ),
             ),
@@ -437,6 +449,491 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  // ==========================================
+  // FITUR SCAN STRUK (OCR & PERMISSION)
+  // ==========================================
+
+  Widget _buildReceiptSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel(Icons.receipt_long_outlined, 'Scan Struk Belanja'),
+        const SizedBox(height: 8),
+        if (_receiptImage == null)
+          InkWell(
+            onTap: _isScanningReceipt ? null : _showScanReceiptBottomSheet,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF8F5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primaryBrown.withValues(alpha: 0.25),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: AppColors.primaryBrown,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Scan Struk Otomatis',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Foto struk untuk isi nominal & tanggal',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textMuted,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF8F5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.inputBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Image.file(
+                            _receiptImage!,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          ),
+                          if (_isScanningReceipt)
+                            Container(
+                              width: 60,
+                              height: 60,
+                              color: Colors.black.withValues(alpha: 0.5),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _isScanningReceipt
+                                    ? Icons.hourglass_top_rounded
+                                    : Icons.check_circle_rounded,
+                                size: 15,
+                                color: _isScanningReceipt
+                                    ? AppColors.accentOrange
+                                    : AppColors.greenAccent,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _isScanningReceipt ? 'Memindai struk...' : 'Struk Terpasang',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: _isScanningReceipt
+                                      ? AppColors.accentOrange
+                                      : AppColors.textDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _isScanningReceipt
+                                ? 'Sedang memproses OCR on-device...'
+                                : 'Data berhasil diterapkan ke form',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: AppColors.inputBorder),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _isScanningReceipt ? null : _showScanReceiptBottomSheet,
+                      icon: const Icon(Icons.refresh, size: 14, color: AppColors.primaryBrown),
+                      label: const Text(
+                        'Ganti',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryBrown,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: _isScanningReceipt
+                          ? null
+                          : () {
+                              setState(() {
+                                _receiptImage = null;
+                              });
+                            },
+                      icon: const Icon(Icons.delete_outline, size: 14, color: AppColors.errorText),
+                      label: const Text(
+                        'Hapus',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.errorText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showScanReceiptBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Pindai Struk Belanja',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Pilih sumber foto struk belanja untuk mengisi form transaksi secara otomatis.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.insightBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.camera_alt_outlined, color: AppColors.primaryBrown),
+              ),
+              title: const Text(
+                'Ambil Foto',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Gunakan kamera langsung memotret struk',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickReceiptImage(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.insightBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.photo_library_outlined, color: AppColors.primaryBrown),
+              ),
+              title: const Text(
+                'Pilih dari Galeri',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Pilih foto struk yang sudah ada di galeri ponsel',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickReceiptImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _requestCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (status.isGranted) return true;
+
+    if (status.isDenied) {
+      final requestResult = await Permission.camera.request();
+      if (requestResult.isGranted) return true;
+      if (requestResult.isPermanentlyDenied) {
+        if (mounted) _showPermanentlyDeniedDialog('Kamera');
+        return false;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Akses kamera dibutuhkan untuk memotret struk belanja.'),
+          ),
+        );
+      }
+      return false;
+    }
+
+    if (status.isPermanentlyDenied) {
+      if (mounted) _showPermanentlyDeniedDialog('Kamera');
+      return false;
+    }
+
+    return false;
+  }
+
+  void _showPermanentlyDeniedDialog(String feature) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Izin $feature Diperlukan',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: Text(
+          'MoneyMate memerlukan izin $feature untuk memindai struk belanja secara otomatis. Silakan aktifkan izin di Pengaturan.',
+          style: const TextStyle(fontSize: 13, color: AppColors.textDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBrown,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Buka Pengaturan', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickReceiptImage(ImageSource source) async {
+    if (source == ImageSource.camera) {
+      final hasPermission = await _requestCameraPermission();
+      if (!hasPermission) return;
+    }
+
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) {
+        // Pengguna membatalkan pengambilan gambar
+        return;
+      }
+
+      final file = File(pickedFile.path);
+      setState(() {
+        _receiptImage = file;
+        _isScanningReceipt = true;
+      });
+
+      final result = await ReceiptScannerService.instance.scanReceipt(file);
+
+      if (!mounted) return;
+      setState(() {
+        _isScanningReceipt = false;
+      });
+
+      if (!result.hasData) {
+        _showUnreadableDialog();
+        return;
+      }
+
+      // Auto-fill field yang terbaca
+      _applyScanResult(result);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isScanningReceipt = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Terjadi kesalahan saat memproses gambar: $e')),
+      );
+    }
+  }
+
+  void _applyScanResult(ReceiptScanResult result) {
+    // Karena struk belanja adalah pembelian/pengeluaran, arahkan otomatis ke Pengeluaran
+    if (isIncome) {
+      _setType(false);
+    }
+
+    if (result.totalAmount != null && result.totalAmount! > 0) {
+      _nominalController.text = CurrencyFormatter.formatDots(result.totalAmount!);
+    }
+
+    if (result.date != null) {
+      _selectedDate = result.date!;
+    }
+
+    if (result.merchantName != null && result.merchantName!.isNotEmpty) {
+      final String merchant = result.merchantName!;
+      _noteController.text = merchant.length > 100 ? merchant.substring(0, 100) : merchant;
+    }
+
+    setState(() {});
+
+    NotificationHelper.showTopNotification(
+      context,
+      'Data struk berhasil dibaca! Silakan periksa kembali sebelum menyimpan.',
+    );
+  }
+
+  void _showUnreadableDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Struk Tidak Terbaca',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        content: const Text(
+          'Teks pada foto struk tidak terbaca atau buram. Anda dapat mencoba mengambil foto ulang atau mengisi form transaksi secara manual.',
+          style: TextStyle(fontSize: 13, color: AppColors.textDark),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() {
+                _receiptImage = null;
+              });
+            },
+            child: const Text('Isi Manual', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showScanReceiptBottomSheet();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBrown,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Foto Ulang', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

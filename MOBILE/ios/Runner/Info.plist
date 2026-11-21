@@ -5,9 +5,9 @@
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>NSCameraUsageDescription</key>
-		<string>MoneyMate memerlukan akses kamera untuk mengambil foto profil.</string>
+		<string>MoneyMate memerlukan akses kamera untuk memindai struk belanja dan foto profil.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>MoneyMate memerlukan akses galeri untuk memilih foto profil.</string>
+		<string>MoneyMate memerlukan akses galeri untuk memilih foto struk belanja dan foto profil.</string>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
