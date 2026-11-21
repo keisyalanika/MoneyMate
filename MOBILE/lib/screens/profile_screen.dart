@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
-import 'notification_screen.dart';
+import 'notification_settings_screen.dart';
 import '../utils/theme.dart';
 import '../widgets/user_avatar.dart';
 
@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.notifications_rounded,
                     title: 'Notifikasi',
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingsScreen()));
                     },
                   ),
                   _buildMenuCard(

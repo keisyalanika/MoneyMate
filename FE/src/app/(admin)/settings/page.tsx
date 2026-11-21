@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { adminService, type AdminProfileData } from "@/lib/services/admin";
 import { passwordSchema, profileSchema, type PasswordInput, type ProfileInput } from "@/lib/validators";
 import { useToastStore } from "@/stores/toastStore";
+import { useAuthStore } from "@/stores/authStore";
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5000";
 
@@ -23,6 +24,8 @@ function resolveAvatar(url?: string) {
 
 export default function SettingsPage() {
   const toast = useToastStore((state) => state.push);
+  const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<AdminProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +53,13 @@ export default function SettingsPage() {
           email: data.email,
           phone: data.phone ?? "",
         });
+        setUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          avatar_url: data.avatar_url ?? "",
+        });
       })
       .catch((error: Error) => toast(error.message, "error"))
       .finally(() => {
@@ -59,7 +69,7 @@ export default function SettingsPage() {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setUser]);
 
   const onSaveProfile = profileForm.handleSubmit(async (values) => {
     try {
@@ -68,6 +78,13 @@ export default function SettingsPage() {
         phone: values.phone,
       });
       setProfile((current) => ({ ...(current as AdminProfileData), ...updated }));
+      if (user) {
+        setUser({
+          ...user,
+          name: updated.name,
+          phone: updated.phone,
+        });
+      }
       toast("Profil berhasil diperbarui", "success");
     } catch (error) {
       toast((error as Error).message, "error");
@@ -90,6 +107,20 @@ export default function SettingsPage() {
     try {
       const updated = await adminService.uploadAvatar(file);
       setProfile((current) => ({ ...(current as AdminProfileData), ...updated }));
+      if (user) {
+        setUser({
+          ...user,
+          avatar_url: updated.avatar_url,
+        });
+      } else if (profile) {
+        setUser({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          role: profile.role,
+          avatar_url: updated.avatar_url,
+        });
+      }
       toast("Foto profil berhasil diperbarui", "success");
     } catch (error) {
       toast((error as Error).message, "error");

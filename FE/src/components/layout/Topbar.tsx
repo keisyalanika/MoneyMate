@@ -15,6 +15,14 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/settings": { title: "Settings", subtitle: "Profil dan preferensi akun admin" },
 };
 
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5000";
+
+function resolveAvatar(url?: string) {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `${API_ORIGIN}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
 export function Topbar() {
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
@@ -23,6 +31,7 @@ export function Topbar() {
 
   const name = user?.name ?? "Admin";
   const initial = name.trim()[0]?.toUpperCase() ?? "A";
+  const avatarUrl = resolveAvatar(user?.avatar_url);
 
   return (
     <header className="flex h-[68px] w-full shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 sm:h-[76px] sm:px-6 xl:px-7">
@@ -54,15 +63,9 @@ export function Topbar() {
         <div className="flex items-center gap-2">
           <span
             className="flex size-8 items-center justify-center rounded-full bg-[#E6D0C7] bg-cover bg-center text-xs font-bold text-brand sm:size-9"
-            style={
-              user?.avatar_url
-                ? {
-                    backgroundImage: `url(${process.env.NEXT_PUBLIC_API_ORIGIN ?? "http://localhost:5000"}${user.avatar_url})`,
-                  }
-                : undefined
-            }
+            style={avatarUrl ? { backgroundImage: `url(${avatarUrl})` } : undefined}
           >
-            {!user?.avatar_url && initial}
+            {!avatarUrl && initial}
           </span>
           <div className="hidden flex-col sm:flex">
             <span className="max-w-[140px] truncate text-xs font-semibold text-ink">{name}</span>

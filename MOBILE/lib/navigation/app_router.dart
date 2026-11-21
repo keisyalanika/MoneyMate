@@ -13,6 +13,7 @@ import '../screens/dashboard_screen.dart';
 import '../screens/budget_screen.dart';
 import '../screens/edit_profile_screen.dart';
 import '../screens/notification_screen.dart';
+import '../screens/notification_settings_screen.dart';
 import '../screens/connect_bank_screen.dart';
 import '../screens/security_screen.dart';
 import '../screens/help_center_screen.dart';
@@ -78,7 +79,7 @@ class AppRouter {
       case editProfile:
         return MaterialPageRoute(builder: (_) => const EditProfileScreen());
       case profileNotification:
-        return MaterialPageRoute(builder: (_) => const NotificationScreen());
+        return MaterialPageRoute(builder: (_) => const NotificationSettingsScreen());
       case connectBank:
         return MaterialPageRoute(builder: (_) => const ConnectBankScreen());
       case security:

@@ -1,8 +1,14 @@
-<!-- figma-cli rules 4a4616b7c9 (managed by figma-cli; edits inside this block are replaced on update) -->
+<!-- figma-cli rules 6a14820157 (managed by figma-cli; edits inside this block are replaced on update) -->
 # Using figma-cli
 
-figma-cli controls **Figma Desktop** directly (no API key). It runs in any
-terminal. Open Figma Desktop, then `figma-cli connect` once per session.
+figma-cli controls Figma directly (no API key): in Chrome (Browser Mode,
+the default, needs Google Chrome) or in Figma Desktop. Run `figma-cli connect`
+(or `figma-cli connect --desktop` for the desktop app) once per session.
+
+**Browser Mode** (`figma-cli connect`, Figma in Google Chrome, the app is never
+modified): the command waits silently until a design file is open, so tell the
+designer BEFORE running it: "A Google Chrome window opens in a moment. Sign in to
+Figma there and open a design file. I connect by myself as soon as it is open."
 
 ## Golden rules
 1. **Create frames with `render` / `render-batch`** — they have smart positioning.
@@ -106,7 +112,8 @@ Don't read the structure markdown by hand. Use:
 
 ## Handy commands
 ```
-figma-cli connect                      # connect to Figma Desktop (yolo)
+figma-cli connect                      # Figma in Google Chrome (default)
+figma-cli connect --desktop            # Figma Desktop app (yolo)
 figma-cli render '<Frame>...</Frame>'  # one frame
 figma-cli render-batch '[ "<Frame>", ... ]' --direction row
 figma-cli shadcn add button --count 3  # N distinct shadcn primitives
@@ -115,3 +122,4 @@ figma-cli verify "<id>" --measure      # screenshot + dimensions
 figma-cli a11y audit                   # contrast / touch / text checks
 ```
 <!-- /figma-cli rules -->
+

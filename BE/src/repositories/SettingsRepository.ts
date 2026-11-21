@@ -30,7 +30,7 @@ export class SettingsRepository extends BaseRepository implements ISettingsRepos
     if (data.currency) payload.currency = data.currency as CurrencyType;
     if (data.language) payload.language = data.language as Language;
     if (data.theme) payload.theme = data.theme as Theme;
-    if (data.notification_enabled !== undefined) payload.notificationEnabled = data.notification_enabled;
+    if (data.notification_enabled !== undefined) payload.notificationEnabled = Boolean(data.notification_enabled);
 
     const row = await this.db.userSetting.upsert({
       where: { userId },

@@ -72,7 +72,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   width: 88,
                   height: 88,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryBrown,
                     borderRadius: BorderRadius.circular(26),
                     boxShadow: [
                       BoxShadow(
@@ -82,10 +81,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: Colors.white,
-                    size: 42,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(26),
+                    child: Image.asset(
+                      'assets/moneymate_logo.png',
+                      width: 88,
+                      height: 88,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
