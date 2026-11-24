@@ -74,7 +74,7 @@ export class WalletController {
 
   // ---- ADJUST balance (Add / Subtract directly) ----
   adjustBalance = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { type, amount, note } = req.body;
+    const { type, amount, note, category_id } = req.body;
     if (!type || amount === undefined) {
       throw AppError.badRequest(
         'type (add/subtract) and amount are required',
@@ -89,6 +89,9 @@ export class WalletController {
         type: type === 'subtract' ? 'subtract' : 'add',
         amount: Number(amount),
         note,
+        category_id: category_id !== undefined && category_id !== null
+          ? Number(category_id)
+          : undefined,
       }
     );
 

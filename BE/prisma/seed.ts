@@ -13,6 +13,7 @@ const defaultCategories = [
   { name: 'Transfer Orang Tua', type: 'income' as const, icon: 'heart' },
   { name: 'Investasi', type: 'income' as const, icon: 'trending-up' },
   { name: 'Lainnya (Pemasukan)', type: 'income' as const, icon: 'plus-circle' },
+  { name: 'Tambah Saldo', type: 'income' as const, icon: 'plus-circle' },
   { name: 'Makanan & Minuman', type: 'expense' as const, icon: 'utensils' },
   { name: 'Transportasi', type: 'expense' as const, icon: 'bus' },
   { name: 'Belanja', type: 'expense' as const, icon: 'shopping-cart' },
@@ -21,6 +22,7 @@ const defaultCategories = [
   { name: 'Hiburan', type: 'expense' as const, icon: 'music' },
   { name: 'Kesehatan', type: 'expense' as const, icon: 'activity' },
   { name: 'Lainnya (Pengeluaran)', type: 'expense' as const, icon: 'minus-circle' },
+  { name: 'Kurangi Saldo', type: 'expense' as const, icon: 'minus-circle' },
 ];
 
 const defaultUsers = [

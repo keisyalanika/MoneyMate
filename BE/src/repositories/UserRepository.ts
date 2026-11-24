@@ -72,10 +72,18 @@ export class UserRepository extends BaseRepository implements IUserRepository {
 
   async remove(id: number): Promise<boolean> {
     try {
-      await this.db.user.delete({ where: { id } });
+      await this.db.$transaction(async (tx) => {
+        // Relasi dengan FK restrict harus dibersihkan dulu agar akun
+        // benar-benar terhapus tanpa menunggu admin.
+        await tx.report.deleteMany({ where: { generatedBy: id } });
+        await tx.auditLog.deleteMany({ where: { adminId: id } });
+        await tx.notificationCampaign.deleteMany({ where: { adminId: id } });
+        await tx.user.delete({ where: { id } });
+      });
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2025') return false;
+      throw error;
     }
   }
 

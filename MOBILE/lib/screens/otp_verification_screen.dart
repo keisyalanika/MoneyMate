@@ -7,12 +7,10 @@ import '../services/auth_provider.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String? email;
-  final String? serverOtp; // OTP dari response backend (untuk auto-fill saat dev)
 
   const OtpVerificationScreen({
     super.key,
     this.email,
-    this.serverOtp,
   });
 
   @override
@@ -225,58 +223,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                 height: 1.4,
               ),
             ),
-
-            // Kotak info OTP — tampil saat backend mengembalikan OTP (mode development).
-            // Saat SMTP sudah aktif & EMAIL_MOCK=false, field ini tidak akan dikirim
-            // oleh backend sehingga widget ini otomatis tersembunyi.
-            if (widget.serverOtp != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.accentOrange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, size: 16, color: AppColors.accentOrange),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Kode OTP: ${widget.serverOtp}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.accentOrange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        final code = widget.serverOtp!;
-                        for (int i = 0; i < code.length && i < 6; i++) {
-                          _controllers[i].text = code[i];
-                        }
-                        setState(() {});
-                        if (_focusNodes.isNotEmpty) {
-                          _focusNodes.last.requestFocus();
-                        }
-                      },
-                      child: const Text(
-                        'Isi Otomatis',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBrown,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
 
             const SizedBox(height: 24),
 

@@ -63,16 +63,22 @@ async function main() {
     }
 
     const type = diff > 0 ? 'income' : 'expense';
+    const categoryName = type === 'income' ? 'Tambah Saldo' : 'Kurangi Saldo';
     const categories = await prisma.category.findMany({
       where: { type },
       orderBy: { name: 'asc' },
     });
     const category =
-      categories.find((item) => item.name.toLowerCase().includes('lain')) ??
-      (type === 'income'
-        ? categories.find((item) => item.name.toLowerCase().includes('saku'))
-        : undefined) ??
-      categories[0];
+      categories.find(
+        (item) => item.name.trim().toLowerCase() === categoryName.toLowerCase()
+      ) ??
+      (await prisma.category.create({
+        data: {
+          name: categoryName,
+          type,
+          icon: type === 'income' ? 'plus-circle' : 'minus-circle',
+        },
+      }));
 
     if (!category) {
       console.warn(`[reconcile] user ${user.id}: kategori ${type} tidak ada, dilewati`);

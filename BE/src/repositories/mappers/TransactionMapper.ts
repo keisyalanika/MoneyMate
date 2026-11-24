@@ -7,6 +7,7 @@ export interface TransactionRow {
   type: TransactionType;
   amount: unknown;
   categoryId: number;
+  name: string | null;
   incomeSourceId: number | null;
   date: Date;
   note: string | null;
@@ -23,6 +24,7 @@ export const toTransaction = (row: TransactionRow): Transaction => ({
   type: row.type,
   amount: toNumber(row.amount),
   category_id: row.categoryId,
+  name: nullable(row.name),
   income_source_id: nullable(row.incomeSourceId),
   date: toDateOnly(row.date) as string,
   note: nullable(row.note),

@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/theme.dart';
+import '../utils/notification_helper.dart';
 import '../services/auth_provider.dart';
 import 'adjust_balance_bottom_sheet.dart'; // Import bottom sheet penyesuaian saldo
 import 'budget_screen.dart';
@@ -9,6 +13,7 @@ import 'goals_screen.dart';
 import 'transaction_screen.dart';
 import 'laporan_screen.dart';
 import 'ai_insight_screen.dart';
+import 'ai_chat_screen.dart';
 import 'notification_screen.dart';
 import '../services/api_service.dart';
 import '../utils/currency_formatter.dart';
@@ -21,13 +26,159 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
+  bool _hideBalance = false;
+  late Future<List<Map<String, dynamic>>> _goalsFuture;
+  Timer? _notificationTimer;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _goalsFuture = ApiService.fetchGoals();
+    _loadBalanceVisibility();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AuthProvider>(context, listen: false).refreshFinance();
+      _checkAdminNotifications();
+      _checkGoalReminder();
     });
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (_) {
+        _checkAdminNotifications();
+        _checkGoalReminder();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAdminNotifications();
+      _checkGoalReminder();
+    }
+  }
+
+  Future<void> _checkGoalReminder() async {
+    if (!mounted) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final account = ApiService.accountStorageKey;
+      final payday = prefs.getInt('goal_payday_day_$account');
+      final enabled = prefs.getBool('goal_reminder_enabled_$account') ?? true;
+      if (!enabled || payday == null) return;
+
+      final now = DateTime.now();
+      final lastDayOfMonth = DateTime(now.year, now.month + 1, 0).day;
+      final effectivePayday = payday > lastDayOfMonth ? lastDayOfMonth : payday;
+      if (now.day != effectivePayday) return;
+
+      final lastKey = 'last_goal_reminder_$account';
+      final todayKey = '${now.year}-${now.month}-${now.day}';
+      if (prefs.getString(lastKey) == todayKey) return;
+
+      final goals = await ApiService.fetchGoals();
+      final activeGoals = goals.where((goal) {
+        final completed = goal['is_completed'] == true || goal['is_completed'] == 1;
+        return !completed;
+      }).toList();
+      if (activeGoals.isEmpty) return;
+
+      await prefs.setString(lastKey, todayKey);
+      if (!mounted) return;
+      NotificationHelper.showTopNotification(
+        context,
+        'Hari gajian! Sisihkan dana untuk ${activeGoals.length} goal aktifmu.',
+        title: 'Pengingat Nabung',
+        onTap: () {
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GoalsScreen()),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint('[Dashboard] checkGoalReminder error: $e');
+    }
+  }
+
+  Future<void> _checkAdminNotifications() async {
+    if (!mounted) return;
+    try {
+      final list = await ApiService.fetchNotifications();
+      if (!mounted || list.isEmpty) return;
+
+      // Tampilkan notifikasi baru yang belum dibaca (termasuk dari admin).
+      final unread = list.where((n) {
+        final isRead = n['is_read'] == true || n['is_read'] == 1;
+        return !isRead;
+      }).toList();
+      if (unread.isEmpty) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'last_notified_notification_id_v2_${ApiService.accountStorageKey}';
+      final lastId = prefs.getInt(key) ?? 0;
+
+      final newOnes = unread.where((n) {
+        final id = (n['id'] as num?)?.toInt() ?? 0;
+        return id > lastId;
+      }).toList()
+        ..sort((a, b) {
+          final idA = (a['id'] as num?)?.toInt() ?? 0;
+          final idB = (b['id'] as num?)?.toInt() ?? 0;
+          return idB.compareTo(idA);
+        });
+      if (newOnes.isEmpty) return;
+
+      final latest = newOnes.first;
+      final latestId = (latest['id'] as num?)?.toInt() ?? lastId;
+
+      if (!mounted) return;
+      final title = (latest['title'] ?? 'Notifikasi').toString();
+      final message = (latest['message'] ?? '').toString();
+      NotificationHelper.showTopNotification(
+        context,
+        message,
+        title: title,
+        onTap: () {
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const NotificationScreen()),
+          );
+        },
+      );
+      await prefs.setInt(key, latestId);
+    } catch (e) {
+      debugPrint('[Dashboard] checkAdminNotifications error: $e');
+    }
+  }
+
+  Future<void> _loadBalanceVisibility() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      setState(() {
+        _hideBalance = prefs.getBool('security_hide_balance') ?? false;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _toggleBalanceVisibility() async {
+    final next = !_hideBalance;
+    setState(() => _hideBalance = next);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('security_hide_balance', next);
+    } catch (_) {}
   }
 
   String _formatCurrency(num value) {
@@ -38,6 +189,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Pastikan polling tetap aktif meski widget di-hot reload.
+    if (_notificationTimer == null) {
+      _notificationTimer = Timer.periodic(
+        const Duration(seconds: 10),
+        (_) {
+          _checkAdminNotifications();
+          _checkGoalReminder();
+        },
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAdminNotifications();
+        _checkGoalReminder();
+      });
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -194,17 +360,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'TOTAL SALDO AKTIF',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        letterSpacing: 1,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Flexible(
+                            child: Text(
+                              'TOTAL SALDO AKTIF',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                letterSpacing: 1,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _toggleBalanceVisibility,
+                            child: Padding(
+                              padding: const EdgeInsets.all(2),
+                              child: Icon(
+                                _hideBalance
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: Colors.white70,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(width: 8),
                     InkWell(
                       onTap: () {
                         Navigator.push(
@@ -238,7 +429,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Rp $saldoFormatted',
+                        _hideBalance ? 'Rp ••••••' : 'Rp $saldoFormatted',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -322,70 +513,113 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildQuickActions(BuildContext context) {
     final actions = [
-      {'icon': Icons.track_changes, 'label': 'Budget'},
-      {'icon': Icons.emoji_events_outlined, 'label': 'Goals'},
+      {'icon': Icons.track_changes, 'label': 'Budget', 'color': AppColors.primary},
+      {
+        'icon': Icons.emoji_events_outlined,
+        'label': 'Goals',
+        'color': AppColors.primary,
+      },
+      {
+        'icon': Icons.smart_toy_outlined,
+        'label': 'Chat AI',
+        'color': AppColors.primary,
+      },
+      {
+        'icon': Icons.add_circle_outline_rounded,
+        'label': 'Setor',
+        'color': AppColors.primary,
+      },
+      {
+        'icon': Icons.remove_circle_outline_rounded,
+        'label': 'Tarik',
+        'color': AppColors.primary,
+      },
     ];
 
-    return Wrap(
-      spacing: 20,
+    return Row(
       children: actions.map((item) {
-        return GestureDetector(
-          onTap: () async {
-            final auth = Provider.of<AuthProvider>(context, listen: false);
-            if (item['label'] == 'Goals') {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const GoalsScreen()),
-              );
-              if (mounted) {
-                await auth.refreshFinance();
-              }
-            } else if (item['label'] == 'Budget') {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const BudgetScreen()),
-              );
-              if (mounted) {
-                await auth.refreshFinance();
-              }
-            }
-          },
-          child: Column(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Icon(
-                  item['icon'] as IconData,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 8),
-                Text(
-                  item['label']?.toString() ?? '',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () async {
+                final auth = Provider.of<AuthProvider>(context, listen: false);
+                final label = item['label']?.toString() ?? '';
+
+                if (label == 'Setor' || label == 'Tarik') {
+                  final changed = await AdjustBalanceBottomSheet.show(
+                    context,
+                    isAdd: label == 'Setor',
+                  );
+                  if (changed == true && mounted) {
+                    await auth.refreshFinance();
+                  }
+                } else if (label == 'Goals') {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const GoalsScreen()),
+                  );
+                  if (mounted) {
+                    await auth.refreshFinance();
+                  }
+                } else if (label == 'Budget') {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const BudgetScreen()),
+                  );
+                  if (mounted) {
+                    await auth.refreshFinance();
+                  }
+                } else if (label == 'Chat AI') {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AiChatScreen()),
+                  );
+                }
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      color: item['color'] as Color? ?? AppColors.primary,
+                      size: 22,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    item['label']?.toString() ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        }).toList(),
-      );
+          ),
+        );
+      }).toList(),
+    );
   }
 
   Map<String, double> _expensesByCategory(
@@ -538,7 +772,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           context,
           MaterialPageRoute(builder: (context) => const GoalsScreen()),
         );
-        if (mounted) setState(() {});
+        if (mounted) {
+          setState(() {
+            _goalsFuture = ApiService.fetchGoals();
+          });
+        }
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -581,7 +819,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           const SizedBox(height: 14),
           FutureBuilder<List<Map<String, dynamic>>>(
-            future: ApiService.fetchGoals(),
+            future: _goalsFuture,
             builder: (context, snapshot) {
               final goals = snapshot.data ?? [];
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -770,13 +1008,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           : (double.tryParse(tx['amount']?.toString() ?? '0')?.round() ?? 0);
       final formattedAmt = NumberFormat('#,###', 'id_ID').format(amt).replaceAll(',', '.');
       final String cat = tx['category']?.toString() ?? tx['title']?.toString() ?? 'Transaksi';
+      final String name = tx['name']?.toString().trim() ?? '';
       final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
           ? tx['note'].toString()
           : (isExpense ? 'Pengeluaran' : 'Pemasukan');
       return {
         'icon': _getCategoryIcon(cat),
-        'title': cat,
-        'subtitle': note,
+        'title': name.isNotEmpty ? name : cat,
+        'subtitle': name.isNotEmpty
+            ? (note.isNotEmpty && note != cat ? '$cat • $note' : cat)
+            : note,
         'amount': '${isExpense ? '- ' : '+ '}Rp $formattedAmt',
         'time': _formatTransactionDate(tx['date']?.toString()),
         'isExpense': isExpense,

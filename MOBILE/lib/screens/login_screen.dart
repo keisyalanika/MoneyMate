@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../navigation/app_router.dart';
 import '../services/auth_provider.dart';
@@ -12,6 +13,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const MethodChannel _appInfoChannel = MethodChannel('moneymate/app_info');
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -46,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final result = await authProvider.login(
       _emailController.text.trim(),
-      _passwordController.text.trim(),
+      _passwordController.text,
     );
 
     if (!mounted) return;
@@ -111,10 +114,106 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
+      final message = result['message'] ?? 'Gagal masuk dengan akun Google.';
       setState(() {
-        _errorMessage = result['message'] ?? 'Gagal masuk dengan akun Google.';
+        _errorMessage = message;
       });
+      if (message.toString().contains('Login Google gagal') ||
+          message.toString().contains('ApiException: 10')) {
+        await _showGoogleConfigHelp();
+      }
     }
+  }
+
+  Future<void> _showGoogleConfigHelp() async {
+    String packageName = '-';
+    String sha1 = '-';
+    try {
+      final info = await _appInfoChannel.invokeMapMethod<String, dynamic>('signingInfo');
+      if (info != null) {
+        packageName = info['packageName']?.toString() ?? '-';
+        sha1 = info['sha1']?.toString() ?? '-';
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.gpp_maybe_outlined, color: Color(0xFFDC2626), size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Google Sign-In Belum Terdaftar',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Daftarkan OAuth Client ID Android di Google Cloud Console dengan data berikut:',
+                style: TextStyle(fontSize: 12, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              _buildSigningInfoRow('Package name', packageName),
+              const SizedBox(height: 8),
+              _buildSigningInfoRow('SHA-1', sha1),
+              const SizedBox(height: 12),
+              const Text(
+                'Google Cloud Console → APIs & Services → Credentials → Create Credentials → OAuth client ID → Android. '
+                'Pastikan dibuat di project yang sama dengan Web Client ID aplikasi, lalu tunggu 5–10 menit.',
+                style: TextStyle(fontSize: 11, color: Color(0xFF6B4E44), height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup', style: TextStyle(color: Color(0xFF8C381E))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSigningInfoRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Color(0xFF8C827A), fontWeight: FontWeight.bold),
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: SelectableText(
+                value,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Salin $label',
+              icon: const Icon(Icons.copy_rounded, size: 16),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: value));
+              },
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override

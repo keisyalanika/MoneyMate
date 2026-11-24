@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MoneyMate</string>
+    <string name="default_web_client_id">625929892019-qcj7jq5qksj1devk3sh9ujh0g9h5ot1a.apps.googleusercontent.com</string>
 </resources>

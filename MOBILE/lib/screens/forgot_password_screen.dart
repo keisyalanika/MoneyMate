@@ -79,9 +79,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         AppRouter.otpVerification,
         arguments: {
           'email': email,
-          // otp diteruskan agar bisa auto-fill di OTP screen (mode dev).
-          // Saat SMTP aktif, backend tidak mengirim field otp → null → widget tersembunyi.
-          'otp': res['otp']?.toString(),
         },
       );
     } else {

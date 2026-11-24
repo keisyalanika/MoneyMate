@@ -62,6 +62,7 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   category_id: number;
+  name?: string;
   income_source_id?: number;
   date: string;
   note?: string;

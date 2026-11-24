@@ -57,7 +57,6 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
             email: args?['email'],
-            serverOtp: args?['otp'],
           ),
         );
       }

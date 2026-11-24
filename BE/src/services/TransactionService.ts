@@ -5,11 +5,22 @@ import {
   transactionRepository,
   walletRepository,
 } from '../repositories';
+import { AppError } from '../errors/AppError';
 import { TransactionType } from '../types';
 
 const monthOf = (date: string) => {
   const parsed = new Date(`${date}T00:00:00.000Z`);
   return { month: parsed.getUTCMonth() + 1, year: parsed.getUTCFullYear() };
+};
+
+const isFutureDate = (value: string) => {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return false;
+  const parsed = new Date(year, month - 1, day);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return parsed.getTime() > today.getTime();
 };
 
 export class TransactionService {
@@ -34,6 +45,27 @@ export class TransactionService {
   }
 
   /**
+   * Kategori khusus untuk penyesuaian saldo manual:
+   * `Tambah Saldo` (income) dan `Kurangi Saldo` (expense).
+   * Dibuat otomatis bila belum tersedia.
+   */
+  async resolveSystemCategoryId(type: TransactionType): Promise<number | undefined> {
+    const name = type === 'income' ? 'Tambah Saldo' : 'Kurangi Saldo';
+    const list = await this.categories.findAll(type);
+    const existing = list.find(
+      (item) => item.name.trim().toLowerCase() === name.toLowerCase()
+    );
+    if (existing) return existing.id;
+
+    const created = await this.categories.create({
+      name,
+      type,
+      icon: type === 'income' ? 'plus-circle' : 'minus-circle',
+    });
+    return created.id;
+  }
+
+  /**
    * Mencatat transaksi penyesuaian (saldo awal / perubahan saldo manual)
    * TANPA menyentuh saldo dompet, karena saldo sudah diubah oleh pemanggil.
    */
@@ -47,16 +79,14 @@ export class TransactionService {
     const amount = Number(data.amount);
     if (!Number.isFinite(amount) || amount <= 0) return null;
 
-    const list = await this.categories.findAll(data.type);
-    const category =
-      list.find((item) => item.name.toLowerCase().includes('lain')) ?? list[0];
-    if (!category) return null;
+    const categoryId = await this.resolveSystemCategoryId(data.type);
+    if (!categoryId) return null;
 
     const id = await this.transactions.create({
       user_id: data.user_id,
       type: data.type,
       amount,
-      category_id: category.id,
+      category_id: categoryId,
       date: data.date ?? new Date().toISOString().slice(0, 10),
       note: data.note ?? null,
     });
@@ -90,16 +120,25 @@ export class TransactionService {
     type: string;
     amount: number;
     category_id: number;
+    name?: string;
     income_source_id?: number;
     date: string;
     note?: string;
     receipt_image_url?: string;
   }) {
+    if (isFutureDate(data.date)) {
+      throw AppError.badRequest(
+        'Tanggal transaksi tidak boleh melebihi hari ini.',
+        'FUTURE_DATE_NOT_ALLOWED'
+      );
+    }
+
     const id = await this.transactions.create({
       user_id: data.user_id,
       type: data.type as TransactionType,
       amount: data.amount,
       category_id: data.category_id,
+      name: data.name ?? null,
       income_source_id: data.income_source_id ?? null,
       date: data.date,
       note: data.note ?? null,
@@ -118,6 +157,7 @@ export class TransactionService {
       type?: string;
       amount?: number;
       category_id?: number;
+      name?: string;
       date?: string;
       note?: string;
     }
@@ -129,6 +169,7 @@ export class TransactionService {
       type: data.type as TransactionType | undefined,
       amount: data.amount,
       category_id: data.category_id,
+      name: data.name,
       date: data.date,
       note: data.note,
     });

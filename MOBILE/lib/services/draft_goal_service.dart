@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 
 class DraftGoalService {
-  static const String _storageKey = 'moneymate_draft_goals';
+  static String get _storageKey =>
+      'moneymate_draft_goals_${ApiService.accountStorageKey}';
 
   /// Mendapatkan daftar semua draf goal yang tersimpan
   static Future<List<Map<String, dynamic>>> getDraftGoals() async {

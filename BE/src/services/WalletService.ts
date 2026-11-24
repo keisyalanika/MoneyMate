@@ -71,7 +71,7 @@ export class WalletService {
   async adjustWalletBalance(
     userId: number,
     walletId: number,
-    adjustment: { type: 'add' | 'subtract'; amount: number; note?: string }
+    adjustment: { type: 'add' | 'subtract'; amount: number; note?: string; category_id?: number }
   ) {
     let wallet = await this.wallets.findById(walletId);
     if (!wallet) {
@@ -94,16 +94,23 @@ export class WalletService {
 
     try {
       const categoryType = isAdd ? 'income' : 'expense';
-      const categories = await this.categories.findAll(categoryType);
-      const fallbackCategory =
-        categories.find((item) => item.name.toLowerCase().includes('lain')) ?? categories[0];
+      let categoryId: number | undefined;
+
+      if (adjustment.category_id) {
+        const selected = await this.categories.findById(adjustment.category_id);
+        if (selected && selected.type.toLowerCase() === categoryType) {
+          categoryId = selected.id;
+        }
+      }
+
+      categoryId ??= await this.transactions.resolveSystemCategoryId(categoryType);
 
       await this.transactions.createTransaction({
         user_id: userId,
         wallet_id: walletId,
         type: categoryType,
         amount,
-        category_id: fallbackCategory?.id ?? 1,
+        category_id: categoryId ?? 1,
         date: new Date().toISOString().slice(0, 10),
         note:
           adjustment.note ||

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../models/transaction_model.dart';
 import '../services/api_service.dart';
@@ -20,6 +22,7 @@ class _LaporanScreenState extends State<LaporanScreen> {
   bool _isLoading = true;
   String? _error;
   int? _selectedChartIndex;
+  bool _usageIsIncome = false;
 
   @override
   void initState() {
@@ -101,6 +104,10 @@ class _LaporanScreenState extends State<LaporanScreen> {
   Widget build(BuildContext context) {
     final totals = sumTransactions(_transactions);
     final breakdown = expenseBreakdown(_transactions);
+    final usage = categoryUsageBreakdown(
+      _transactions,
+      isIncome: _usageIsIncome,
+    );
     final chart = buildChartPoints(_transactions, _startDate, _endDate);
 
     return Scaffold(
@@ -170,6 +177,8 @@ class _LaporanScreenState extends State<LaporanScreen> {
                   )
                 else ...[
                   _buildSummaryCard(totals),
+                  const SizedBox(height: 20),
+                  _buildUsageDonutCard(usage, _usageIsIncome),
                   const SizedBox(height: 20),
                   _buildBreakdownCard(breakdown, totals.expense),
                   const SizedBox(height: 20),
@@ -304,6 +313,218 @@ class _LaporanScreenState extends State<LaporanScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUsageDonutCard(List<CategoryUsage> usage, bool isIncome) {
+    const expensePalette = [
+      Color(0xFF3E1F16),
+      Color(0xFFE8581A),
+      Color(0xFFF4C430),
+      Color(0xFF9D8A7C),
+      Color(0xFFEDE6DC),
+      Color(0xFF8C381E),
+    ];
+    const incomePalette = [
+      Color(0xFF14532D),
+      Color(0xFF16A34A),
+      Color(0xFF4ADE80),
+      Color(0xFF86EFAC),
+      Color(0xFFBBF7D0),
+      Color(0xFF3F6212),
+    ];
+    final palette = isIncome ? incomePalette : expensePalette;
+
+    final items = <CategoryUsage>[];
+    final top = usage.take(5).toList();
+    items.addAll(top);
+    if (usage.length > 5) {
+      final rest = usage.skip(5).fold<int>(0, (sum, item) => sum + item.count);
+      final existing = items.indexWhere((item) => item.name.toLowerCase() == 'lainnya');
+      if (existing >= 0) {
+        items[existing] = CategoryUsage(
+          name: items[existing].name,
+          count: items[existing].count + rest,
+        );
+      } else {
+        items.add(CategoryUsage(name: 'Lainnya', count: rest));
+      }
+    }
+
+    final total = items.fold<int>(0, (sum, item) => sum + item.count);
+    final colors = List<Color>.generate(
+      items.length,
+      (index) => palette[index % palette.length],
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.inputBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Persebaran Kategori',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Berdasarkan jumlah pemakaian',
+            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildUsageTab(
+                'Pengeluaran',
+                !isIncome,
+                () => setState(() => _usageIsIncome = false),
+              ),
+              const SizedBox(width: 8),
+              _buildUsageTab(
+                'Pemasukan',
+                isIncome,
+                () => setState(() => _usageIsIncome = true),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (items.isEmpty)
+            Text(
+              isIncome
+                  ? 'Belum ada transaksi pemasukan pada periode ini.'
+                  : 'Belum ada transaksi pengeluaran pada periode ini.',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 140,
+                  height: 140,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CustomPaint(
+                        size: const Size.square(140),
+                        painter: _DonutChartPainter(
+                          values: items.map((item) => item.count).toList(),
+                          colors: colors,
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$total',
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textDark,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'pemakaian',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(items.length, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == items.length - 1 ? 0 : 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 9,
+                              height: 9,
+                              decoration: BoxDecoration(
+                                color: colors[index],
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                items[index].name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: Color(0xFFF0EBE5)),
+            const SizedBox(height: 8),
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Jumlah transaksi per kategori, bukan nominal',
+                style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsageTab(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : const Color(0xFFF5F0EB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primary : const Color(0xFFE5DDD5),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: selected ? Colors.white : AppColors.textMuted,
+          ),
+        ),
+      ),
     );
   }
 
@@ -629,5 +850,49 @@ class _LegendDot extends StatelessWidget {
         Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
       ],
     );
+  }
+}
+
+class _DonutChartPainter extends CustomPainter {
+  final List<int> values;
+  final List<Color> colors;
+
+  const _DonutChartPainter({required this.values, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeWidth = size.width * 0.24;
+    final center = Offset(size.width / 2, size.height / 2);
+    final rect = Rect.fromCircle(
+      center: center,
+      radius: (size.width - strokeWidth) / 2,
+    );
+
+    final total = values.fold<int>(0, (sum, value) => sum + value);
+    if (total <= 0) {
+      final track = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..color = const Color(0xFFF1EAE3);
+      canvas.drawArc(rect, -math.pi / 2, math.pi * 2, false, track);
+      return;
+    }
+
+    var startAngle = -math.pi / 2;
+    for (var i = 0; i < values.length; i++) {
+      final sweep = (values[i] / total) * math.pi * 2;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt
+        ..color = colors[i % colors.length];
+      canvas.drawArc(rect, startAngle, sweep, false, paint);
+      startAngle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
+    return oldDelegate.values != values || oldDelegate.colors != colors;
   }
 }

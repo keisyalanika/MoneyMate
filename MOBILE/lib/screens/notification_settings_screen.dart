@@ -17,7 +17,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   // Preferensi Notifikasi
   bool _pengingatAnggaran = true;
   bool _notifikasiTransaksi = true;
-  bool _laporanBerkala = false;
   bool _tipsEdukasi = true;
 
   // Riwayat Notifikasi dari Backend
@@ -45,76 +44,35 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         // Jika di backend dinonaktifkan secara global
         _pengingatAnggaran = false;
         _notifikasiTransaksi = false;
-        _laporanBerkala = false;
         _tipsEdukasi = false;
       } else {
         // Ambil preferensi granular lokal
         _pengingatAnggaran = prefs.getBool('pref_pengingat_anggaran') ?? true;
         _notifikasiTransaksi = prefs.getBool('pref_notifikasi_transaksi') ?? true;
-        _laporanBerkala = prefs.getBool('pref_laporan_berkala') ?? false;
         _tipsEdukasi = prefs.getBool('pref_tips_edukasi') ?? true;
       }
 
       // 2. Ambil Riwayat Notifikasi dari Backend (GET /api/notifications)
       final remoteList = await ApiService.fetchNotifications();
 
-      if (remoteList.isNotEmpty) {
-        _notifications = remoteList.map((item) {
-          final title = (item['title'] ?? 'Pemberitahuan').toString();
-          final message = (item['message'] ?? item['body'] ?? '').toString();
-          final isRead = item['is_read'] == true || item['is_read'] == 1;
-          final style = _resolveStyle(title, message);
+      _notifications = remoteList.map((item) {
+        final title = (item['title'] ?? 'Pemberitahuan').toString();
+        final message = (item['message'] ?? item['body'] ?? '').toString();
+        final isRead = item['is_read'] == true || item['is_read'] == 1;
+        final style = _resolveStyle(title, message);
 
-          return {
-            'id': item['id'],
-            'title': title,
-            'description': message,
-            'time': _formatTime(item['created_at']),
-            'icon': style['icon'],
-            'iconColor': style['iconColor'],
-            'iconBgColor': style['iconBgColor'],
-            'isWarning': style['isWarning'],
-            'isUnread': !isRead,
-          };
-        }).toList();
-      } else {
-        // Fallback contoh realistis jika database backend belum memiliki notifikasi
-        _notifications = [
-          {
-            'id': null,
-            'title': 'Peringatan Anggaran',
-            'description': 'Pengeluaran Kebutuhan Pokok sudah mencapai 80% dari limit bulanan.',
-            'time': '2 jam yang lalu',
-            'icon': Icons.warning_amber_rounded,
-            'iconColor': const Color(0xFFD95B27),
-            'iconBgColor': const Color(0xFFFDECE7),
-            'isWarning': true,
-            'isUnread': true,
-          },
-          {
-            'id': null,
-            'title': 'Laporan Finansial Siap',
-            'description': 'Ringkasan pengeluaran & pemasukan minggu ini sudah siap dianalisis.',
-            'time': 'Kemarin, 19:30',
-            'icon': Icons.bar_chart_rounded,
-            'iconColor': const Color(0xFF6B5E57),
-            'iconBgColor': const Color(0xFFEFECE9),
-            'isWarning': false,
-            'isUnread': false,
-          },
-          {
-            'id': null,
-            'title': 'Tips Hemat MoneyMate',
-            'description': 'Sisihkan minimal 20% penghasilan di awal bulan untuk dana darurat.',
-            'time': '3 hari yang lalu',
-            'icon': Icons.lightbulb_outline_rounded,
-            'iconColor': const Color(0xFF27AE60),
-            'iconBgColor': const Color(0xFFE8F5E9),
-            'isWarning': false,
-            'isUnread': false,
-          },
-        ];
-      }
+        return {
+          'id': item['id'],
+          'title': title,
+          'description': message,
+          'time': _formatTime(item['created_at']),
+          'icon': style['icon'],
+          'iconColor': style['iconColor'],
+          'iconBgColor': style['iconBgColor'],
+          'isWarning': style['isWarning'],
+          'isUnread': !isRead,
+        };
+      }).toList();
     } catch (_) {
       // Pertahankan data saat offline
     } finally {
@@ -204,7 +162,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     await prefs.setBool(key, value);
 
     // Hitung apakah setidaknya ada satu preferensi yang aktif
-    final hasActive = _pengingatAnggaran || _notifikasiTransaksi || _laporanBerkala || _tipsEdukasi;
+    final hasActive = _pengingatAnggaran || _notifikasiTransaksi || _tipsEdukasi;
 
     // Sinkronkan ke Backend
     await ApiService.updateUserSettings({
@@ -333,19 +291,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       onChanged: (val) {
                         setState(() => _notifikasiTransaksi = val);
                         _updatePreference('pref_notifikasi_transaksi', val);
-                      },
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Divider(height: 1, thickness: 1, color: Color(0xFFF3ECE6)),
-                    ),
-                    _buildSwitchTile(
-                      title: 'Laporan Berkala',
-                      subtitle: 'Rangkuman keuangan mingguan & bulanan',
-                      value: _laporanBerkala,
-                      onChanged: (val) {
-                        setState(() => _laporanBerkala = val);
-                        _updatePreference('pref_laporan_berkala', val);
                       },
                     ),
                     const Padding(

@@ -15,8 +15,9 @@ function createTransporter() {
     port: Number(process.env.SMTP_PORT) || 587,
     secure: process.env.SMTP_SECURE === 'true', // true untuk port 465
     auth: {
-      user: process.env.SMTP_USER || '',
-      pass: process.env.SMTP_PASS || '',
+      user: (process.env.SMTP_USER || '').trim(),
+      // Gmail App Password sering disalin dengan spasi; hapus semua spasi.
+      pass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
     },
     tls: {
       rejectUnauthorized: false, // izinkan self-signed cert di dev
@@ -111,7 +112,7 @@ export async function sendOtpEmail(toEmail: string, otp: string): Promise<void> 
   const isMock = process.env.EMAIL_MOCK === 'true';
 
   // Mode mock: hanya console.log — tidak butuh SMTP
-  if (isMock || !process.env.SMTP_USER) {
+  if (isMock) {
     console.log('─'.repeat(50));
     console.log(`[EMAIL MOCK] Kepada  : ${toEmail}`);
     console.log(`[EMAIL MOCK] OTP     : ${otp}`);
@@ -120,8 +121,16 @@ export async function sendOtpEmail(toEmail: string, otp: string): Promise<void> 
     return;
   }
 
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error(
+      'SMTP_USER / SMTP_PASS belum diisi. Atur kredensial SMTP atau set EMAIL_MOCK=true.'
+    );
+  }
+
   const transporter = createTransporter();
-  if (!transporter) return;
+  if (!transporter) {
+    throw new Error('Gagal membuat koneksi SMTP.');
+  }
 
   await transporter.sendMail({
     from: `"MoneyMate" <${process.env.SMTP_USER}>`,
