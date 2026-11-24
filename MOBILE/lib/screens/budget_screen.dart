@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../models/budget_model.dart';
 import '../models/category_model.dart';
@@ -47,7 +48,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
     if (!mounted) return;
     if (budgets == null) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _categories = [];
+        _expenseCategories = [];
+        _monthIncome = 0;
+        _isLoading = false;
+      });
       return;
     }
 
@@ -63,67 +69,23 @@ class _BudgetScreenState extends State<BudgetScreen> {
     if (!mounted) return;
 
     final budgetItems = budgets.map(_mapBudget).toList();
-    final budgetCategoryIds = budgets.map((b) => b.categoryId).toSet();
-    final categoryById = {for (final category in categories) category.id: category};
 
-    final expenseAmount = <String, double>{};
-    final expenseName = <String, String>{};
-    final expenseIcon = <String, String>{};
     double income = 0;
-
     for (final tx in transactions) {
       if (tx.type.toUpperCase() == 'INCOME') {
         income += tx.amount;
-        continue;
       }
-
-      final id = tx.categoryId;
-      expenseAmount[id] = (expenseAmount[id] ?? 0) + tx.amount;
-      expenseName[id] = tx.categoryName;
-      expenseIcon[id] = tx.categoryIcon;
     }
-
-    final unbudgeted = expenseAmount.entries
-        .where((entry) => !budgetCategoryIds.contains(entry.key))
-        .toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    final extras = unbudgeted.map((entry) {
-      final id = entry.key;
-      final category = categoryById[id];
-      final name = category?.name ?? expenseName[id] ?? 'Lainnya';
-      final icon = category?.icon ?? expenseIcon[id] ?? '';
-      final spent = entry.value.round();
-
-      return {
-        'id': null,
-        'categoryId': id,
-        'title': name,
-        'icon': icon,
-        'month': _currentDate.month,
-        'year': _currentDate.year,
-        'iconBg': _iconBackgrounds[(id.hashCode.abs()) % _iconBackgrounds.length],
-        'limit': 0,
-        'spent': spent,
-        'percent': 0,
-        'tag': 'Belum dianggarkan',
-        'tagBg': const Color(0xFFFFF4D6),
-        'tagColor': const Color(0xFFB78103),
-        'statusText': 'Pengeluaran ${_formatRupiah(spent)} belum punya budget',
-        'statusColor': const Color(0xFF8C827A),
-        'statusIcon': Icons.info_outline_rounded,
-        'isOver': false,
-        'unbudgeted': true,
-        'actionLabel': 'Atur',
-        'borderColor': const Color(0xFFFFE9B6),
-      };
-    }).toList();
 
     setState(() {
       _expenseCategories = categories
           .where((c) => c.type.toUpperCase() == 'EXPENSE')
+          .where((c) {
+            final name = c.name.trim().toLowerCase();
+            return name != 'tambah saldo' && name != 'kurangi saldo';
+          })
           .toList();
-      _categories = [...budgetItems, ...extras];
+      _categories = budgetItems;
       _monthIncome = income;
       _isLoading = false;
     });
@@ -779,6 +741,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   TextField(
                     controller: limitController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      ThousandsSeparatorInputFormatter(),
+                    ],
                     onChanged: (val) {
                       final parsed = int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
                       setSheetState(() => targetAmount = parsed);
@@ -823,7 +789,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           targetAmount += 250000;
                           limitController.text = NumberFormat('#,###', 'id_ID').format(targetAmount);
                         });
-                      }, true),
+                      }, false),
                       const SizedBox(width: 8),
                       _buildQuickAddChip('+500 rb', () {
                         setSheetState(() {
@@ -1539,47 +1505,32 @@ class _BudgetScreenState extends State<BudgetScreen> {
         .map((c) => c['title']?.toString() ?? '')
         .where((name) => name.isNotEmpty)
         .join(', ');
-    final unbudgetedCats = _categories.where((c) => c['unbudgeted'] == true).toList();
-    final unbudgetedCount = unbudgetedCats.length;
-    final unbudgetedNames = unbudgetedCats
-        .map((c) => c['title']?.toString() ?? '')
-        .where((name) => name.isNotEmpty)
-        .join(', ');
     final overallPct = totalLimit > 0 ? (totalSpent / totalLimit) * 100 : 0.0;
     final isTotalOver = totalLimit > 0 && totalSpent > totalLimit;
     final double totalRatio = (totalLimit > 0 ? totalSpent / totalLimit : 0.0).clamp(0.0, 1.0);
-    final hasBudgets = _categories.any((c) => c['unbudgeted'] != true);
+    final hasBudgets = _categories.isNotEmpty;
     final isCritical = overCount > 0;
-    final isWarning = !isCritical && unbudgetedCount > 0;
 
     final bannerBg = isCritical
         ? const Color(0xFFFFF0ED)
-        : isWarning
-            ? const Color(0xFFFFF7ED)
-            : hasBudgets
-                ? const Color(0xFFEFFAF3)
-                : const Color(0xFFF7F2ED);
+        : hasBudgets
+            ? const Color(0xFFEFFAF3)
+            : const Color(0xFFF7F2ED);
     final bannerBorder = isCritical
         ? const Color(0xFFFFDDD5)
-        : isWarning
-            ? const Color(0xFFFFEDD5)
-            : hasBudgets
-                ? const Color(0xFFD4F2DE)
-                : const Color(0xFFE5DDD5);
+        : hasBudgets
+            ? const Color(0xFFD4F2DE)
+            : const Color(0xFFE5DDD5);
     final bannerIconBg = isCritical
         ? const Color(0xFFFFE0D8)
-        : isWarning
-            ? const Color(0xFFFFF0D9)
-            : hasBudgets
-                ? const Color(0xFFE2F8E9)
-                : const Color(0xFFEFE8E1);
+        : hasBudgets
+            ? const Color(0xFFE2F8E9)
+            : const Color(0xFFEFE8E1);
     final bannerAccent = isCritical
         ? const Color(0xFFD32F2F)
-        : isWarning
-            ? const Color(0xFFB78103)
-            : hasBudgets
-                ? const Color(0xFF1B8A46)
-                : const Color(0xFF8A3A23);
+        : hasBudgets
+            ? const Color(0xFF1B8A46)
+            : const Color(0xFF8A3A23);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
@@ -1666,11 +1617,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                 child: Icon(
                                   isCritical
                                       ? Icons.warning_amber_rounded
-                                      : isWarning
-                                          ? Icons.info_outline_rounded
-                                          : hasBudgets
-                                              ? Icons.verified_rounded
-                                              : Icons.inbox_outlined,
+                                      : hasBudgets
+                                          ? Icons.verified_rounded
+                                          : Icons.inbox_outlined,
                                   color: bannerAccent,
                                   size: 22,
                                 ),
@@ -1683,21 +1632,24 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          isCritical
-                                              ? 'PERINGATAN KUOTA'
-                                              : isWarning
-                                                  ? 'REALISASI PENGELUARAN'
-                                                  : hasBudgets
-                                                      ? 'ANGGARAN AMAN'
-                                                      : 'BELUM ADA ANGGARAN',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.6,
-                                            color: bannerAccent,
+                                        Expanded(
+                                          child: Text(
+                                            isCritical
+                                                ? 'PERINGATAN KUOTA'
+                                                : hasBudgets
+                                                    ? 'ANGGARAN AMAN'
+                                                    : 'BELUM ADA ANGGARAN',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.6,
+                                              color: bannerAccent,
+                                            ),
                                           ),
                                         ),
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                                           decoration: BoxDecoration(
@@ -1707,11 +1659,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                           child: Text(
                                             isCritical
                                                 ? 'Kritis'
-                                                : isWarning
-                                                    ? 'Info'
-                                                    : hasBudgets
-                                                        ? 'Aman'
-                                                        : 'Info',
+                                                : hasBudgets
+                                                    ? 'Aman'
+                                                    : 'Info',
                                             style: const TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
@@ -1725,11 +1675,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                                     Text(
                                       isCritical
                                           ? '$overCount Kategori Melebihi Anggaran!'
-                                          : isWarning
-                                              ? '$unbudgetedCount Kategori Belum Dianggarkan'
-                                              : hasBudgets
-                                                  ? 'Semua kategori dalam batas'
-                                                  : 'Belum ada anggaran bulan ini',
+                                          : hasBudgets
+                                              ? 'Semua kategori dalam batas'
+                                              : 'Belum ada anggaran bulan ini',
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
@@ -1745,11 +1693,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           Text(
                             isCritical
                                 ? 'Kategori $overNames melampaui limit. Pertimbangkan penyesuaian atau kurangi pengeluaran non-esensial.'
-                                : isWarning
-                                    ? 'Pengeluaran kategori $unbudgetedNames sudah tercatat. Atur budget kategorinya agar realisasi pengeluaran lebih jelas.'
-                                    : hasBudgets
-                                        ? 'Belum ada kategori yang melewati limit pada bulan ini. Pertahankan pola pengeluaranmu.'
-                                        : 'Tambahkan anggaran kategori agar pengeluaran bisa dipantau per bulan.',
+                                : hasBudgets
+                                    ? 'Belum ada kategori yang melewati limit pada bulan ini. Pertahankan pola pengeluaranmu.'
+                                    : 'Tambahkan anggaran kategori agar pengeluaran bisa dipantau per bulan.',
                             style: const TextStyle(fontSize: 11, color: Color(0xFF6B4E44), height: 1.4),
                           ),
                         ],
@@ -1778,15 +1724,20 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'TOTAL TERPAKAI ${DateFormat('MMM yyyy', 'id_ID').format(_currentDate).toUpperCase()}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.8,
+                              Expanded(
+                                child: Text(
+                                  'TOTAL TERPAKAI ${DateFormat('MMM yyyy', 'id_ID').format(_currentDate).toUpperCase()}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
@@ -1935,15 +1886,41 @@ class _BudgetScreenState extends State<BudgetScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('0%', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                              const Text('50%', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                              const Text('100% Limit', style: TextStyle(color: Colors.white70, fontSize: 10)),
-                              Text(
-                                isTotalOver ? '${overallPct.round()}% (Jebol)' : '${overallPct.round()}%',
-                                style: TextStyle(
-                                  color: isTotalOver ? const Color(0xFFFF9E91) : const Color(0xFF81C784),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                              const Flexible(
+                                child: Text(
+                                  '0%',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white60, fontSize: 10),
+                                ),
+                              ),
+                              const Flexible(
+                                child: Text(
+                                  '50%',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white60, fontSize: 10),
+                                ),
+                              ),
+                              const Flexible(
+                                child: Text(
+                                  '100% Limit',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: Colors.white70, fontSize: 10),
+                                ),
+                              ),
+                              Flexible(
+                                child: Text(
+                                  isTotalOver ? '${overallPct.round()}% (Jebol)' : '${overallPct.round()}%',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.end,
+                                  style: TextStyle(
+                                    color: isTotalOver ? const Color(0xFFFF9E91) : const Color(0xFF81C784),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],

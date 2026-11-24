@@ -23,6 +23,13 @@ class CategoryBreakdown {
   });
 }
 
+class CategoryUsage {
+  final String name;
+  final int count;
+
+  const CategoryUsage({required this.name, required this.count});
+}
+
 class ChartPoint {
   final String label;
   final double income;
@@ -81,6 +88,28 @@ List<CategoryBreakdown> expenseBreakdown(Iterable<TransactionModel> transactions
       .toList();
 
   list.sort((a, b) => b.amount.compareTo(a.amount));
+  return list;
+}
+
+/// Distribusi jumlah transaksi per kategori (bukan nominal).
+List<CategoryUsage> categoryUsageBreakdown(
+  Iterable<TransactionModel> transactions, {
+  required bool isIncome,
+}) {
+  final targetType = isIncome ? 'INCOME' : 'EXPENSE';
+  final counts = <String, int>{};
+
+  for (final tx in transactions) {
+    if (tx.type.toUpperCase() != targetType) continue;
+    final key = tx.categoryName.isEmpty ? 'Lainnya' : tx.categoryName;
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+
+  final list = counts.entries
+      .map((entry) => CategoryUsage(name: entry.key, count: entry.value))
+      .toList();
+
+  list.sort((a, b) => b.count.compareTo(a.count));
   return list;
 }
 

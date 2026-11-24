@@ -14,6 +14,31 @@ import { sendOtpEmail } from '../utils/emailService';
 // Untuk production sebaiknya gunakan Redis agar tidak hilang saat restart.
 const otpStore: Record<string, { otp: string; expiresAt: number }> = {};
 
+const getValidOtpRecord = (email: string, otp: string) => {
+  const stored = otpStore[email];
+
+  if (!stored) {
+    throw AppError.badRequest(
+      'Kode OTP tidak ditemukan atau sudah kedaluwarsa. Silakan minta kode baru.',
+      'OTP_NOT_FOUND'
+    );
+  }
+
+  if (Date.now() > stored.expiresAt) {
+    delete otpStore[email];
+    throw AppError.badRequest(
+      'Kode OTP telah kedaluwarsa. Silakan minta kode baru.',
+      'OTP_EXPIRED'
+    );
+  }
+
+  if (stored.otp !== otp.trim()) {
+    throw AppError.badRequest('Kode OTP yang Anda masukkan salah', 'OTP_INVALID');
+  }
+
+  return stored;
+};
+
 const googleClient = new OAuth2Client();
 
 export class AuthController {
@@ -249,20 +274,20 @@ export class AuthController {
     };
 
     // Kirim OTP via email (nodemailer).
-    // Jika SMTP_USER belum diisi di .env → fallback ke console.log (EMAIL_MOCK mode).
     try {
       await sendOtpEmail(normalizedEmail, otp);
     } catch (err) {
       console.error(`[EMAIL] Gagal mengirim OTP ke ${normalizedEmail}:`, err);
-      // Tetap lanjutkan — OTP sudah tersimpan di store, user bisa coba resend.
+      delete otpStore[normalizedEmail];
+      throw AppError.internal(
+        'Gagal mengirim email OTP. Periksa konfigurasi SMTP server lalu coba lagi.',
+        'EMAIL_SEND_FAILED'
+      );
     }
 
     return AppBaseResponse.raw(res, {
       success: true,
       message: 'Kode OTP pemulihan berhasil dikirim ke email Anda. Periksa inbox atau folder spam.',
-      // otp disertakan agar mudah di-test via mobile saat development.
-      // Hapus baris ini saat production / saat SMTP sudah aktif.
-      otp,
     });
   });
 
@@ -274,26 +299,7 @@ export class AuthController {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const stored = otpStore[normalizedEmail];
-
-    if (!stored) {
-      throw AppError.badRequest(
-        'Kode OTP tidak ditemukan atau sudah kedaluwarsa. Silakan minta kode baru.',
-        'OTP_NOT_FOUND'
-      );
-    }
-
-    if (Date.now() > stored.expiresAt) {
-      delete otpStore[normalizedEmail];
-      throw AppError.badRequest(
-        'Kode OTP telah kedaluwarsa. Silakan minta kode baru.',
-        'OTP_EXPIRED'
-      );
-    }
-
-    if (stored.otp !== otp.trim()) {
-      throw AppError.badRequest('Kode OTP yang Anda masukkan salah', 'OTP_INVALID');
-    }
+    getValidOtpRecord(normalizedEmail, otp);
 
     return AppBaseResponse.raw(res, {
       success: true,
@@ -303,9 +309,12 @@ export class AuthController {
 
   // ---- RESET PASSWORD ----
   resetPassword = asyncHandler(async (req: Request, res: Response) => {
-    const { email, newPassword } = req.body;
-    if (!email || !newPassword) {
-      throw AppError.badRequest('Email dan kata sandi baru wajib diisi', 'VALIDATION_ERROR');
+    const { email, newPassword, otp } = req.body;
+    if (!email || !newPassword || !otp) {
+      throw AppError.badRequest(
+        'Email, kode OTP, dan kata sandi baru wajib diisi',
+        'VALIDATION_ERROR'
+      );
     }
 
     if (newPassword.length < 6) {
@@ -320,6 +329,9 @@ export class AuthController {
         'USER_NOT_FOUND'
       );
     }
+
+    // OTP wajib valid agar reset password tidak bisa dilakukan tanpa kode email.
+    getValidOtpRecord(normalizedEmail, String(otp));
 
     await this.users.changePassword(user.id, newPassword);
     console.log(`[AUTH] Kata sandi berhasil diperbarui untuk ${normalizedEmail}`);

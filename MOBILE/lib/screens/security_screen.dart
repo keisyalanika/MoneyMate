@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/theme.dart';
 import '../services/auth_provider.dart';
+import '../navigation/app_router.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -12,7 +13,6 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> {
-  bool _hideBalanceEnabled = false;
   bool _loginAlertEnabled = true;
   bool _isLoading = true;
 
@@ -26,7 +26,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       setState(() {
-        _hideBalanceEnabled = prefs.getBool('security_hide_balance') ?? false;
         _loginAlertEnabled = prefs.getBool('security_login_alert') ?? true;
         _isLoading = false;
       });
@@ -336,12 +335,29 @@ class _SecurityScreenState extends State<SecurityScreen> {
             child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              final success = await auth.deleteAccount();
+              if (!success) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(auth.errorMessage ?? 'Gagal menghapus akun.'),
+                    backgroundColor: const Color(0xFFDC2626),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+
+              navigator.pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
+              messenger.showSnackBar(
                 const SnackBar(
-                  content: Text('Permintaan penghapusan akun telah dicatat.'),
-                  backgroundColor: Color(0xFFDC2626),
+                  content: Text('Akun dan seluruh data berhasil dihapus.'),
+                  backgroundColor: Color(0xFF10B981),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -453,16 +469,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   // 3. Section: Privasi & Pengaturan Tampilan
                   _buildSectionTitle('PRIVASI & NOTIFIKASI'),
                   _buildCardGroup([
-                    _buildSwitchItem(
-                      icon: Icons.visibility_off_outlined,
-                      title: 'Sensor Saldo di Beranda',
-                      subtitle: 'Samarkan nominal (Rp ••••••) untuk privasi',
-                      value: _hideBalanceEnabled,
-                      onChanged: (val) {
-                        _updateBoolPref('security_hide_balance', val, (v) => _hideBalanceEnabled = v);
-                      },
-                    ),
-                    const Divider(height: 1, indent: 56, color: Color(0xFFF0E5D8)),
                     _buildSwitchItem(
                       icon: Icons.add_alert_outlined,
                       title: 'Peringatan Login Perangkat Baru',

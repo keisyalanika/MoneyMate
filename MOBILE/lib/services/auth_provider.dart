@@ -5,7 +5,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
+import 'database_service.dart';
 import 'preferences_service.dart';
 import 'secure_storage_service.dart';
 
@@ -76,6 +78,7 @@ class AuthProvider with ChangeNotifier {
         _isLoggedIn = true;
         _saldo = prefs.getSaldoSnapshot();
         _sisaBudget = prefs.getSisaBudgetSnapshot();
+        ApiService.setActiveAccount(_userEmail);
         await prefs.saveSessionActive(true);
         if (_token != null && _token!.isNotEmpty) {
           await SecureStorageService.getInstance().saveAccessToken(_token!);
@@ -89,6 +92,38 @@ class AuthProvider with ChangeNotifier {
     } finally {
       _isInitialized = true;
       notifyListeners();
+    }
+  }
+
+  /// Hapus data milik akun sebelumnya (goal lokal, draf, cache, snapshot)
+  /// agar akun baru selalu mulai dari kondisi kosong.
+  Future<void> _clearAccountScopedData() async {
+    try {
+      final rawPrefs = await SharedPreferences.getInstance();
+      await rawPrefs.remove('moneymate_goals_storage');
+      await rawPrefs.remove('moneymate_draft_goals');
+      final goalFundKeys = rawPrefs
+          .getKeys()
+          .where((key) =>
+              key.startsWith('moneymate_goal_funds_') && !key.contains('@'))
+          .toList();
+      for (final key in goalFundKeys) {
+        await rawPrefs.remove(key);
+      }
+
+      await AppDatabase().clearAllCache();
+
+      final prefs = await PreferencesService.getInstance();
+      await prefs.saveSaldoSnapshot(0);
+      await prefs.saveSisaBudgetSnapshot(0);
+      await prefs.saveIncomeSnapshot(0);
+      await prefs.saveExpenseSnapshot(0);
+      _saldo = 0;
+      _sisaBudget = 0;
+      _transactions = [];
+      _isLoadingTransactions = false;
+    } catch (e) {
+      debugPrint('[AuthProvider] clearAccountScopedData error: $e');
     }
   }
 
@@ -138,6 +173,9 @@ class AuthProvider with ChangeNotifier {
           .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // Pastikan akun baru mulai dari kondisi kosong (tanpa sisa data
+        // transaksi/goal/budget akun sebelumnya di perangkat ini).
+        await _clearAccountScopedData();
         return {'success': true, 'message': 'Pendaftaran berhasil! Silakan masuk.'};
       } else {
         try {
@@ -181,6 +219,8 @@ class AuthProvider with ChangeNotifier {
         _token = data['token']?.toString();
         ApiService.token = _token;
 
+        await _clearAccountScopedData();
+        ApiService.setActiveAccount(_userEmail);
         await _saveSessionToPrefs();
         await refreshFinance();
         notifyListeners();
@@ -201,97 +241,123 @@ class AuthProvider with ChangeNotifier {
   Future<Map<String, dynamic>> loginWithGoogle() async {
     _errorMessage = null;
 
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        serverClientId: const String.fromEnvironment(
-          'GOOGLE_SERVER_CLIENT_ID',
-          defaultValue: '232019089703-d2879d4vns88hou8sh5q1hddonbb6m0e.apps.googleusercontent.com',
-        ),
-        scopes: ['email', 'profile'],
-      );
+    const defaultClientId =
+        '625929892019-qcj7jq5qksj1devk3sh9ujh0g9h5ot1a.apps.googleusercontent.com';
+    const configuredClientId = String.fromEnvironment(
+      'GOOGLE_SERVER_CLIENT_ID',
+      defaultValue: defaultClientId,
+    );
 
-      // Sign out akun sebelumnya agar pemilih akun Google selalu muncul
+    final clientIds = <String>[
+      configuredClientId,
+      defaultClientId,
+    ].where((id) => id.trim().isNotEmpty).toSet().toList();
+
+    PlatformException? lastPlatformError;
+
+    for (final clientId in clientIds) {
       try {
-        await googleSignIn.signOut();
-      } catch (_) {}
+        final googleSignIn = GoogleSignIn(
+          serverClientId: clientId,
+          scopes: ['email', 'profile'],
+        );
 
-      final GoogleSignInAccount? account = await googleSignIn.signIn();
+        // Sign out akun sebelumnya agar pemilih akun Google selalu muncul
+        try {
+          await googleSignIn.signOut();
+        } catch (_) {}
 
-      if (account == null) {
-        // User membatalkan proses sign-in
-        return {
-          'success': false,
-          'cancelled': true,
-          'message': 'Login dengan Google dibatalkan.',
-        };
-      }
+        final GoogleSignInAccount? account = await googleSignIn.signIn();
 
-      final GoogleSignInAuthentication auth = await account.authentication;
-      final String? idToken = auth.idToken;
-      final String email = account.email;
-      final String name = account.displayName ?? 'Pengguna Google';
-      final String? photoUrl = account.photoUrl;
+        if (account == null) {
+          return {
+            'success': false,
+            'cancelled': true,
+            'message': 'Login dengan Google dibatalkan.',
+          };
+        }
 
-      final res = await ApiService.loginWithGoogle(
-        idToken: idToken,
-        email: email,
-        name: name,
-        avatarUrl: photoUrl,
-      );
+        final GoogleSignInAuthentication auth = await account.authentication;
+        final String email = account.email;
+        final String name = account.displayName ?? 'Pengguna Google';
+        final String? photoUrl = account.photoUrl;
 
-      if (res['success'] == true && res['data'] != null) {
-        final Map<String, dynamic> data = res['data'];
-        _isLoggedIn = true;
-        _userName = (data['name'] ?? name).toString();
-        _userNickname = (data['nickname'] ?? _userName.split(' ').first).toString();
-        _userEmail = (data['email'] ?? email).toString();
-        _userPhone = (data['phone'] ?? '').toString();
-        _avatarUrl = (data['avatar_url'] ?? photoUrl ?? '').toString();
-        _role = (data['role'] ?? 'user').toString();
-        _token = data['token']?.toString();
-        ApiService.token = _token;
+        final res = await ApiService.loginWithGoogle(
+          idToken: auth.idToken,
+          email: email,
+          name: name,
+          avatarUrl: photoUrl,
+        );
 
-        await _saveSessionToPrefs();
-        await refreshFinance();
+        if (res['success'] == true && res['data'] != null) {
+          final Map<String, dynamic> data = res['data'];
+          _isLoggedIn = true;
+          _userName = (data['name'] ?? name).toString();
+          _userNickname = (data['nickname'] ?? _userName.split(' ').first).toString();
+          _userEmail = (data['email'] ?? email).toString();
+          _userPhone = (data['phone'] ?? '').toString();
+          _avatarUrl = (data['avatar_url'] ?? photoUrl ?? '').toString();
+          _role = (data['role'] ?? 'user').toString();
+          _token = data['token']?.toString();
+          ApiService.token = _token;
+
+          await _clearAccountScopedData();
+          ApiService.setActiveAccount(_userEmail);
+          await _saveSessionToPrefs();
+          await refreshFinance();
+          notifyListeners();
+
+          return {
+            'success': true,
+            'isNewUser': data['isNewUser'] == true,
+            'message': res['message'] ?? 'Login dengan Google berhasil',
+          };
+        }
+
+        _errorMessage = res['message']?.toString() ?? 'Gagal masuk dengan Google.';
         notifyListeners();
-
-        return {
-          'success': true,
-          'isNewUser': data['isNewUser'] == true,
-          'message': res['message'] ?? 'Login dengan Google berhasil',
-        };
+        return {'success': false, 'message': _errorMessage};
+      } on PlatformException catch (e) {
+        debugPrint(
+          '[AuthProvider] Google Sign-In ($clientId) PlatformException: ${e.code} - ${e.message}',
+        );
+        if (e.code == 'sign_in_canceled' || e.code == 'canceled') {
+          return {
+            'success': false,
+            'cancelled': true,
+            'message': 'Login dengan Google dibatalkan.',
+          };
+        }
+        if (e.code == 'network_error') {
+          _errorMessage = 'Koneksi internet bermasalah saat menghubungkan ke Google.';
+          notifyListeners();
+          return {'success': false, 'message': _errorMessage};
+        }
+        lastPlatformError = e;
+        if (e.code != 'sign_in_failed') break;
+      } on SocketException catch (_) {
+        _errorMessage = 'Tidak dapat terhubung ke internet. Periksa koneksi Anda.';
+        notifyListeners();
+        return {'success': false, 'message': _errorMessage};
+      } catch (e) {
+        debugPrint('[AuthProvider] Google Sign-In error: $e');
+        _errorMessage = 'Terjadi kendala saat login dengan Google. Silakan coba lagi.';
+        notifyListeners();
+        return {'success': false, 'message': _errorMessage};
       }
-
-      _errorMessage = res['message']?.toString() ?? 'Gagal masuk dengan Google.';
-      notifyListeners();
-      return {'success': false, 'message': _errorMessage};
-    } on PlatformException catch (e) {
-      debugPrint('[AuthProvider] Google Sign-In PlatformException: ${e.code} - ${e.message}');
-      String userMsg = 'Gagal masuk dengan Google (${e.code}).';
-      if (e.code == 'sign_in_canceled' || e.code == 'canceled') {
-        return {
-          'success': false,
-          'cancelled': true,
-          'message': 'Login dengan Google dibatalkan.',
-        };
-      } else if (e.code == 'network_error') {
-        userMsg = 'Koneksi internet bermasalah saat menghubungkan ke Google.';
-      } else if (e.code == 'sign_in_failed') {
-        userMsg = 'Konfigurasi Google Sign-In (SHA-1 / Client ID) belum cocok di project.';
-      }
-      _errorMessage = userMsg;
-      notifyListeners();
-      return {'success': false, 'message': _errorMessage};
-    } on SocketException catch (_) {
-      _errorMessage = 'Tidak dapat terhubung ke internet. Periksa koneksi Anda.';
-      notifyListeners();
-      return {'success': false, 'message': _errorMessage};
-    } catch (e) {
-      debugPrint('[AuthProvider] Google Sign-In error: $e');
-      _errorMessage = 'Terjadi kendala saat login dengan Google. Silakan coba lagi.';
-      notifyListeners();
-      return {'success': false, 'message': _errorMessage};
     }
+
+    if (lastPlatformError != null) {
+      final detail = (lastPlatformError.message ?? '').trim();
+      _errorMessage = 'Login Google gagal${detail.isEmpty ? '' : ': $detail'}. '
+          'Pastikan package "com.moneymate.moneymate_mobile" dan SHA-1 aplikasi '
+          'sudah terdaftar sebagai OAuth Client ID Android di Google Cloud '
+          'project yang sama dengan Web Client ID.';
+    } else {
+      _errorMessage = 'Terjadi kendala saat login dengan Google. Silakan coba lagi.';
+    }
+    notifyListeners();
+    return {'success': false, 'message': _errorMessage};
   }
 
   Future<void> refreshProfile() async {
@@ -304,6 +370,7 @@ class AuthProvider with ChangeNotifier {
     if (data['email'] != null && data['email'].toString().isNotEmpty) {
       _userEmail = data['email'].toString();
     }
+    ApiService.setActiveAccount(_userEmail);
     if (data['phone'] != null) {
       _userPhone = data['phone'].toString();
     }
@@ -358,6 +425,18 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Hapus akun pengguna saat ini langsung dari server, lalu bersihkan sesi.
+  Future<bool> deleteAccount() async {
+    final success = await ApiService.deleteAccount();
+    if (success) {
+      await logout();
+    } else {
+      _errorMessage = 'Gagal menghapus akun. Periksa koneksi ke server.';
+      notifyListeners();
+    }
+    return success;
+  }
+
   Future<void> logout() async {
     _isLoggedIn = false;
     _userName = 'Guest';
@@ -368,6 +447,7 @@ class AuthProvider with ChangeNotifier {
     _role = 'user';
     _token = null;
     ApiService.token = null;
+    ApiService.setActiveAccount(null);
     _errorMessage = null;
 
     try {
@@ -378,6 +458,8 @@ class AuthProvider with ChangeNotifier {
       await secure.deleteRefreshToken();
       await secure.deleteUserId();
     } catch (_) {}
+
+    await _clearAccountScopedData();
 
     notifyListeners();
   }
@@ -446,6 +528,7 @@ class AuthProvider with ChangeNotifier {
     required bool isAdd,
     required double amount,
     String? note,
+    int? categoryId,
   }) async {
     // 1. Update saldo lokal secara instan (Optimistic UI)
     final prevSaldo = _saldo;
@@ -480,6 +563,7 @@ class AuthProvider with ChangeNotifier {
         type: isAdd ? 'add' : 'subtract',
         amount: amount,
         note: note,
+        categoryId: categoryId,
       );
 
       if (res['success'] == true && res['data'] != null) {
@@ -516,20 +600,13 @@ class AuthProvider with ChangeNotifier {
 
   // ================= LUPA KATA SANDI & RESET PASSWORD =================
   String? _recoveryEmail;
-  String? _lastGeneratedOtp;
 
   String? get recoveryEmail => _recoveryEmail;
-  String? get lastGeneratedOtp => _lastGeneratedOtp;
 
   Future<Map<String, dynamic>> sendForgotPasswordOtp(String email) async {
     final normalized = email.trim().toLowerCase();
     _recoveryEmail = normalized;
-    final res = await ApiService.sendForgotPasswordOtp(normalized);
-    // Simpan OTP jika backend mengembalikannya (mode dev / EMAIL_MOCK=true).
-    if (res['success'] == true && res['otp'] != null) {
-      _lastGeneratedOtp = res['otp'].toString();
-    }
-    return res;
+    return ApiService.sendForgotPasswordOtp(normalized);
   }
 
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
@@ -581,6 +658,7 @@ class AuthProvider with ChangeNotifier {
           'type': tx.type.toLowerCase(),
           'isExpense': tx.type.toLowerCase() == 'expense',
           'category': tx.categoryName,
+          'name': tx.name ?? '',
           'date': tx.date,
           'note': tx.notes ?? '',
           'time': 'Hari ini',
@@ -599,6 +677,7 @@ class AuthProvider with ChangeNotifier {
     required double amount,
     required String category,
     required String date,
+    String? name,
     String? note,
   }) async {
     final bool isExpense = type.toLowerCase() == 'expense';
@@ -617,11 +696,12 @@ class AuthProvider with ChangeNotifier {
     // 2. Tambahkan transaksi ke daftar paling atas
     final newTx = {
       'id': 'tx-${DateTime.now().millisecondsSinceEpoch}',
-      'title': category,
+      'title': (name != null && name.trim().isNotEmpty) ? name.trim() : category,
       'amount': amount,
       'type': type.toLowerCase(),
       'isExpense': isExpense,
       'category': category,
+      'name': name ?? '',
       'date': date,
       'note': note ?? '',
       'time': DateFormat('HH:mm').format(DateTime.now()),
@@ -635,6 +715,7 @@ class AuthProvider with ChangeNotifier {
         'type': type.toLowerCase(),
         'amount': amount,
         'category_name': category,
+        'name': name ?? '',
         'date': date,
         'note': note ?? '',
       });

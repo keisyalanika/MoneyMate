@@ -5,6 +5,17 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../errors/AppError';
 import { AppBaseResponse } from '../responses/AppBaseResponse';
 
+const isFutureDate = (value?: string): boolean => {
+  if (!value) return false;
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return false;
+  const parsed = new Date(year, month - 1, day);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return parsed.getTime() > today.getTime();
+};
+
 export class TransactionController {
   constructor(private readonly transactions = transactionService) {}
 
@@ -38,7 +49,7 @@ export class TransactionController {
 
   // ---- CREATE transaction ----
   addTransaction = asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { type, amount, category_id, category_name, income_source_id, date, note, receipt_image_url } =
+    const { type, amount, category_id, category_name, name, income_source_id, date, note, receipt_image_url } =
       req.body;
     if (!amount) {
       throw AppError.badRequest('amount is required', 'VALIDATION_ERROR');
@@ -57,13 +68,22 @@ export class TransactionController {
       catId = txType === 'income' ? 8 : 1;
     }
 
+    const transactionDate = date || new Date().toISOString().slice(0, 10);
+    if (isFutureDate(transactionDate)) {
+      throw AppError.badRequest(
+        'Tanggal transaksi tidak boleh melebihi hari ini.',
+        'FUTURE_DATE_NOT_ALLOWED'
+      );
+    }
+
     const created = await this.transactions.createTransaction({
       user_id: req.user?.id || 2,
       type: txType,
       amount: Number(amount),
       category_id: catId,
+      name: name ? String(name) : undefined,
       income_source_id,
-      date: date || new Date().toISOString().slice(0, 10),
+      date: transactionDate,
       note,
       receipt_image_url,
     });
@@ -73,6 +93,13 @@ export class TransactionController {
 
   // ---- UPDATE transaction ----
   updateTransaction = asyncHandler(async (req: Request, res: Response) => {
+    if (req.body?.date && isFutureDate(String(req.body.date))) {
+      throw AppError.badRequest(
+        'Tanggal transaksi tidak boleh melebihi hari ini.',
+        'FUTURE_DATE_NOT_ALLOWED'
+      );
+    }
+
     const updated = await this.transactions.updateTransaction(Number(req.params.id), req.body);
     if (!updated) {
       throw AppError.notFound('Transaction not found', 'TRANSACTION_NOT_FOUND');

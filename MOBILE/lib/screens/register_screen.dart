@@ -23,7 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _agreeToTerms = true;
+  bool _agreeToTerms = false;
   bool _isLoading = false;
   String? _errorMessage;
 

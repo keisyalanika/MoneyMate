@@ -48,10 +48,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
             String timeStr = 'Baru saja';
             if (item['created_at'] != null) {
-              try {
-                final dt = DateTime.parse(item['created_at'].toString());
-                timeStr = DateFormat('dd MMM, HH:mm').format(dt);
-              } catch (_) {}
+              timeStr = _formatNotificationTime(item['created_at']);
             }
 
             return {
@@ -74,6 +71,29 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _formatNotificationTime(dynamic raw) {
+    if (raw == null) return 'Baru saja';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(dt);
+
+      if (diff.inMinutes < 60) {
+        return diff.inMinutes <= 1 ? 'Baru saja' : '${diff.inMinutes} menit yang lalu';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} jam yang lalu';
+      } else if (diff.inDays == 1) {
+        return 'Kemarin, ${DateFormat('HH:mm').format(dt)}';
+      } else if (diff.inDays < 7) {
+        return '${diff.inDays} hari yang lalu';
+      } else {
+        return DateFormat('dd MMM, HH:mm').format(dt);
+      }
+    } catch (_) {
+      return raw.toString();
     }
   }
 

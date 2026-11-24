@@ -390,8 +390,21 @@ class ApiService {
   }
 
   // ================= GOALS (OFFLINE-FIRST DENGAN LOCAL STORAGE & SYNC API) =================
-  static const String _goalsKey = 'moneymate_goals_storage';
+  static const String _goalsKeyPrefix = 'moneymate_goals_storage_';
   static String? lastGoalError;
+
+  /// Identitas akun aktif agar cache lokal (goal/draf) tidak bocor
+  /// antar pengguna di perangkat yang sama.
+  static String _activeAccountKey = '';
+
+  static void setActiveAccount(String? email) {
+    _activeAccountKey = (email ?? '').trim().toLowerCase();
+  }
+
+  static String get accountStorageKey =>
+      _activeAccountKey.trim().isEmpty ? 'guest' : _activeAccountKey.trim();
+
+  static String get _goalsKey => '$_goalsKeyPrefix$accountStorageKey';
 
   static String _goalIdString(dynamic id) => id?.toString() ?? '';
 
@@ -399,7 +412,7 @@ class ApiService {
       RegExp(r'^\d+$').hasMatch(_goalIdString(id));
 
   static String _goalFundsKey(dynamic goalId) =>
-      'moneymate_goal_funds_${_goalIdString(goalId)}';
+      'moneymate_goal_funds_${accountStorageKey}_${_goalIdString(goalId)}';
 
   static Future<List<Map<String, dynamic>>> _getLocalGoals() async {
     try {
@@ -506,30 +519,28 @@ class ApiService {
         final Map<String, dynamic> body = json.decode(response.body);
         final List<dynamic> list = body['data'] ?? [];
         final remote = list.map((e) => Map<String, dynamic>.from(e)).toList();
-        if (remote.isNotEmpty) {
-          final local = await _getLocalGoals();
-          final pendingLocal = local.where((g) {
-            final id = _goalIdString(g['id']);
-            final isTempId = id.isNotEmpty && !RegExp(r'^\d+$').hasMatch(id);
-            if (!isTempId) return false;
+        final local = await _getLocalGoals();
+        final pendingLocal = local.where((g) {
+          final id = _goalIdString(g['id']);
+          final isTempId = id.isNotEmpty && !RegExp(r'^\d+$').hasMatch(id);
+          if (!isTempId) return false;
 
-            final title = g['title']?.toString().trim().toLowerCase() ?? '';
-            final target =
-                double.tryParse('${g['target_amount'] ?? 0}') ?? 0.0;
-            final matchedRemote = remote.any((r) {
-              if (_goalIdString(r['id']) == id) return true;
-              final rTitle =
-                  r['title']?.toString().trim().toLowerCase() ?? '';
-              final rTarget =
-                  double.tryParse('${r['target_amount'] ?? 0}') ?? 0.0;
-              return rTitle == title && rTarget == target;
-            });
-            return !matchedRemote;
-          }).toList();
-          final merged = [...remote, ...pendingLocal];
-          await _setLocalGoals(merged);
-          return merged;
-        }
+          final title = g['title']?.toString().trim().toLowerCase() ?? '';
+          final target =
+              double.tryParse('${g['target_amount'] ?? 0}') ?? 0.0;
+          final matchedRemote = remote.any((r) {
+            if (_goalIdString(r['id']) == id) return true;
+            final rTitle =
+                r['title']?.toString().trim().toLowerCase() ?? '';
+            final rTarget =
+                double.tryParse('${r['target_amount'] ?? 0}') ?? 0.0;
+            return rTitle == title && rTarget == target;
+          });
+          return !matchedRemote;
+        }).toList();
+        final merged = [...remote, ...pendingLocal];
+        await _setLocalGoals(merged);
+        return merged;
       }
     } catch (e) {
       if (kDebugMode) debugPrint('API fetchGoals offline, using local storage: $e');
@@ -872,6 +883,7 @@ class ApiService {
     required String type, // 'add' or 'subtract'
     required double amount,
     String? note,
+    int? categoryId,
   }) async {
     try {
       final response = await http.post(
@@ -881,6 +893,7 @@ class ApiService {
           'type': type,
           'amount': amount,
           'note': note ?? (type == 'add' ? 'Penyesuaian Tambah Saldo' : 'Penyesuaian Kurangi Saldo'),
+          if (categoryId != null) 'category_id': categoryId,
         }),
       );
       if (response.statusCode == 200) {
@@ -973,7 +986,6 @@ class ApiService {
       return {
         'success': response.statusCode == 200,
         'message': body['message'] ?? 'Kode pemulihan telah dikirim.',
-        'otp': body['otp'],
       };
     } catch (e) {
       if (kDebugMode) debugPrint('API Error sendForgotPasswordOtp: $e');
@@ -1148,6 +1160,18 @@ class ApiService {
       return response.statusCode == 200;
     } catch (e) {
       if (kDebugMode) debugPrint('API Error updateProfile: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteAccount() async {
+    try {
+      final response = await http
+          .delete(Uri.parse('$baseUrl/users/me'), headers: headers)
+          .timeout(const Duration(seconds: 6));
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) debugPrint('API Error deleteAccount: $e');
       return false;
     }
   }

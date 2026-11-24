@@ -16,6 +16,7 @@ export interface CreateTransactionData {
   type: TransactionType;
   amount: number;
   category_id: number;
+  name?: string | null;
   income_source_id?: number | null;
   date: string;
   note?: string | null;
@@ -26,6 +27,7 @@ export interface UpdateTransactionData {
   type?: TransactionType;
   amount?: number;
   category_id?: number;
+  name?: string | null;
   date?: string;
   note?: string | null;
 }

@@ -27,6 +27,7 @@ export class TransactionRepository extends BaseRepository implements ITransactio
     if (filters.category_id) where.categoryId = filters.category_id;
     if (filters.search) {
       where.OR = [
+        { name: { contains: filters.search } },
         { note: { contains: filters.search } },
         { category: { is: { name: { contains: filters.search } } } },
       ];
@@ -68,6 +69,7 @@ export class TransactionRepository extends BaseRepository implements ITransactio
         type: data.type,
         amount: data.amount,
         categoryId: data.category_id,
+        name: data.name ?? null,
         incomeSourceId: data.income_source_id ?? null,
         date: startOfDay(data.date),
         note: data.note ?? null,
@@ -82,6 +84,7 @@ export class TransactionRepository extends BaseRepository implements ITransactio
     if (data.type !== undefined) payload.type = data.type;
     if (data.amount !== undefined) payload.amount = data.amount;
     if (data.category_id !== undefined) payload.category = { connect: { id: data.category_id } };
+    if (data.name !== undefined) payload.name = data.name;
     if (data.date !== undefined) payload.date = startOfDay(data.date);
     if (data.note !== undefined) payload.note = data.note;
 

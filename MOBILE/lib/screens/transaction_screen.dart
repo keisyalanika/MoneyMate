@@ -400,9 +400,14 @@ class _TransactionScreenState extends State<TransactionScreen> {
                             final String cat = tx['category']?.toString() ??
                                 tx['title']?.toString() ??
                                 'Lainnya';
+                            final String name = tx['name']?.toString().trim() ?? '';
                             final String note = (tx['note'] != null && tx['note'].toString().isNotEmpty)
                                 ? tx['note'].toString()
-                                : cat;
+                                : '';
+                            final String title = name.isNotEmpty ? name : cat;
+                            final String subtitle = name.isNotEmpty
+                                ? (note.isNotEmpty ? '$cat • $note' : cat)
+                                : (note.isNotEmpty ? note : cat);
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -410,9 +415,9 @@ class _TransactionScreenState extends State<TransactionScreen> {
                                   icon: _getCategoryIcon(cat),
                                   iconBg: isExp ? const Color(0xFFF5F0EB) : const Color(0xFFE8F5E9),
                                   iconColor: isExp ? AppColors.primaryBrown : const Color(0xFF16A34A),
-                                  title: cat,
+                                  title: title,
                                   hasReceipt: tx['receipt_image_url'] != null,
-                                  subtitle1: note,
+                                  subtitle1: subtitle,
                                   subtitle2: isExp ? 'Pengeluaran' : 'Pemasukan',
                                   amount: '${isExp ? '-' : '+'}Rp ${_formatAmount(tx['amount'])}',
                                   isExpense: isExp,

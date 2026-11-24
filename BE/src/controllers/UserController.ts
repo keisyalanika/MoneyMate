@@ -125,6 +125,16 @@ export class UserController {
     return AppBaseResponse.success(res, updated, 'Foto profil berhasil diperbarui');
   });
 
+  deleteMe = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user!.id;
+    const deleted = await this.users.deleteUser(userId);
+    if (!deleted) {
+      throw AppError.notFound('User not found', 'USER_NOT_FOUND');
+    }
+
+    return AppBaseResponse.deleted(res, 'Akun dan seluruh data berhasil dihapus');
+  });
+
   updateUserSaldo = asyncHandler(async (req: AuthRequest, res: Response) => {
     const targetUserId = Number(req.params.id);
     const { amount, action, note } = req.body;

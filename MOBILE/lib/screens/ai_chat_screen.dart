@@ -509,29 +509,37 @@ class _AiChatScreenState extends State<AiChatScreen> {
           ),
           const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Container(
-                  height: 48,
+                  constraints: const BoxConstraints(minHeight: 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF9F7F5),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: const Color(0xFFF0EAE1)),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const SizedBox(width: 16),
-                      const Icon(Icons.mic_none, color: Color(0xFF8C827A), size: 20),
-                      const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
                           controller: _controller,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendMessage(),
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          minLines: 1,
+                          maxLines: 4,
+                          textAlignVertical: TextAlignVertical.top,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF2C1A14)),
                           decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 12),
                             hintText: 'Ketik atau "Buat goal..." untuk AI Goal...',
                             hintStyle: TextStyle(fontSize: 12, color: Color(0xFF8C827A)),
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                           ),
                         ),
                       ),

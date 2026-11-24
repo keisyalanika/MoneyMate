@@ -9,6 +9,7 @@ const router = Router();
 router.get('/me', protect, userController.getProfileMe);
 router.put('/me', protect, userController.updateProfileMe);
 router.post('/me/avatar', protect, uploadAvatar.single('avatar'), userController.uploadAvatar);
+router.delete('/me', protect, userController.deleteMe);
 
 // /api/users (Admin user list & creation)
 router.get('/', protect, admin, userController.getUsers);

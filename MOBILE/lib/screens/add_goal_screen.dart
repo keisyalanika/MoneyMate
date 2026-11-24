@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_provider.dart';
 import '../utils/theme.dart';
 import '../utils/currency_formatter.dart';
@@ -23,12 +24,17 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   
   bool _autoReminder = true;
   bool _isSaving = false;
+  int? _paydayDay;
   IconData _selectedIcon = Icons.laptop_mac;
   DateTime _selectedDeadline = DateTime.now().add(const Duration(days: 120));
+
+  String get _paydayKey => 'goal_payday_day_${ApiService.accountStorageKey}';
+  String get _reminderKey => 'goal_reminder_enabled_${ApiService.accountStorageKey}';
 
   @override
   void initState() {
     super.initState();
+    _loadReminderPreferences();
     if (widget.initialDraft != null) {
       final draft = widget.initialDraft!;
       _nameController.text = draft['title']?.toString() ?? '';
@@ -56,6 +62,123 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     _nameController.addListener(_onFormChanged);
     _amountController.addListener(_onFormChanged);
     _initialDepositController.addListener(_onFormChanged);
+  }
+
+  Future<void> _loadReminderPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+      setState(() {
+        _paydayDay = prefs.getInt(_paydayKey);
+        _autoReminder = prefs.getBool(_reminderKey) ?? true;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _savePaydayDay(int day) async {
+    setState(() => _paydayDay = day);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_paydayKey, day);
+    } catch (_) {}
+  }
+
+  Future<void> _saveReminderEnabled(bool enabled) async {
+    setState(() => _autoReminder = enabled);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_reminderKey, enabled);
+    } catch (_) {}
+  }
+
+  Future<bool> _selectPaydayDay() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Pilih Tanggal Gajian',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Pengingat nabung akan muncul setiap tanggal ini.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 16),
+              GridView.count(
+                crossAxisCount: 7,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                children: List.generate(31, (index) {
+                  final day = index + 1;
+                  final isSelected = _paydayDay == day;
+                  return InkWell(
+                    onTap: () => Navigator.pop(ctx, day),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primaryBrown
+                            : const Color(0xFFF5F0EB),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primaryBrown
+                              : const Color(0xFFEBE6DF),
+                        ),
+                      ),
+                      child: Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : AppColors.textDark,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      await _savePaydayDay(selected);
+      return true;
+    }
+    return false;
   }
 
   void _onFormChanged() {
@@ -315,8 +438,10 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 12,
               children: [
                 _buildIconOption(Icons.laptop_mac),
                 _buildIconOption(Icons.flight_takeoff),
@@ -407,6 +532,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             _buildAiCopilotCard(),
             const SizedBox(height: 24),
 
+            _buildPaydayCard(),
+            const SizedBox(height: 12),
+
             // Pengingat Nabung Otomatis
             Container(
               padding: const EdgeInsets.all(16),
@@ -429,17 +557,26 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text('Pengingat Nabung Otomatis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark)),
-                        SizedBox(height: 4),
-                        Text('Notifikasi setiap tanggal 25 (Hari Gajian)', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                      children: [
+                        const Text('Pengingat Nabung Otomatis', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textDark)),
+                        const SizedBox(height: 4),
+                        Text(
+                          _paydayDay == null
+                              ? 'Atur tanggal gajian dulu untuk mengaktifkan pengingat'
+                              : 'Notifikasi setiap tanggal $_paydayDay (Hari Gajian)',
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
                       ],
                     ),
                   ),
                   Switch(
                     value: _autoReminder,
-                    onChanged: (val) {
-                      setState(() => _autoReminder = val);
+                    onChanged: (val) async {
+                      if (val && _paydayDay == null) {
+                        final picked = await _selectPaydayDay();
+                        if (!picked) return;
+                      }
+                      await _saveReminderEnabled(val);
                     },
                     activeColor: Colors.white,
                     activeTrackColor: AppColors.primaryBrown,
@@ -447,7 +584,21 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 12),
+            if (_autoReminder && _paydayDay != null)
+              Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, size: 14, color: Color(0xFF10B981)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Pengingat aktif setiap tanggal $_paydayDay. Kamu bisa mengubahnya lewat kartu Tanggal Gajian.',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 20),
 
             // Buttons
             SizedBox(
@@ -493,6 +644,24 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                             ),
                           );
                           return;
+                        }
+
+                        if (_autoReminder && _paydayDay == null) {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final picked = await _selectPaydayDay();
+                          if (!picked) {
+                            if (!mounted) return;
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Masukkan tanggal gajian dulu, atau matikan pengingat otomatis.',
+                                ),
+                                backgroundColor: Color(0xFFDC2626),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
                         }
 
                         final String deadlineStr =
@@ -624,6 +793,72 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaydayCard() {
+    final hasPayday = _paydayDay != null;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF5F0EB)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFECE0),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.calendar_month_outlined,
+              color: AppColors.secondary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tanggal Gajian',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  hasPayday
+                      ? 'Pengingat disiapkan untuk tanggal $_paydayDay setiap bulan'
+                      : 'Belum diatur. Masukkan tanggal gajian dulu.',
+                  style: TextStyle(
+                    color: hasPayday
+                        ? AppColors.textMuted
+                        : const Color(0xFFD95B27),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _selectPaydayDay,
+            child: Text(
+              hasPayday ? 'Ubah' : 'Atur',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBrown,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -762,7 +997,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     return GestureDetector(
       onTap: () => setState(() => _selectedIcon = icon),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
         width: 44,
         height: 44,
         decoration: BoxDecoration(
@@ -788,15 +1022,22 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textDark,
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark,
+                  ),
                 ),
               ),
-              if (trailing != null) trailing,
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                Flexible(child: trailing),
+              ],
             ],
           ),
           const SizedBox(height: 12),

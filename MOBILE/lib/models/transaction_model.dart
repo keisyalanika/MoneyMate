@@ -7,6 +7,7 @@ class TransactionModel {
   final String categoryName;
   final String categoryIcon;
   final String date;
+  final String? name;
   final String? notes;
 
   TransactionModel({
@@ -18,19 +19,21 @@ class TransactionModel {
     required this.categoryName,
     required this.categoryIcon,
     required this.date,
+    this.name,
     this.notes,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
       id: json['id']?.toString() ?? '',
-      title: json['note'] ?? json['title'] ?? 'Transaksi',
+      title: json['name'] ?? json['note'] ?? json['title'] ?? 'Transaksi',
       amount: (json['amount'] is num) ? (json['amount'] as num).toDouble() : double.tryParse(json['amount']?.toString() ?? '0') ?? 0.0,
       type: (json['type']?.toString().toUpperCase() == 'INCOME') ? 'INCOME' : 'EXPENSE',
       categoryId: (json['category_id'] ?? json['categoryId'])?.toString() ?? '',
       categoryName: json['category_name'] ?? json['categoryName'] ?? 'Lainnya',
       categoryIcon: json['category_icon'] ?? json['categoryIcon'] ?? 'tag',
       date: json['date']?.toString() ?? '',
+      name: json['name'],
       notes: json['note'] ?? json['notes'],
     );
   }
@@ -45,6 +48,7 @@ class TransactionModel {
       'categoryName': categoryName,
       'categoryIcon': categoryIcon,
       'date': date,
+      'name': name,
       'notes': notes,
     };
   }

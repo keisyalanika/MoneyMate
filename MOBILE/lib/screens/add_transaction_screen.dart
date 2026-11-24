@@ -34,11 +34,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _nominalController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _customCategoryController = TextEditingController();
 
-  List<CategoryModel> get _filteredCategories => _categories
-      .where((c) => c.type.toUpperCase() == (isIncome ? 'INCOME' : 'EXPENSE'))
-      .toList();
+  List<CategoryModel> get _filteredCategories {
+    final seen = <String>{};
+    return _categories.where((c) {
+      if (c.type.toUpperCase() != (isIncome ? 'INCOME' : 'EXPENSE')) {
+        return false;
+      }
+      final key = c.name.trim().toLowerCase();
+      return seen.add(key);
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -52,27 +61,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     setState(() {
       _categories = list;
       _isLoadingCategories = false;
-      final filtered = _filteredCategories;
-      if (filtered.isNotEmpty) {
-        _selectedCategory = filtered.first.name;
-      }
     });
   }
 
   void _setType(bool income) {
     setState(() {
       isIncome = income;
-      final filtered = _categories
-          .where((c) => c.type.toUpperCase() == (income ? 'INCOME' : 'EXPENSE'))
-          .toList();
-      _selectedCategory = filtered.isNotEmpty ? filtered.first.name : '';
+      _selectedCategory = '';
     });
   }
 
   @override
   void dispose() {
     _nominalController.dispose();
+    _nameController.dispose();
     _noteController.dispose();
+    _customCategoryController.dispose();
     super.dispose();
   }
 
@@ -241,7 +245,59 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 2. Kategori
+                  // 2. Nama Transaksi (opsional)
+                  Row(
+                    children: const [
+                      Icon(Icons.edit_note_outlined, size: 16, color: AppColors.textDark),
+                      SizedBox(width: 8),
+                      Text(
+                        'Nama Transaksi ',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      Text(
+                        '(opsional)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF8F5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: TextField(
+                      controller: _nameController,
+                      maxLength: 100,
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        border: InputBorder.none,
+                        counterText: '',
+                        hintText: 'Contoh: Makan siang, Uang saku...',
+                        hintStyle: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 3. Kategori
                   _buildLabel(Icons.local_offer_outlined, 'Kategori'),
                   const SizedBox(height: 8),
                   GestureDetector(
@@ -336,10 +392,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         TextField(
                           controller: _noteController,
                           maxLines: 3,
+                          maxLength: 100,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                             border: InputBorder.none,
+                            counterText: '',
                             hintText: 'Tambahkan catatan...',
                             hintStyle: TextStyle(
                               color: AppColors.textMuted,
@@ -349,7 +408,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '0/100',
+                          '${_noteController.text.length}/100',
                           style: TextStyle(
                             fontSize: 10,
                             color: AppColors.textMuted.withOpacity(0.7),
@@ -397,12 +456,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     return;
                   }
 
+                  final now = DateTime.now();
+                  final today = DateTime(now.year, now.month, now.day);
+                  final selectedDate =
+                      DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+                  if (selectedDate.isAfter(today)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tanggal transaksi tidak boleh melebihi hari ini.'),
+                      ),
+                    );
+                    return;
+                  }
+
                   final auth = Provider.of<AuthProvider>(context, listen: false);
                   final success = await auth.addTransaction(
                     type: isIncome ? 'income' : 'expense',
                     amount: amount,
                     category: _selectedCategory,
                     date: DateFormat('yyyy-MM-dd').format(_selectedDate),
+                    name: _nameController.text.trim(),
                     note: _noteController.text.trim(),
                   );
 
@@ -418,6 +491,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
                   final txMap = {
                     'category': _selectedCategory,
+                    'name': _nameController.text.trim(),
                     'amount': amount,
                     'isExpense': !isIncome,
                     'note': _noteController.text.trim(),
@@ -882,7 +956,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     if (result.date != null) {
-      _selectedDate = result.date!;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final scanned = DateTime(
+        result.date!.year,
+        result.date!.month,
+        result.date!.day,
+      );
+      _selectedDate = scanned.isAfter(today) ? today : scanned;
     }
 
     if (result.merchantName != null && result.merchantName!.isNotEmpty) {
@@ -956,11 +1037,21 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final currentSelected =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final initialDate = currentSelected.isAfter(today) ? today : currentSelected;
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: initialDate,
       firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      lastDate: today,
+      selectableDayPredicate: (day) {
+        final normalized = DateTime(day.year, day.month, day.day);
+        return !normalized.isAfter(today);
+      },
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -983,6 +1074,108 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       setState(() {
         _selectedDate = picked;
       });
+    }
+  }
+
+  Future<void> _showCreateCategoryDialog(BuildContext sheetContext) async {
+    final categoryType = isIncome ? 'income' : 'expense';
+    _customCategoryController.clear();
+
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          isIncome ? 'Tambah Kategori Pemasukan' : 'Tambah Kategori Pengeluaran',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        content: TextField(
+          controller: _customCategoryController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            hintText: 'Contoh: Uang Saku, Skincare, dll.',
+            filled: true,
+            fillColor: const Color(0xFFFAF8F5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5DDD5)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5DDD5)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primaryBrown),
+            ),
+          ),
+          onSubmitted: (value) => Navigator.pop(ctx, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, _customCategoryController.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBrown,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    final trimmed = (name ?? '').trim();
+    if (trimmed.isEmpty) return;
+
+    final exists = _categories.any(
+      (cat) =>
+          cat.name.trim().toLowerCase() == trimmed.toLowerCase() &&
+          cat.type.toUpperCase() == categoryType.toUpperCase(),
+    );
+    if (exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Kategori "$trimmed" sudah ada.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    final created = await ApiService.createCategory(
+      name: trimmed,
+      type: categoryType,
+    );
+    if (!mounted) return;
+
+    if (created == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ApiService.lastCategoryError ?? 'Gagal menambahkan kategori.'),
+          backgroundColor: AppColors.errorText,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _categories = [..._categories, created];
+      _selectedCategory = created.name;
+    });
+
+    if (sheetContext.mounted) {
+      Navigator.pop(sheetContext, created.name);
     }
   }
 
@@ -1065,6 +1258,66 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: InkWell(
+                      onTap: () => _showCreateCategoryDialog(context),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7F2),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE8CDBD)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5E6DB),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.add_rounded,
+                                size: 18,
+                                color: AppColors.primaryBrown,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Lainnya',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Tambah kategori ${isIncome ? 'pemasukan' : 'pengeluaran'} sendiri',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 20,
+                              color: AppColors.primaryBrown,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Expanded(
                     child: _isLoadingCategories
                         ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBrown))
@@ -1073,7 +1326,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 child: Padding(
                                   padding: EdgeInsets.all(24),
                                   child: Text(
-                                    'Kategori tidak ditemukan. Tambahkan kategori baru di menu Kelola Kategori.',
+                                    'Kategori tidak ditemukan. Ketuk "Lainnya" di atas untuk menambah kategori sendiri.',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(fontSize: 12, color: AppColors.textMuted),
                                   ),
